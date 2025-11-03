@@ -1,4 +1,18 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# YouTube Shorts Hacker 🎬
+
+YouTube Shorts 영상을 AI로 분석하여 성공 패턴을 찾고, 대본 제작 지침을 자동으로 생성해주는 도구입니다.
+
+**📖 [한국어 사용 가이드 보기](./USAGE_KR.md)**
+
+## Features
+
+- 🔍 **타 채널 분석**: 다른 채널의 Shorts 성공 패턴 분석
+- 📊 **내 채널 분석**: YouTube Analytics 기반 상세 성과 분석
+- 🤖 **AI 대본 분석**: Gemini AI로 자동 대본 구조 분석
+- 📝 **지침 자동 생성**: 맞춤형 대본 제작 가이드 생성
+- 📈 **성과 비교**: 잘된 영상 vs 부진한 영상 비교 분석
+
+---
 
 ## Getting Started
 
