@@ -1,9 +1,9 @@
-// YouTube API 기본 설정
-const API_KEY = process.env.NEXT_PUBLIC_YOUTUBE_API_KEY;
+//\app\api\youtube.ts
+// // YouTube API 기본 설정
 const BASE_URL = 'https://www.googleapis.com/youtube/v3';
 
 // 채널 ID 추출하기
-export async function getChannelId(channelUrl: string): Promise<string | null> {
+export async function getChannelId(channelUrl: string, apiKey: string): Promise<string | null> {
   try {
     // URL에서 채널 핸들(@username) 또는 ID 추출
     const handleMatch = channelUrl.match(/@([^\/\?]+)/);
@@ -13,7 +13,7 @@ export async function getChannelId(channelUrl: string): Promise<string | null> {
       // @username 형식
       const handle = handleMatch[1];
       const response = await fetch(
-        `${BASE_URL}/search?part=snippet&type=channel&q=${handle}&key=${API_KEY}`
+        `${BASE_URL}/search?part=snippet&type=channel&q=${handle}&key=${apiKey}`
       );
       const data = await response.json();
       
@@ -33,11 +33,11 @@ export async function getChannelId(channelUrl: string): Promise<string | null> {
 }
 
 // 채널의 쇼츠 영상 가져오기
-export async function getChannelShorts(channelId: string, maxResults: number = 50) {
+export async function getChannelShorts(channelId: string, apiKey: string, maxResults: number = 50) {
   try {
     // 1단계: 채널의 업로드 재생목록 ID 가져오기
     const channelResponse = await fetch(
-      `${BASE_URL}/channels?part=contentDetails&id=${channelId}&key=${API_KEY}`
+      `${BASE_URL}/channels?part=contentDetails&id=${channelId}&key=${apiKey}`
     );
     const channelData = await channelResponse.json();
     
@@ -49,7 +49,7 @@ export async function getChannelShorts(channelId: string, maxResults: number = 5
     
     // 2단계: 최근 업로드 영상 가져오기
     const playlistResponse = await fetch(
-      `${BASE_URL}/playlistItems?part=snippet,contentDetails&playlistId=${uploadsPlaylistId}&maxResults=${maxResults}&key=${API_KEY}`
+      `${BASE_URL}/playlistItems?part=snippet,contentDetails&playlistId=${uploadsPlaylistId}&maxResults=${maxResults}&key=${apiKey}`
     );
     const playlistData = await playlistResponse.json();
     
@@ -59,7 +59,7 @@ export async function getChannelShorts(channelId: string, maxResults: number = 5
       .join(',');
     
     const videosResponse = await fetch(
-      `${BASE_URL}/videos?part=snippet,statistics,contentDetails&id=${videoIds}&key=${API_KEY}`
+      `${BASE_URL}/videos?part=snippet,statistics,contentDetails&id=${videoIds}&key=${apiKey}`
     );
     const videosData = await videosResponse.json();
     
@@ -67,7 +67,7 @@ export async function getChannelShorts(channelId: string, maxResults: number = 5
     const shorts = videosData.items.filter((video: any) => {
       const duration = video.contentDetails.duration;
       const seconds = parseDuration(duration);
-      return seconds <= 60; // 60초 이하만
+      return seconds <= 61; // 60초 이하만
     });
     
     // 5단계: 필요한 정보만 추출
@@ -117,10 +117,10 @@ export function formatDate(dateString: string): string {
   return `${Math.floor(diffDays / 365)}년 전`;
 }
 
-// 자막 추출 함수 (API Route 호출) - ✅ 수정됨
+// 자막 추출 함수 (API Route 호출) - subtitle route는 API 키 필요 없음
 export async function getSubtitle(videoId: string): Promise<string | null> {
   try {
-    // GET 요청: URL 쿼리 파라미터로 전달
+    // GET 요청: videoId만 전달
     const response = await fetch(`/api/subtitle?videoId=${videoId}`);
 
     if (!response.ok) {
