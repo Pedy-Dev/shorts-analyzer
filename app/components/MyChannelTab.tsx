@@ -14,9 +14,9 @@ export default function MyChannelTab() {
   const [currentChannel, setCurrentChannel] = useState<any>(null);
   const [detailedAnalysisLoading, setDetailedAnalysisLoading] = useState(false);
   const [subtitleProgress, setSubtitleProgress] = useState({ current: 0, total: 0 });
-  const [selectedCount, setSelectedCount] = useState(20);  // 👈 개수 선택 state
+  const [selectedCount, setSelectedCount] = useState(20);
 
-  // 🔥 대본 모달 관련 state
+  // 대본 모달 관련 state
   const [isScriptModalOpen, setIsScriptModalOpen] = useState(false);
   const [selectedScript, setSelectedScript] = useState<{ title: string; script: string } | null>(null);
 
@@ -96,19 +96,19 @@ export default function MyChannelTab() {
     handleGoogleLogin();
   };
 
-  // 🔥 대본 모달 열기
+  // 대본 모달 열기
   const openScriptModal = (title: string, script: string) => {
     setSelectedScript({ title, script });
     setIsScriptModalOpen(true);
   };
 
-  // 🔥 대본 모달 닫기
+  // 대본 모달 닫기
   const closeScriptModal = () => {
     setIsScriptModalOpen(false);
     setSelectedScript(null);
   };
 
-  // 🔥 내 채널 영상 불러오기 (자막 포함 + 개수 제한)
+  // 내 채널 영상 불러오기 (자막 포함)
   const loadMyChannelVideos = async () => {
     setMyChannelLoading(true);
     setMyChannelData(null);
@@ -127,11 +127,9 @@ export default function MyChannelTab() {
       const analyticsData = await analyticsResponse.json();
       console.log('✅ 데이터 수집 완료:', analyticsData.videos.length + '개 영상');
 
-      // 🔥 선택한 개수만큼만 가져오기
       const limitedVideos = analyticsData.videos.slice(0, selectedCount);
       console.log(`📌 ${selectedCount}개로 제한: ${limitedVideos.length}개 영상`);
 
-      // 🔥 자막 수집 시작!
       console.log('📌 자막 수집 중...');
       setSubtitleProgress({ current: 0, total: limitedVideos.length });
 
@@ -160,7 +158,6 @@ export default function MyChannelTab() {
 
       console.log('✅ 모든 자막 수집 완료!');
 
-      // 자막이 추가된 영상 데이터로 업데이트
       setMyChannelData({
         ...analyticsData,
         videos: videosWithSubtitles,
@@ -180,7 +177,7 @@ export default function MyChannelTab() {
     }
   };
 
-  // 채널 성과 정밀 분석 (Gemini)
+  // ⭐ 채널 성과 분석
   const analyzeChannelPerformance = async () => {
     const geminiApiKey = localStorage.getItem('gemini_api_key');
 
@@ -198,7 +195,7 @@ export default function MyChannelTab() {
     setMyChannelAnalysis(null);
 
     try {
-      console.log('🤖 Gemini 정밀 분석 시작...');
+      console.log('🤖 채널 성과 분석 시작 (조회수 기준 상위/하위 비교 + 대본 분석)...');
       const analysisResponse = await fetch('/api/analyze-performance', {
         method: 'POST',
         headers: {
@@ -217,9 +214,8 @@ export default function MyChannelTab() {
       }
 
       const analysisResult = await analysisResponse.json();
-      console.log('✅ Gemini 분석 완료!');
+      console.log('✅ 채널 성과 분석 완료!');
 
-      // JSON 파싱 처리
       if (analysisResult.llm_json_ok) {
         setMyChannelAnalysis(analysisResult.llm);
       } else {
@@ -257,23 +253,30 @@ export default function MyChannelTab() {
             </div>
           )}
 
-          <button
-            onClick={handleGoogleLogin}
-            disabled={isLoginLoading}
-            className="px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center gap-2 mx-auto transition-colors"
-          >
-            {isLoginLoading ? (
-              <>
-                <Loader2 className="w-5 h-5 animate-spin" />
-                로그인 중...
-              </>
-            ) : (
-              <>
-                <Youtube className="w-5 h-5" />
-                Google 계정으로 로그인
-              </>
-            )}
-          </button>
+          {authStatus.includes('✅') ? (
+            <div className="flex items-center justify-center gap-2 text-green-600 py-3">
+              <Loader2 className="w-5 h-5 animate-spin" />
+              <span className="font-medium">채널 정보를 불러오는 중...</span>
+            </div>
+          ) : (
+            <button
+              onClick={handleGoogleLogin}
+              disabled={isLoginLoading}
+              className="px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center gap-2 mx-auto transition-colors"
+            >
+              {isLoginLoading ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  로그인 중...
+                </>
+              ) : (
+                <>
+                  <Youtube className="w-5 h-5" />
+                  Google 계정으로 로그인
+                </>
+              )}
+            </button>
+          )}
         </div>
       ) : (
         <>
@@ -304,7 +307,7 @@ export default function MyChannelTab() {
               </button>
             </div>
 
-            {/* 🔥 개수 선택 + 분석 버튼 */}
+            {/* 개수 선택 + 분석 버튼 */}
             <div className="flex gap-3">
               <select
                 value={selectedCount}
@@ -338,7 +341,7 @@ export default function MyChannelTab() {
               </button>
             </div>
 
-            {/* 🔥 자막 수집 진행 상황 표시 */}
+            {/* 자막 수집 진행 상황 */}
             {subtitleProgress.total > 0 && (
               <div className="mt-4">
                 <div className="flex justify-between text-sm text-gray-600 mb-2">
@@ -355,34 +358,357 @@ export default function MyChannelTab() {
             )}
           </div>
 
-          {/* 영상 리스트 */}
+          {/* ⭐ 성과 분석 버튼 (영상이 있을 때만) */}
           {myChannelData && myChannelData.videos && (
             <div className="bg-white rounded-lg shadow-lg p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-2xl font-bold text-gray-900">
-                  📊 영상 분석 결과 ({myChannelData.videos.length}개)
-                </h3>
+              <button
+  onClick={analyzeChannelPerformance}
+  disabled={detailedAnalysisLoading}
+  className="w-full px-6 py-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:from-purple-700 hover:to-pink-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-colors text-lg font-bold"
+>
+                {detailedAnalysisLoading ? (
+                  <>
+                    <Loader2 className="w-6 h-6 animate-spin" />
+                    채널 성과 분석 중...
+                  </>
+                ) : (
+                  <>
+                    🔬 채널 성과 분석
+                  </>
+                )}
+              </button>
+            </div>
+          )}
 
-                <button
-                  onClick={analyzeChannelPerformance}
-                  disabled={true}  // 👈 항상 비활성화
-                  className="px-6 py-3 bg-gray-400 text-gray-300 rounded-lg cursor-not-allowed flex items-center gap-2 transition-colors"
-                  title="준비 중입니다"  // 👈 마우스 올렸을 때 설명
-                >
-                  {detailedAnalysisLoading ? (
-                    <>
-                      <Loader2 className="w-5 h-5 animate-spin" />
-                      정밀 분석 중...
-                    </>
-                  ) : (
-                    <>
-                      🔍 채널 성과 정밀 분석
-                    </>
-                  )}
-                </button>
-              </div>
+          {/* ⭐⭐⭐ 분석 결과 (영상 리스트 위에 표시!) ⭐⭐⭐ */}
+          {myChannelAnalysis && (
+            <div className="space-y-6">
+              {/* Summary */}
+              {myChannelAnalysis.summary && myChannelAnalysis.summary.length > 0 && (
+                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg shadow-lg p-6 border-2 border-blue-200">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+                      📋 핵심 인사이트
+                    </h3>
+                    <button
+                      onClick={() => {
+                        const insightText = myChannelAnalysis.summary.join('\n\n');
+                        navigator.clipboard.writeText(insightText);
+                        alert('📋 핵심 인사이트가 클립보드에 복사되었습니다!');
+                      }}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 flex items-center gap-2"
+                    >
+                      📋 복사하기
+                    </button>
+                  </div>
+                  <div className="space-y-2">
+                    {myChannelAnalysis.summary.map((item: string, i: number) => (
+                      <p key={i} className="text-gray-800 text-lg leading-relaxed">• {item}</p>
+                    ))}
+                  </div>
+                </div>
+              )}
 
-              {/* 영상 테이블 */}
+              {/* 상위/하위 그룹 영상 리스트 */}
+              {myChannelAnalysis.top_group_videos && myChannelAnalysis.bottom_group_videos && (
+                <div className="bg-white rounded-lg shadow-lg p-6 border-2 border-gray-200">
+                  <h3 className="text-2xl font-bold text-gray-900 mb-4">📊 성과 그룹 비교</h3>
+
+                  <div className="grid md:grid-cols-2 gap-6">
+                    {/* 상위 그룹 */}
+                    <div className="border-2 border-green-200 rounded-lg p-4">
+                      <h4 className="font-bold text-green-600 mb-3">✅ 상위 그룹 영상</h4>
+                      <div className="space-y-2">
+                        {myChannelAnalysis.top_group_videos.map((video: any, i: number) => (
+                          <div key={i} className="bg-green-50 p-3 rounded-lg">
+                            <p className="font-medium text-gray-900 text-sm mb-1 line-clamp-1">{video.title}</p>
+                            <div className="flex justify-between text-xs text-gray-600">
+                              <span>조회수: {video.views.toLocaleString()}</span>
+                              <span>유효: {video.engaged_views.toLocaleString()}</span>
+                              <span className="font-bold text-green-600">지속률: {(video.avg_view_pct * 100).toFixed(1)}%</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* 하위 그룹 */}
+                    <div className="border-2 border-red-200 rounded-lg p-4">
+                      <h4 className="font-bold text-red-600 mb-3">❌ 하위 그룹 영상</h4>
+                      <div className="space-y-2">
+                        {myChannelAnalysis.bottom_group_videos.map((video: any, i: number) => (
+                          <div key={i} className="bg-red-50 p-3 rounded-lg">
+                            <p className="font-medium text-gray-900 text-sm mb-1 line-clamp-1">{video.title}</p>
+                            <div className="flex justify-between text-xs text-gray-600">
+                              <span>조회수: {video.views.toLocaleString()}</span>
+                              <span>유효: {video.engaged_views.toLocaleString()}</span>
+                              <span className="font-bold text-red-600">지속률: {(video.avg_view_pct * 100).toFixed(1)}%</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* 상위 그룹 패턴 */}
+              {myChannelAnalysis.top_group_patterns && (
+                <div className="bg-white rounded-lg shadow-lg p-6 border-2 border-green-200">
+                  <h3 className="text-2xl font-bold text-green-600 mb-4">✅ 상위 그룹 (조회수 높은 영상들의 공통점)</h3>
+
+                  <div className="space-y-4">
+                    <div className="bg-green-50 p-4 rounded-lg">
+                      <p className="font-bold text-gray-900 mb-2">🎬 첫 3초 패턴</p>
+                      <p className="text-gray-800">{myChannelAnalysis.top_group_patterns.first_3_seconds}</p>
+                    </div>
+
+                    <div className="bg-green-50 p-4 rounded-lg">
+                      <p className="font-bold text-gray-900 mb-2">📖 스토리 구조</p>
+                      <p className="text-gray-800">{myChannelAnalysis.top_group_patterns.story_structure}</p>
+                    </div>
+
+                    <div className="bg-green-50 p-4 rounded-lg">
+                      <p className="font-bold text-gray-900 mb-2">💭 감정 유발 요소</p>
+                      <div className="flex flex-wrap gap-2">
+                        {myChannelAnalysis.top_group_patterns.emotion_triggers.map((emotion: string, i: number) => (
+                          <span key={i} className="px-3 py-1 bg-white text-green-700 rounded-full text-sm border border-green-300">
+                            {emotion}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="bg-green-50 p-4 rounded-lg">
+                      <p className="font-bold text-gray-900 mb-2">💬 자주 쓰이는 핵심 문구</p>
+                      <div className="flex flex-wrap gap-2">
+                        {myChannelAnalysis.top_group_patterns.key_phrases.map((phrase: string, i: number) => (
+                          <span key={i} className="px-3 py-1 bg-white text-green-700 rounded-lg text-sm border border-green-300 font-medium">
+                            "{phrase}"
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="bg-green-50 p-4 rounded-lg">
+                      <p className="font-bold text-gray-900 mb-2">🎯 마무리 방식</p>
+                      <p className="text-gray-800">{myChannelAnalysis.top_group_patterns.ending_style}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* 하위 그룹 약점 */}
+              {myChannelAnalysis.bottom_group_weaknesses && (
+                <div className="bg-white rounded-lg shadow-lg p-6 border-2 border-red-200">
+                  <h3 className="text-2xl font-bold text-red-600 mb-4">⚠️ 하위 그룹 (조회수 낮은 영상들의 문제점)</h3>
+
+                  <div className="space-y-4">
+                    <div className="bg-red-50 p-4 rounded-lg">
+                      <p className="font-bold text-gray-900 mb-2">❌ 첫 3초 약점</p>
+                      <p className="text-gray-800">{myChannelAnalysis.bottom_group_weaknesses.first_3_seconds}</p>
+                    </div>
+
+                    <div className="bg-red-50 p-4 rounded-lg">
+                      <p className="font-bold text-gray-900 mb-2">❌ 전개 약점</p>
+                      <p className="text-gray-800">{myChannelAnalysis.bottom_group_weaknesses.story_structure}</p>
+                    </div>
+
+                    <div className="bg-red-50 p-4 rounded-lg">
+                      <p className="font-bold text-gray-900 mb-2">❌ 놓치고 있는 요소</p>
+                      <ul className="space-y-2">
+                        {myChannelAnalysis.bottom_group_weaknesses.missing_elements.map((element: string, i: number) => (
+                          <li key={i} className="text-gray-800 flex items-start gap-2">
+                            <span className="text-red-600 mt-0.5">▪</span>
+                            <span>{element}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* 영상별 상세 분석 */}
+              {myChannelAnalysis.video_analysis && myChannelAnalysis.video_analysis.length > 0 && (
+                <div className="bg-gradient-to-r from-orange-50 to-yellow-50 rounded-lg shadow-lg p-6 border-2 border-orange-200">
+                  <h3 className="text-2xl font-bold text-orange-600 mb-6">🎯 영상별 구체적 개선안</h3>
+                  <div className="space-y-6">
+                    {myChannelAnalysis.video_analysis.map((video: any, i: number) => (
+                      <div key={i} className="bg-white rounded-lg p-5 border-2 border-orange-300">
+                        {/* 제목 + 타입 */}
+                        <div className="flex items-start justify-between mb-4">
+                          <h4 className="font-bold text-gray-900 text-lg flex-1">{video.title}</h4>
+                          <span className={`px-3 py-1 rounded-full text-sm font-bold whitespace-nowrap ml-3 ${
+                            video.type === '대박형' ? 'bg-yellow-100 text-yellow-800' :
+                            video.type === '알고리즘선호형' ? 'bg-blue-100 text-blue-800' :
+                            video.type === '숨은보석형' ? 'bg-purple-100 text-purple-800' :
+                            'bg-gray-100 text-gray-800'
+                          }`}>
+                            {video.type}
+                          </span>
+                        </div>
+
+                        {/* 현재 성과 - 8개 지표 */}
+                        <div className="grid grid-cols-4 gap-2 mb-4 text-center text-sm">
+                          <div className="bg-gray-50 p-2 rounded">
+                            <p className="text-xs text-gray-600">조회수</p>
+                            <p className="font-bold text-gray-900">{video.current_performance.views.toLocaleString()}</p>
+                          </div>
+                          <div className="bg-gray-50 p-2 rounded">
+                            <p className="text-xs text-gray-600">유효조회</p>
+                            <p className="font-bold text-gray-900">{video.current_performance.engaged_views.toLocaleString()}</p>
+                          </div>
+                          <div className="bg-gray-50 p-2 rounded">
+                            <p className="text-xs text-gray-600">좋아요</p>
+                            <p className="font-bold text-gray-900">{video.current_performance.likes.toLocaleString()}</p>
+                          </div>
+                          <div className="bg-gray-50 p-2 rounded">
+                            <p className="text-xs text-gray-600">댓글</p>
+                            <p className="font-bold text-gray-900">{video.current_performance.comments.toLocaleString()}</p>
+                          </div>
+                          <div className="bg-gray-50 p-2 rounded">
+                            <p className="text-xs text-gray-600">공유</p>
+                            <p className="font-bold text-gray-900">{video.current_performance.shares.toLocaleString()}</p>
+                          </div>
+                          <div className="bg-gray-50 p-2 rounded">
+                            <p className="text-xs text-gray-600">시청 지속률</p>
+                            <p className="font-bold text-gray-900">{(video.current_performance.avg_view_pct * 100).toFixed(1)}%</p>
+                          </div>
+                          <div className="bg-gray-50 p-2 rounded">
+                            <p className="text-xs text-gray-600">바이럴</p>
+                            <p className="font-bold text-gray-900">{(video.current_performance.viral_index * 100).toFixed(1)}%</p>
+                          </div>
+                          <div className="bg-gray-50 p-2 rounded">
+                            <p className="text-xs text-gray-600">구독전환</p>
+                            <p className="font-bold text-gray-900">{(video.current_performance.subscriber_conversion_rate * 100).toFixed(3)}%</p>
+                          </div>
+                        </div>
+
+                        {/* 진단 */}
+                        <div className="mb-4 p-3 bg-blue-50 rounded-lg">
+                          <p className="font-semibold text-blue-900 mb-1">📊 진단</p>
+                          <p className="text-gray-800 text-sm">{video.diagnosis}</p>
+                        </div>
+
+                        {/* 시청 지속률 피드백 */}
+                        {video.retention_feedback && (
+                          <div className="mb-4 p-3 bg-yellow-50 rounded-lg">
+                            <p className="font-semibold text-yellow-900 mb-1">📈 시청 지속률 피드백</p>
+                            <p className="text-gray-800 text-sm">{video.retention_feedback}</p>
+                          </div>
+                        )}
+
+                        {/* 시작 패턴 분석 */}
+                        {video.opening_pattern_analysis && (
+                          <div className="mb-4 p-3 bg-purple-50 rounded-lg">
+                            <p className="font-semibold text-purple-900 mb-1">🎬 시작 패턴 분석</p>
+                            <p className="text-gray-800 text-sm">{video.opening_pattern_analysis}</p>
+                          </div>
+                        )}
+
+                        {/* 주요 문제점 */}
+                        <div className="mb-4">
+                          <p className="font-semibold text-gray-900 mb-2">🚨 주요 문제점</p>
+                          <ul className="space-y-1">
+                            {video.main_issues.map((issue: string, j: number) => (
+                              <li key={j} className="text-gray-700 text-sm flex items-start gap-2">
+                                <span className="text-red-500 mt-0.5">▪</span>
+                                <span>{issue}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+
+                        {/* 대본 개선안 */}
+                        <div className="space-y-3">
+                          <p className="font-semibold text-gray-900">📝 대본 개선안</p>
+                          {video.script_improvements.map((improvement: any, j: number) => (
+                            <div key={j} className="bg-orange-50 p-4 rounded-lg">
+                              <p className="font-semibold text-orange-900 mb-3 text-sm">
+                                [{improvement.section}]
+                              </p>
+
+                              <div className="grid md:grid-cols-2 gap-3 mb-3">
+                                <div>
+                                  <p className="text-xs text-gray-600 mb-1">❌ 현재 대본</p>
+                                  <p className="text-sm text-gray-800 bg-white p-3 rounded border-l-4 border-red-400">
+                                    "{improvement.current_script}"
+                                  </p>
+                                </div>
+                                <div>
+                                  <p className="text-xs text-gray-600 mb-1">✅ 개선 대본</p>
+                                  <p className="text-sm text-gray-800 bg-white p-3 rounded border-l-4 border-green-400 font-medium">
+                                    "{improvement.improved_script}"
+                                  </p>
+                                </div>
+                              </div>
+
+                              <div className="bg-white p-3 rounded">
+                                <p className="text-xs text-gray-600 mb-1">💡 개선 이유</p>
+                                <p className="text-sm text-gray-700">{improvement.why}</p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* 예상 효과 */}
+                        <div className="mt-4 p-3 bg-green-50 rounded-lg">
+                          <p className="text-sm text-green-800">
+                            <strong>📈 예상 효과:</strong> {video.expected_result}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* 실행 계획 */}
+              {myChannelAnalysis.action_plan && (
+                <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg shadow-lg p-6 border-2 border-purple-200">
+                  <h3 className="text-2xl font-bold text-purple-600 mb-4">📋 실행 계획</h3>
+                  <div className="space-y-4">
+                    <div className="flex items-start gap-3">
+                      <div className="flex-shrink-0 w-10 h-10 bg-red-500 text-white rounded-full flex items-center justify-center font-bold text-lg">
+                        1
+                      </div>
+                      <div className="flex-1 bg-white p-4 rounded-lg">
+                        <p className="font-bold text-red-600 mb-2">🔥 지금 당장</p>
+                        <p className="text-gray-800">{myChannelAnalysis.action_plan.immediate}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <div className="flex-shrink-0 w-10 h-10 bg-orange-500 text-white rounded-full flex items-center justify-center font-bold text-lg">
+                        2
+                      </div>
+                      <div className="flex-1 bg-white p-4 rounded-lg">
+                        <p className="font-bold text-orange-600 mb-2">📅 이번 주 내</p>
+                        <p className="text-gray-800">{myChannelAnalysis.action_plan.short_term}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <div className="flex-shrink-0 w-10 h-10 bg-blue-500 text-white rounded-full flex items-center justify-center font-bold text-lg">
+                        3
+                      </div>
+                      <div className="flex-1 bg-white p-4 rounded-lg">
+                        <p className="font-bold text-blue-600 mb-2">🎯 한 달 안에</p>
+                        <p className="text-gray-800">{myChannelAnalysis.action_plan.long_term}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* 영상 테이블 (분석 결과 아래에 표시) */}
+          {myChannelData && myChannelData.videos && (
+            <div className="bg-white rounded-lg shadow-lg p-6">
+              <h3 className="text-2xl font-bold text-gray-900 mb-4">
+                📊 영상 데이터 ({myChannelData.videos.length}개)
+              </h3>
+
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead className="bg-gray-100 border-b-2 border-gray-200">
@@ -394,8 +720,7 @@ export default function MyChannelTab() {
                       <th className="px-4 py-3 text-center font-semibold text-gray-700">좋아요</th>
                       <th className="px-4 py-3 text-center font-semibold text-gray-700">댓글</th>
                       <th className="px-4 py-3 text-center font-semibold text-gray-700">공유</th>
-                      <th className="px-4 py-3 text-center font-semibold text-gray-700">평균<br />시청시간</th>
-                      <th className="px-4 py-3 text-center font-semibold text-gray-700">평균 조회율</th>
+                      <th className="px-4 py-3 text-center font-semibold text-gray-700">평균<br />조회율</th>
                       <th className="px-4 py-3 text-center font-semibold text-gray-700">구독자<br />증가</th>
                     </tr>
                   </thead>
@@ -403,7 +728,6 @@ export default function MyChannelTab() {
                     {myChannelData.videos.map((video: any, index: number) => (
                       <Fragment key={index}>
                         <tr className="hover:bg-gray-50">
-                          {/* 영상 정보 */}
                           <td className="px-4 py-3">
                             <div className="flex items-start gap-3">
                               <img
@@ -419,7 +743,6 @@ export default function MyChannelTab() {
                                   <p className="text-xs text-gray-500">
                                     {video.days_since_upload}일 전
                                   </p>
-                                  {/* 🔥 대본 보기 버튼 */}
                                   {video.script && video.script !== '자막이 없습니다' && video.script !== '자막 추출 실패' && (
                                     <>
                                       <span className="text-gray-300">·</span>
@@ -427,7 +750,7 @@ export default function MyChannelTab() {
                                         onClick={() => openScriptModal(video.title, video.script)}
                                         className="text-xs text-blue-600 hover:text-blue-800 hover:underline"
                                       >
-                                        📝 대본 보기
+                                        📄 대본 보기
                                       </button>
                                     </>
                                   )}
@@ -436,56 +759,40 @@ export default function MyChannelTab() {
                             </div>
                           </td>
 
-                          {/* 길이 */}
                           <td className="px-4 py-3 text-center">
                             <p className="text-gray-700">{video.duration}초</p>
                           </td>
 
-                          {/* 조회수 */}
                           <td className="px-4 py-3 text-center">
                             <p className="font-semibold text-gray-900">
                               {video.views?.toLocaleString() || '0'}
                             </p>
                           </td>
 
-                          {/* 유효조회수 */}
                           <td className="px-4 py-3 text-center">
                             <p className="font-semibold text-blue-600">
                               {video.engagedViews?.toLocaleString() || '-'}
                             </p>
                           </td>
 
-                          {/* 좋아요 */}
                           <td className="px-4 py-3 text-center">
                             <p className="text-gray-700">
                               {video.likes.toLocaleString()}
                             </p>
                           </td>
 
-                          {/* 댓글 */}
                           <td className="px-4 py-3 text-center">
                             <p className="text-gray-700">
                               {video.comments.toLocaleString()}
                             </p>
                           </td>
 
-                          {/* 공유 */}
                           <td className="px-4 py-3 text-center">
                             <p className="text-gray-700">
                               {video.shares.toLocaleString()}
                             </p>
                           </td>
 
-                          {/* 평균 시청시간 */}
-                          <td className="px-4 py-3 text-center">
-                            <p className="text-gray-700">
-                              {video.averageViewDuration !== null
-                                ? video.averageViewDuration.toFixed(1) + '초'
-                                : '-'}
-                            </p>
-                          </td>
-
-                          {/* 평균 조회율 */}
                           <td className="px-4 py-3 text-center">
                             <p className="text-gray-700">
                               {video.averageViewPercentage !== null
@@ -494,7 +801,6 @@ export default function MyChannelTab() {
                             </p>
                           </td>
 
-                          {/* 구독자 증가 */}
                           <td className="px-4 py-3 text-center">
                             <p className="text-gray-700">
                               {video.subscribersGained > 0 ? '+' : ''}
@@ -510,19 +816,15 @@ export default function MyChannelTab() {
             </div>
           )}
 
-          {/* 🔥 대본 모달 */}
+          {/* 대본 모달 */}
           {isScriptModalOpen && selectedScript && (
             <>
-              {/* 배경 어둡게 */}
               <div
                 className="fixed inset-0 bg-black bg-opacity-50 z-40"
                 onClick={closeScriptModal}
               />
-
-              {/* 모달 창 */}
               <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50 w-full max-w-2xl max-h-[80vh]">
                 <div className="bg-white rounded-xl shadow-2xl mx-4">
-                  {/* 헤더 */}
                   <div className="flex items-start justify-between p-6 border-b">
                     <div className="flex-1 pr-4">
                       <h3 className="text-lg font-bold text-gray-900 break-words">
@@ -537,15 +839,11 @@ export default function MyChannelTab() {
                       <X size={24} />
                     </button>
                   </div>
-
-                  {/* 대본 내용 */}
                   <div className="p-6 overflow-y-auto max-h-[60vh]">
                     <p className="text-gray-800 leading-relaxed break-words whitespace-normal">
                       {selectedScript.script}
                     </p>
                   </div>
-
-                  {/* 닫기 버튼 */}
                   <div className="p-6 border-t">
                     <button
                       onClick={closeScriptModal}
@@ -558,194 +856,8 @@ export default function MyChannelTab() {
               </div>
             </>
           )}
-
-          {/* 정밀 분석 결과 */}
-          {myChannelAnalysis && (
-            <div className="space-y-6">
-              {/* Summary */}
-              {myChannelAnalysis.summary && myChannelAnalysis.summary.length > 0 && (
-                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg shadow-lg p-6">
-                  <h3 className="text-2xl font-bold text-gray-900 mb-4">📋 종합 요약</h3>
-                  <div className="space-y-2">
-                    {myChannelAnalysis.summary.map((item: string, i: number) => (
-                      <p key={i} className="text-gray-800">• {item}</p>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Top Videos */}
-              {myChannelAnalysis.top_videos && myChannelAnalysis.top_videos.length > 0 && (
-                <div className="bg-white rounded-lg shadow-lg p-6">
-                  <h3 className="text-2xl font-bold text-gray-900 mb-4">🏆 성과 우수 영상</h3>
-                  <div className="space-y-4">
-                    {myChannelAnalysis.top_videos.map((video: any, i: number) => (
-                      <div key={i} className="border-l-4 border-green-500 bg-green-50 rounded-lg p-4">
-                        <h4 className="font-bold text-gray-900 mb-2">{video.title}</h4>
-                        <div className="grid grid-cols-4 gap-2 mb-2 text-sm">
-                          <div className="text-center">
-                            <p className="text-xs text-gray-700">CTR</p>
-                            <p className="font-bold text-green-600">
-                              {(video.key_metrics.ctr_proxy * 100).toFixed(1)}%
-                            </p>
-                          </div>
-                          <div className="text-center">
-                            <p className="text-xs text-gray-700">시청률</p>
-                            <p className="font-bold text-green-600">
-                              {(video.key_metrics.avg_view_pct * 100).toFixed(1)}%
-                            </p>
-                          </div>
-                          <div className="text-center">
-                            <p className="text-xs text-gray-700">참여율</p>
-                            <p className="font-bold text-green-600">
-                              {(video.key_metrics.engagement_rate * 100).toFixed(1)}%
-                            </p>
-                          </div>
-                          <div className="text-center">
-                            <p className="text-xs text-gray-700">조회수</p>
-                            <p className="font-bold text-green-600">
-                              {video.key_metrics.views.toLocaleString()}
-                            </p>
-                          </div>
-                        </div>
-                        <p className="text-sm text-gray-800">
-                          <strong>성공 요인:</strong> {video.why_it_worked}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Bottom Videos */}
-              {myChannelAnalysis.bottom_videos && myChannelAnalysis.bottom_videos.length > 0 && (
-                <div className="bg-white rounded-lg shadow-lg p-6">
-                  <h3 className="text-2xl font-bold text-gray-900 mb-4">📉 개선 필요 영상</h3>
-                  <div className="space-y-4">
-                    {myChannelAnalysis.bottom_videos.map((video: any, i: number) => (
-                      <div key={i} className="border-l-4 border-red-500 bg-red-50 rounded-lg p-4">
-                        <h4 className="font-bold text-gray-900 mb-2">{video.title}</h4>
-                        <div className="grid grid-cols-4 gap-2 mb-2 text-sm">
-                          <div className="text-center">
-                            <p className="text-xs text-gray-700">CTR</p>
-                            <p className="font-bold text-red-600">
-                              {(video.key_metrics.ctr_proxy * 100).toFixed(1)}%
-                            </p>
-                          </div>
-                          <div className="text-center">
-                            <p className="text-xs text-gray-700">시청률</p>
-                            <p className="font-bold text-red-600">
-                              {(video.key_metrics.avg_view_pct * 100).toFixed(1)}%
-                            </p>
-                          </div>
-                          <div className="text-center">
-                            <p className="text-xs text-gray-700">참여율</p>
-                            <p className="font-bold text-red-600">
-                              {(video.key_metrics.engagement_rate * 100).toFixed(1)}%
-                            </p>
-                          </div>
-                          <div className="text-center">
-                            <p className="text-xs text-gray-700">조회수</p>
-                            <p className="font-bold text-red-600">
-                              {video.key_metrics.views.toLocaleString()}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="mb-2">
-                          <span className={`inline-block px-2 py-1 rounded text-xs font-medium ${video.main_issue === 'entry' ? 'bg-red-200 text-red-800' :
-                            video.main_issue === 'completion' ? 'bg-orange-200 text-orange-800' :
-                              'bg-yellow-200 text-yellow-800'
-                            }`}>
-                            {video.main_issue === 'entry' ? '진입력' :
-                              video.main_issue === 'completion' ? '완주력' : '참여력'} 문제
-                          </span>
-                        </div>
-                        <div className="text-sm text-gray-800">
-                          <strong>개선 방안:</strong>
-                          <ul className="list-disc list-inside mt-1 space-y-1">
-                            {video.fix_suggestions.map((suggestion: string, j: number) => (
-                              <li key={j}>{suggestion}</li>
-                            ))}
-                          </ul>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Experiments */}
-              {myChannelAnalysis.experiments_top5 && myChannelAnalysis.experiments_top5.length > 0 && (
-                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg shadow-lg p-6">
-                  <h3 className="text-2xl font-bold text-gray-900 mb-4">💡 실험 제안 TOP 5</h3>
-                  <div className="space-y-4">
-                    {myChannelAnalysis.experiments_top5.map((exp: any, i: number) => (
-                      <div key={i} className="bg-white rounded-lg p-4 border border-indigo-200">
-                        <div className="flex items-start gap-3">
-                          <div className="flex-shrink-0 w-8 h-8 bg-indigo-600 text-white rounded-full flex items-center justify-center font-bold">
-                            {i + 1}
-                          </div>
-                          <div className="flex-1">
-                            <h4 className="font-bold text-gray-900 mb-2">{exp.name}</h4>
-                            <div className="grid md:grid-cols-3 gap-2 text-sm mb-2">
-                              <div>
-                                <span className="text-gray-700">대상: </span>
-                                <span className="font-medium text-gray-900">{exp.target}</span>
-                              </div>
-                              <div>
-                                <span className="text-gray-700">기대 효과: </span>
-                                <span className="font-medium text-green-600">{exp.expected_gain}</span>
-                              </div>
-                            </div>
-                            <p className="text-sm text-gray-800">
-                              <strong>방법:</strong> {exp.how}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* C Adjustment Suggestion */}
-              {myChannelAnalysis.c_adjust_suggestion && (
-                <div className="bg-white rounded-lg shadow-lg p-6">
-                  <h3 className="text-2xl font-bold text-gray-900 mb-4">⚙️ 계수 조정 제안</h3>
-                  <div className="bg-gray-50 rounded-lg p-4">
-                    <div className="flex items-center gap-4 mb-2">
-                      <span className="text-gray-700">Delta C:</span>
-                      <span className={`text-2xl font-bold ${myChannelAnalysis.c_adjust_suggestion.delta_c > 0 ? 'text-green-600' :
-                        myChannelAnalysis.c_adjust_suggestion.delta_c < 0 ? 'text-red-600' :
-                          'text-gray-600'
-                        }`}>
-                        {myChannelAnalysis.c_adjust_suggestion.delta_c > 0 ? '+' : ''}
-                        {myChannelAnalysis.c_adjust_suggestion.delta_c.toFixed(2)}
-                      </span>
-                    </div>
-                    <p className="text-sm text-gray-800">
-                      {myChannelAnalysis.c_adjust_suggestion.reason}
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              {/* Raw JSON (개발자용 - 나중에 삭제 가능) */}
-              <div className="bg-gray-100 rounded-lg p-4">
-                <details>
-                  <summary className="cursor-pointer font-medium text-gray-900 mb-2">
-                    🔧 개발자 모드 (JSON 데이터)
-                  </summary>
-                  <pre className="text-xs text-gray-800 overflow-x-auto">
-                    {JSON.stringify(myChannelAnalysis, null, 2)}
-                  </pre>
-                </details>
-              </div>
-            </div>
-          )}
         </>
-      )
-      }
-    </div >
+      )}
+    </div>
   );
 }
