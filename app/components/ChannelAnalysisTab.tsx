@@ -541,7 +541,7 @@ export default function ChannelAnalysisTab() {
 
             <div className="space-y-4">
               {analysisResult.performance_gap?.top_strengths?.map((strength: any, i: number) => (
-                <details key={i} className="border-l-4 border-green-500 bg-green-50 rounded-lg p-4" open={i === 0}>
+                <details key={i} className="border-l-4 border-green-500 bg-green-50 rounded-lg p-4" open>
                   <summary className="cursor-pointer font-bold text-green-900 flex items-center gap-2">
                     <span className="text-2xl">✅</span>
                     <span>{strength.feature}</span>
@@ -573,7 +573,7 @@ export default function ChannelAnalysisTab() {
 
             <div className="space-y-4">
               {analysisResult.performance_gap?.bottom_weaknesses?.map((weakness: any, i: number) => (
-                <details key={i} className="border-l-4 border-red-500 bg-red-50 rounded-lg p-4">
+                <details key={i} className="border-l-4 border-red-500 bg-red-50 rounded-lg p-4" open>
                   <summary className="cursor-pointer font-bold text-red-900 flex items-center gap-2">
                     <span className="text-2xl">❌</span>
                     <span>{weakness.feature}</span>

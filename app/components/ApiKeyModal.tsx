@@ -33,7 +33,7 @@ export default function ApiKeyModal({ isOpen, onClose }: ApiKeyModalProps) {
     // localStorage에 저장
     localStorage.setItem('youtube_api_key', youtubeKey.trim());
     localStorage.setItem('gemini_api_key', geminiKey.trim());
-    
+
     alert('✅ API 키가 저장되었습니다!');
     onClose();
   };
@@ -44,11 +44,11 @@ export default function ApiKeyModal({ isOpen, onClose }: ApiKeyModalProps) {
   return (
     <>
       {/* 배경 어둡게 */}
-      <div 
+      <div
         className="fixed inset-0 bg-black bg-opacity-50 z-40"
         onClick={onClose}
       />
-      
+
       {/* 모달 창 */}
       <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50 w-full max-w-lg">
         <div className="bg-white rounded-xl shadow-2xl p-6 mx-4">
@@ -69,7 +69,7 @@ export default function ApiKeyModal({ isOpen, onClose }: ApiKeyModalProps) {
           {/* 설명 */}
           <div className="bg-blue-50 rounded-lg p-4 mb-6">
             <p className="text-sm text-gray-700 leading-relaxed">
-              🔒 API 키는 <strong>브라우저에만</strong> 저장되며, 서버로 전송되지 않습니다.<br/>
+              🔒 API 키는 <strong>브라우저에만</strong> 저장되며, 서버로 전송되지 않습니다.<br />
               💡 두 API 모두 <strong>무료</strong>로 발급받을 수 있습니다!
             </p>
           </div>
@@ -86,7 +86,7 @@ export default function ApiKeyModal({ isOpen, onClose }: ApiKeyModalProps) {
                 rel="noopener noreferrer"
                 className="text-xs text-blue-600 hover:text-blue-800 flex items-center gap-1"
               >
-                발급 받기
+                발급 링크
                 <ExternalLink size={12} />
               </a>
             </div>
@@ -114,7 +114,7 @@ export default function ApiKeyModal({ isOpen, onClose }: ApiKeyModalProps) {
                 rel="noopener noreferrer"
                 className="text-xs text-blue-600 hover:text-blue-800 flex items-center gap-1"
               >
-                발급 받기
+                발급 링크
                 <ExternalLink size={12} />
               </a>
             </div>
@@ -130,8 +130,18 @@ export default function ApiKeyModal({ isOpen, onClose }: ApiKeyModalProps) {
             </p>
           </div>
 
+          {/* 발급 방법 안내 링크 */}
+          <div className="mt-4 text-center">
+            <button
+              onClick={() => window.open('/api-guide', '_blank')}
+              className="text-sm text-blue-600 hover:text-blue-800 underline"
+            >
+              📘 API 발급 방법 보기 →
+            </button>
+          </div>
+
           {/* 버튼 */}
-          <div className="flex gap-3">
+          <div className="flex gap-3 mt-4">
             <button
               onClick={onClose}
               className="flex-1 py-3 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition"

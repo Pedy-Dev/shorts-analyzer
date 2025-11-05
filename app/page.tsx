@@ -36,7 +36,7 @@ export default function ChannelAnalyzer() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Youtube className="w-8 h-8 text-red-600" />
-              <h1 className="text-2xl font-bold text-gray-900">Youtube Shorts Hacker</h1>
+              <h1 className="text-2xl font-bold text-gray-900">유튜브 쇼츠 해커 (Beta)</h1>
             </div>
 
             <button
