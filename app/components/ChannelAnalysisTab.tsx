@@ -264,22 +264,22 @@ export default function ChannelAnalysisTab() {
 
   return (
     <>
-      <div className="bg-white rounded-lg shadow-lg p-6 mb-8">
-        <h2 className="text-xl font-bold text-gray-900 mb-4">채널 URL 입력</h2>
-        <div className="flex gap-4">
+      <div className="bg-white rounded-lg shadow-lg p-4 md:p-6 mb-6 md:mb-8">
+        <h2 className="text-lg md:text-xl font-bold text-gray-900 mb-3 md:mb-4">채널 URL 입력</h2>
+        <div className="flex flex-col md:flex-row gap-3 md:gap-4">
           <input
             type="text"
             value={channelUrl}
             onChange={(e) => setChannelUrl(e.target.value)}
             placeholder="YouTube 채널 URL (예: https://www.youtube.com/@channelname)"
-            className="flex-1 px-4 py-3 border border-gray-300 rounded-lg text-gray-900 font-medium"
+            className="flex-1 px-3 md:px-4 py-2 md:py-3 border border-gray-300 rounded-lg text-gray-900 text-sm md:text-base font-medium"
             disabled={loading}
           />
           <div className="flex items-center gap-2">
             <select
               value={selectedCount}
               onChange={(e) => setSelectedCount(Number(e.target.value))}
-              className="px-4 py-3 border border-gray-300 rounded-lg text-gray-900 font-medium"
+              className="px-3 md:px-4 py-2 md:py-3 border border-gray-300 rounded-lg text-gray-900 text-sm md:text-base font-medium"
               disabled={loading}
             >
               <option value={10}>10개</option>
@@ -290,16 +290,16 @@ export default function ChannelAnalysisTab() {
             <button
               onClick={handleAnalyze}
               disabled={loading}
-              className="px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center gap-2 transition-colors"
+              className="px-4 md:px-6 py-2 md:py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center gap-2 transition-colors text-sm md:text-base"
             >
               {loading ? (
                 <>
-                  <Loader2 className="w-5 h-5 animate-spin" />
+                  <Loader2 className="w-4 md:w-5 h-4 md:h-5 animate-spin" />
                   분석 중...
                 </>
               ) : (
                 <>
-                  <Search className="w-5 h-5" />
+                  <Search className="w-4 md:w-5 h-4 md:h-5" />
                   분석하기
                 </>
               )}
@@ -308,8 +308,8 @@ export default function ChannelAnalysisTab() {
         </div>
 
         {progress.total > 0 && (
-          <div className="mt-4">
-            <div className="flex justify-between text-sm text-gray-600 mb-2">
+          <div className="mt-3 md:mt-4">
+            <div className="flex justify-between text-xs md:text-sm text-gray-600 mb-2">
               <span>자막 수집 중...</span>
               <span>{progress.current} / {progress.total}</span>
             </div>
@@ -324,71 +324,71 @@ export default function ChannelAnalysisTab() {
       </div>
 
       {stats && (
-        <div className="bg-white rounded-lg shadow-lg p-6 mb-8">
-          <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+        <div className="bg-white rounded-lg shadow-lg p-4 md:p-6 mb-6 md:mb-8">
+          <h2 className="text-lg md:text-xl font-bold text-gray-900 mb-4 md:mb-6 flex items-center gap-2">
             📊 분석 결과
           </h2>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-4 text-center">
-              <p className="text-sm text-gray-600 mb-1">처리 영상</p>
-              <p className="text-3xl font-bold text-blue-600">{stats.total}개</p>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+            <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-3 md:p-4 text-center">
+              <p className="text-xs md:text-sm text-gray-600 mb-1">처리 영상</p>
+              <p className="text-2xl md:text-3xl font-bold text-blue-600">{stats.total}개</p>
             </div>
 
-            <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-lg p-4 text-center">
-              <p className="text-sm text-gray-600 mb-1">성공</p>
-              <p className="text-3xl font-bold text-green-600">{stats.success}개</p>
+            <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-lg p-3 md:p-4 text-center">
+              <p className="text-xs md:text-sm text-gray-600 mb-1">성공</p>
+              <p className="text-2xl md:text-3xl font-bold text-green-600">{stats.success}개</p>
             </div>
 
-            <div className="bg-gradient-to-br from-red-50 to-red-100 rounded-lg p-4 text-center">
-              <p className="text-sm text-gray-600 mb-1">실패</p>
-              <p className="text-3xl font-bold text-red-600">{stats.fail}개</p>
+            <div className="bg-gradient-to-br from-red-50 to-red-100 rounded-lg p-3 md:p-4 text-center">
+              <p className="text-xs md:text-sm text-gray-600 mb-1">실패</p>
+              <p className="text-2xl md:text-3xl font-bold text-red-600">{stats.fail}개</p>
             </div>
 
-            <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg p-4 text-center">
-              <p className="text-sm text-gray-600 mb-1">평균 조회수</p>
-              <p className="text-3xl font-bold text-purple-600">{stats.avgViews.toLocaleString()}</p>
+            <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg p-3 md:p-4 text-center">
+              <p className="text-xs md:text-sm text-gray-600 mb-1">평균 조회수</p>
+              <p className="text-2xl md:text-3xl font-bold text-purple-600">{stats.avgViews.toLocaleString()}</p>
             </div>
 
-            <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-lg p-4 text-center">
-              <p className="text-sm text-gray-600 mb-1">평균 좋아요</p>
-              <p className="text-3xl font-bold text-orange-600">{stats.avgLikes.toLocaleString()}</p>
+            <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-lg p-3 md:p-4 text-center">
+              <p className="text-xs md:text-sm text-gray-600 mb-1">평균 좋아요</p>
+              <p className="text-2xl md:text-3xl font-bold text-orange-600">{stats.avgLikes.toLocaleString()}</p>
             </div>
 
-            <div className="bg-gradient-to-br from-cyan-50 to-cyan-100 rounded-lg p-4 text-center">
-              <p className="text-sm text-gray-600 mb-1">평균 댓글</p>
-              <p className="text-3xl font-bold text-cyan-600">{stats.avgComments.toLocaleString()}</p>
+            <div className="bg-gradient-to-br from-cyan-50 to-cyan-100 rounded-lg p-3 md:p-4 text-center">
+              <p className="text-xs md:text-sm text-gray-600 mb-1">평균 댓글</p>
+              <p className="text-2xl md:text-3xl font-bold text-cyan-600">{stats.avgComments.toLocaleString()}</p>
             </div>
 
-            <div className="bg-gradient-to-br from-pink-50 to-pink-100 rounded-lg p-4 text-center">
-              <p className="text-sm text-gray-600 mb-1">평균 태그</p>
-              <p className="text-3xl font-bold text-pink-600">{stats.avgTags}개</p>
+            <div className="bg-gradient-to-br from-pink-50 to-pink-100 rounded-lg p-3 md:p-4 text-center">
+              <p className="text-xs md:text-sm text-gray-600 mb-1">평균 태그</p>
+              <p className="text-2xl md:text-3xl font-bold text-pink-600">{stats.avgTags}개</p>
             </div>
 
-            <div className="bg-gradient-to-br from-indigo-50 to-indigo-100 rounded-lg p-4 text-center">
-              <p className="text-sm text-gray-600 mb-1">평균 길이</p>
-              <p className="text-3xl font-bold text-indigo-600">{stats.avgDuration}초</p>
+            <div className="bg-gradient-to-br from-indigo-50 to-indigo-100 rounded-lg p-3 md:p-4 text-center">
+              <p className="text-xs md:text-sm text-gray-600 mb-1">평균 길이</p>
+              <p className="text-2xl md:text-3xl font-bold text-indigo-600">{stats.avgDuration}초</p>
             </div>
           </div>
         </div>
       )}
 
       {videos.length > 0 && (
-        <div className="bg-white rounded-lg shadow-lg p-6 mb-8">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">📋 콘텐츠 제작 가이드 생성</h2>
+        <div className="bg-white rounded-lg shadow-lg p-4 md:p-6 mb-6 md:mb-8">
+          <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-3 md:mb-4">📋 콘텐츠 제작 가이드 생성</h2>
 
-          <p className="text-sm text-gray-600 mb-6">
+          <p className="text-xs md:text-sm text-gray-600 mb-4 md:mb-6">
             수집된 {videos.filter(v => v.script !== '자막이 없습니다' && v.script !== '자막 추출 실패').length}개 대본을 2단계로 분석하여 맞춤 가이드를 생성합니다.
           </p>
 
           <button
             onClick={analyzeStructure}
             disabled={scriptLoading}
-            className="w-full py-3 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-lg font-medium hover:from-blue-700 hover:to-cyan-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 mb-4"
+            className="w-full py-2.5 md:py-3 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-lg text-sm md:text-base font-medium hover:from-blue-700 hover:to-cyan-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 mb-3 md:mb-4"
           >
             {scriptLoading && !analysisResult && !generatedGuideline ? (
               <>
-                <Loader2 className="w-5 h-5 animate-spin" />
+                <Loader2 className="w-4 md:w-5 h-4 md:h-5 animate-spin" />
                 채널 컨텐츠를 분석하고 있습니다...
               </>
             ) : (
@@ -401,11 +401,11 @@ export default function ChannelAnalysisTab() {
           <button
             onClick={generateGuideline}
             disabled={scriptLoading || !analysisResult || analysisResult.error}
-            className="w-full py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg font-medium hover:from-purple-700 hover:to-pink-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            className="w-full py-2.5 md:py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg text-sm md:text-base font-medium hover:from-purple-700 hover:to-pink-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
             {scriptLoading && analysisResult && !generatedGuideline ? (
               <>
-                <Loader2 className="w-5 h-5 animate-spin" />
+                <Loader2 className="w-4 md:w-5 h-4 md:h-5 animate-spin" />
                 콘텐츠 제작 가이드를 생성하고 있습니다...
               </>
             ) : (
@@ -418,10 +418,10 @@ export default function ChannelAnalysisTab() {
       )}
 
       {analysisResult && !analysisResult.error && (
-        <div className="space-y-6">
+        <div className="space-y-4 md:space-y-6">
           {analysisResult._meta && (
-            <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded">
-              <p className="text-sm text-yellow-800">
+            <div className="bg-yellow-50 border-l-4 border-yellow-400 p-3 md:p-4 rounded">
+              <p className="text-xs md:text-sm text-yellow-800">
                 <strong>📊 분석 기준:</strong> {analysisResult._meta.filterInfo}
                 {analysisResult._meta.excludedCount > 0 && (
                   <span className="ml-2">
@@ -432,20 +432,20 @@ export default function ChannelAnalysisTab() {
             </div>
           )}
 
-          <div className="bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-xl p-6 shadow-lg">
-            <h3 className="text-2xl font-bold mb-3 flex items-center gap-2">
+          <div className="bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-xl p-4 md:p-6 shadow-lg">
+            <h3 className="text-xl md:text-2xl font-bold mb-3 flex items-center gap-2">
               🎯 한 눈에 보는 핵심
             </h3>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="bg-white/10 rounded-lg p-4">
-                <p className="text-sm opacity-80 mb-1">이 채널의 특징</p>
-                <p className="text-lg font-medium">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
+              <div className="bg-white/10 rounded-lg p-3 md:p-4">
+                <p className="text-xs md:text-sm opacity-80 mb-1">이 채널의 특징</p>
+                <p className="text-base md:text-lg font-medium">
                   {analysisResult.channel_dna?.summary || '분석 중...'}
                 </p>
               </div>
-              <div className="bg-white/10 rounded-lg p-4">
-                <p className="text-sm opacity-80 mb-1">성과 차이의 핵심</p>
-                <p className="text-lg font-medium">
+              <div className="bg-white/10 rounded-lg p-3 md:p-4">
+                <p className="text-xs md:text-sm opacity-80 mb-1">성과 차이의 핵심</p>
+                <p className="text-base md:text-lg font-medium">
                   {analysisResult.performance_gap?.summary || '분석 중...'}
                 </p>
               </div>
@@ -454,21 +454,21 @@ export default function ChannelAnalysisTab() {
 
           {/* 주제 특성 섹션 추가 */}
           {analysisResult.topic_characteristics && (
-            <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl shadow-lg p-6">
-              <h3 className="text-2xl font-bold text-black mb-6 flex items-center gap-2">
+            <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl shadow-lg p-4 md:p-6">
+              <h3 className="text-xl md:text-2xl font-bold text-black mb-4 md:mb-6 flex items-center gap-2">
                 📊 채널의 주제 특성
               </h3>
 
               {/* 주제 카테고리 분포 */}
               {analysisResult.topic_characteristics.main_categories && analysisResult.topic_characteristics.main_categories.length > 0 && (
-                <div className="mb-6">
+                <div className="mb-4 md:mb-6">
                   <h4 className="font-bold text-gray-800 mb-3">주제 카테고리 분포</h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                     {analysisResult.topic_characteristics.main_categories.map((cat: any, i: number) => (
                       <div key={i} className="bg-white rounded-lg p-3 border border-indigo-200">
                         <div className="flex justify-between items-start mb-2">
                           <span className="font-semibold text-indigo-900">{cat.category}</span>
-                          <span className="text-sm bg-indigo-500 text-white px-2 py-1 rounded">
+                          <span className="text-xs md:text-sm bg-indigo-500 text-white px-2 py-1 rounded">
                             {(cat.ratio * 100).toFixed(0)}%
                           </span>
                         </div>
@@ -482,7 +482,7 @@ export default function ChannelAnalysisTab() {
 
               {/* 성공한 주제들 */}
               {analysisResult.topic_characteristics.successful_topics && analysisResult.topic_characteristics.successful_topics.length > 0 && (
-                <div className="mb-6">
+                <div className="mb-4 md:mb-6">
                   <h4 className="font-bold text-gray-800 mb-3 flex items-center gap-2">
                     <span className="text-green-600">✅</span> 성과가 좋은 주제와 접근법
                   </h4>
@@ -491,21 +491,21 @@ export default function ChannelAnalysisTab() {
                       <details key={i} className="bg-green-50 border border-green-200 rounded-lg p-3" open={i === 0}>
                         <summary className="cursor-pointer font-semibold text-green-900 flex items-center justify-between">
                           <span>{topic.topic} ({topic.category})</span>
-                          <span className="text-sm bg-green-500 text-white px-2 py-1 rounded ml-2">
+                          <span className="text-xs md:text-sm bg-green-500 text-white px-2 py-1 rounded ml-2">
                             성과 점수: {topic.avg_performance_score?.toFixed(1) || 'N/A'}
                           </span>
                         </summary>
                         <div className="mt-3 space-y-2">
                           <div className="bg-white rounded p-3">
-                            <p className="text-sm text-gray-700 mb-2">
+                            <p className="text-xs md:text-sm text-gray-700 mb-2">
                               <span className="font-semibold">효과적 접근 각도:</span> {topic.successful_angle}
                             </p>
-                            <p className="text-sm text-gray-700 mb-2">
+                            <p className="text-xs md:text-sm text-gray-700 mb-2">
                               <span className="font-semibold">성공 이유:</span> {topic.why_works}
                             </p>
                             {topic.key_elements && topic.key_elements.length > 0 && (
                               <div className="mb-2">
-                                <span className="font-semibold text-sm text-gray-700">핵심 요소:</span>
+                                <span className="font-semibold text-xs md:text-sm text-gray-700">핵심 요소:</span>
                                 <div className="flex flex-wrap gap-1 mt-1">
                                   {topic.key_elements.map((element: string, j: number) => (
                                     <span key={j} className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded">
@@ -517,7 +517,7 @@ export default function ChannelAnalysisTab() {
                             )}
                             {topic.examples && topic.examples.length > 0 && (
                               <div>
-                                <span className="font-semibold text-sm text-gray-700">예시:</span>
+                                <span className="font-semibold text-xs md:text-sm text-gray-700">예시:</span>
                                 {topic.examples.map((ex: string, j: number) => (
                                   <p key={j} className="text-xs text-gray-600 ml-2 mt-1">• {ex}</p>
                                 ))}
@@ -533,7 +533,7 @@ export default function ChannelAnalysisTab() {
 
               {/* 실패한 주제들 */}
               {analysisResult.topic_characteristics.unsuccessful_topics && analysisResult.topic_characteristics.unsuccessful_topics.length > 0 && (
-                <div className="mb-6">
+                <div className="mb-4 md:mb-6">
                   <h4 className="font-bold text-gray-800 mb-3 flex items-center gap-2">
                     <span className="text-red-600">⚠️</span> 피해야 할 주제와 접근법
                   </h4>
@@ -542,20 +542,20 @@ export default function ChannelAnalysisTab() {
                       <details key={i} className="bg-red-50 border border-red-200 rounded-lg p-3">
                         <summary className="cursor-pointer font-semibold text-red-900 flex items-center justify-between">
                           <span>{topic.topic} ({topic.category})</span>
-                          <span className="text-sm bg-red-500 text-white px-2 py-1 rounded ml-2">
+                          <span className="text-xs md:text-sm bg-red-500 text-white px-2 py-1 rounded ml-2">
                             성과 점수: {topic.avg_performance_score?.toFixed(1) || 'N/A'}
                           </span>
                         </summary>
                         <div className="mt-3 bg-white rounded p-3">
-                          <p className="text-sm text-gray-700 mb-2">
+                          <p className="text-xs md:text-sm text-gray-700 mb-2">
                             <span className="font-semibold">문제가 된 접근:</span> {topic.problematic_angle}
                           </p>
-                          <p className="text-sm text-gray-700 mb-2">
+                          <p className="text-xs md:text-sm text-gray-700 mb-2">
                             <span className="font-semibold">실패 이유:</span> {topic.why_fails}
                           </p>
                           {topic.examples && topic.examples.length > 0 && (
                             <div>
-                              <span className="font-semibold text-sm text-gray-700">예시:</span>
+                              <span className="font-semibold text-xs md:text-sm text-gray-700">예시:</span>
                               {topic.examples.map((ex: string, j: number) => (
                                 <p key={j} className="text-xs text-gray-600 ml-2 mt-1">• {ex}</p>
                               ))}
@@ -570,17 +570,17 @@ export default function ChannelAnalysisTab() {
 
               {/* 각도 분석 */}
               {analysisResult.topic_characteristics.angle_analysis && (
-                <div className="mb-6">
+                <div className="mb-4 md:mb-6">
                   <h4 className="font-bold text-gray-800 mb-3">접근 각도별 효과 분석</h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {/* 효과적인 각도 */}
                     {analysisResult.topic_characteristics.angle_analysis.effective_angles && (
                       <div>
-                        <h5 className="text-sm font-semibold text-green-800 mb-2">효과적인 각도 ✅</h5>
+                        <h5 className="text-xs md:text-sm font-semibold text-green-800 mb-2">효과적인 각도 ✅</h5>
                         {analysisResult.topic_characteristics.angle_analysis.effective_angles.map((angle: any, i: number) => (
                           <div key={i} className="bg-green-50 rounded-lg p-3 mb-2 border border-green-200">
                             <div className="flex justify-between items-center mb-1">
-                              <span className="font-semibold text-sm text-green-900">{angle.angle_type}</span>
+                              <span className="font-semibold text-xs md:text-sm text-green-900">{angle.angle_type}</span>
                               <span className="text-xs bg-green-500 text-white px-2 py-1 rounded">
                                 성공률: {(angle.success_rate * 100).toFixed(0)}%
                               </span>
@@ -595,11 +595,11 @@ export default function ChannelAnalysisTab() {
                     {/* 비효과적인 각도 */}
                     {analysisResult.topic_characteristics.angle_analysis.ineffective_angles && (
                       <div>
-                        <h5 className="text-sm font-semibold text-red-800 mb-2">피해야 할 각도 ❌</h5>
+                        <h5 className="text-xs md:text-sm font-semibold text-red-800 mb-2">피해야 할 각도 ❌</h5>
                         {analysisResult.topic_characteristics.angle_analysis.ineffective_angles.map((angle: any, i: number) => (
                           <div key={i} className="bg-red-50 rounded-lg p-3 mb-2 border border-red-200">
                             <div className="flex justify-between items-center mb-1">
-                              <span className="font-semibold text-sm text-red-900">{angle.angle_type}</span>
+                              <span className="font-semibold text-xs md:text-sm text-red-900">{angle.angle_type}</span>
                               <span className="text-xs bg-red-500 text-white px-2 py-1 rounded">
                                 성공률: {(angle.success_rate * 100).toFixed(0)}%
                               </span>
@@ -615,9 +615,9 @@ export default function ChannelAnalysisTab() {
 
               {/* 전체 패턴 요약 */}
               {analysisResult.topic_characteristics.topic_pattern && (
-                <div className="bg-gradient-to-r from-purple-100 to-indigo-100 rounded-lg p-4">
+                <div className="bg-gradient-to-r from-purple-100 to-indigo-100 rounded-lg p-3 md:p-4">
                   <h4 className="font-bold text-purple-900 mb-2">💡 주제 선정 패턴 요약</h4>
-                  <p className="text-sm text-gray-800">{analysisResult.topic_characteristics.topic_pattern}</p>
+                  <p className="text-xs md:text-sm text-gray-800">{analysisResult.topic_characteristics.topic_pattern}</p>
                 </div>
               )}
             </div>
@@ -625,19 +625,19 @@ export default function ChannelAnalysisTab() {
 
           {/* 제목 전략 분석 섹션 */}
           {analysisResult.title_analysis && (
-            <div className="bg-gradient-to-r from-cyan-50 to-blue-50 rounded-xl shadow-lg p-6">
-              <h3 className="text-2xl font-bold text-black mb-6 flex items-center gap-2">
+            <div className="bg-gradient-to-r from-cyan-50 to-blue-50 rounded-xl shadow-lg p-4 md:p-6">
+              <h3 className="text-xl md:text-2xl font-bold text-black mb-4 md:mb-6 flex items-center gap-2">
                 📝 제목 전략 분석
               </h3>
 
               {/* 핵심 요약 */}
-              <div className="bg-gradient-to-r from-blue-100 to-cyan-100 rounded-lg p-4 mb-6">
+              <div className="bg-gradient-to-r from-blue-100 to-cyan-100 rounded-lg p-3 md:p-4 mb-4 md:mb-6">
                 <h4 className="font-bold text-blue-900 mb-2">💡 핵심 요약</h4>
-                <p className="text-sm text-gray-800">{analysisResult.title_analysis.summary}</p>
+                <p className="text-xs md:text-sm text-gray-800">{analysisResult.title_analysis.summary}</p>
               </div>
 
               {/* 상위 영상 제목 패턴 */}
-              <div className="mb-6">
+              <div className="mb-4 md:mb-6">
                 <h4 className="font-bold text-gray-800 mb-3 flex items-center gap-2">
                   <span className="text-green-600">✅</span> 효과적인 제목 패턴
                 </h4>
@@ -663,12 +663,12 @@ export default function ChannelAnalysisTab() {
                 </div>
 
                 {/* 파워 키워드 */}
-                <div className="bg-white rounded-lg p-4">
-                  <h5 className="text-sm font-semibold text-gray-800 mb-3">🔥 파워 키워드</h5>
+                <div className="bg-white rounded-lg p-3 md:p-4">
+                  <h5 className="text-xs md:text-sm font-semibold text-gray-800 mb-3">🔥 파워 키워드</h5>
                   <div className="flex flex-wrap gap-2">
                     {analysisResult.title_analysis.top_patterns.power_keywords?.map((kw: any, i: number) => (
                       <div key={i} className="group relative">
-                        <span className="px-3 py-1 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-full text-sm font-medium">
+                        <span className="px-3 py-1 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-full text-xs md:text-sm font-medium">
                           {kw.keyword} ({kw.frequency})
                         </span>
                         <div className="hidden group-hover:block absolute z-10 w-48 p-2 bg-gray-800 text-white text-xs rounded shadow-lg -top-16 left-0">
@@ -681,16 +681,16 @@ export default function ChannelAnalysisTab() {
                 </div>
 
                 {/* 제목 특성 */}
-                <div className="grid grid-cols-2 gap-4 mt-4">
+                <div className="grid grid-cols-2 gap-3 md:gap-4 mt-3 md:mt-4">
                   <div className="bg-green-50 rounded p-3">
                     <p className="text-xs text-gray-600 mb-1">평균 글자 수</p>
-                    <p className="text-2xl font-bold text-green-700">
+                    <p className="text-xl md:text-2xl font-bold text-green-700">
                       {analysisResult.title_analysis.top_patterns.avg_length}자
                     </p>
                   </div>
                   <div className="bg-green-50 rounded p-3">
                     <p className="text-xs text-gray-600 mb-1">톤</p>
-                    <p className="text-2xl font-bold text-green-700">
+                    <p className="text-xl md:text-2xl font-bold text-green-700">
                       {analysisResult.title_analysis.top_patterns.tone}
                     </p>
                   </div>
@@ -698,7 +698,7 @@ export default function ChannelAnalysisTab() {
               </div>
 
               {/* 하위 영상 제목 문제점 */}
-              <div className="mb-6">
+              <div className="mb-4 md:mb-6">
                 <h4 className="font-bold text-gray-800 mb-3 flex items-center gap-2">
                   <span className="text-red-600">❌</span> 피해야 할 제목 패턴
                 </h4>
@@ -707,7 +707,7 @@ export default function ChannelAnalysisTab() {
                   {analysisResult.title_analysis.bottom_patterns.common_problems?.map((prob: any, i: number) => (
                     <div key={i} className="bg-red-50 border border-red-200 rounded-lg p-3">
                       <p className="font-semibold text-red-900 mb-2">{prob.problem_type}</p>
-                      <p className="text-sm text-gray-700 mb-2">{prob.why_fails}</p>
+                      <p className="text-xs md:text-sm text-gray-700 mb-2">{prob.why_fails}</p>
                       <div className="space-y-1">
                         {prob.examples.map((ex: string, j: number) => (
                           <p key={j} className="text-xs text-gray-600">• {ex}</p>
@@ -717,16 +717,16 @@ export default function ChannelAnalysisTab() {
                   ))}
                 </div>
 
-                <div className="grid grid-cols-2 gap-4 mt-4">
+                <div className="grid grid-cols-2 gap-3 md:gap-4 mt-3 md:mt-4">
                   <div className="bg-red-50 rounded p-3">
                     <p className="text-xs text-gray-600 mb-1">평균 글자 수</p>
-                    <p className="text-2xl font-bold text-red-700">
+                    <p className="text-xl md:text-2xl font-bold text-red-700">
                       {analysisResult.title_analysis.bottom_patterns.avg_length}자
                     </p>
                   </div>
                   <div className="bg-red-50 rounded p-3">
                     <p className="text-xs text-gray-600 mb-1">톤</p>
-                    <p className="text-2xl font-bold text-red-700">
+                    <p className="text-xl md:text-2xl font-bold text-red-700">
                       {analysisResult.title_analysis.bottom_patterns.tone}
                     </p>
                   </div>
@@ -734,14 +734,14 @@ export default function ChannelAnalysisTab() {
               </div>
 
               {/* 제목 공식 */}
-              <div className="mb-6">
+              <div className="mb-4 md:mb-6">
                 <h4 className="font-bold text-gray-800 mb-3">🎯 검증된 제목 공식</h4>
                 <div className="space-y-3">
                   {analysisResult.title_analysis.title_formulas?.map((formula: any, i: number) => (
-                    <div key={i} className="bg-white border border-blue-200 rounded-lg p-4">
+                    <div key={i} className="bg-white border border-blue-200 rounded-lg p-3 md:p-4">
                       <div className="flex justify-between items-start mb-2">
                         <p className="font-semibold text-blue-900 flex-1">{formula.formula}</p>
-                        <span className="text-sm bg-blue-500 text-white px-2 py-1 rounded ml-2">
+                        <span className="text-xs md:text-sm bg-blue-500 text-white px-2 py-1 rounded ml-2">
                           성공률: {(formula.success_rate * 100).toFixed(0)}%
                         </span>
                       </div>
@@ -760,20 +760,20 @@ export default function ChannelAnalysisTab() {
               </div>
 
               {/* Do's and Don'ts */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="bg-green-50 rounded-lg p-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
+                <div className="bg-green-50 rounded-lg p-3 md:p-4">
                   <h5 className="font-bold text-green-900 mb-3">✅ 제목에 포함할 요소</h5>
                   <div className="space-y-1">
                     {analysisResult.title_analysis.dos_and_donts.effective_elements?.map((el: string, i: number) => (
-                      <p key={i} className="text-sm text-gray-700">✓ {el}</p>
+                      <p key={i} className="text-xs md:text-sm text-gray-700">✓ {el}</p>
                     ))}
                   </div>
                 </div>
-                <div className="bg-red-50 rounded-lg p-4">
+                <div className="bg-red-50 rounded-lg p-3 md:p-4">
                   <h5 className="font-bold text-red-900 mb-3">❌ 제목에서 피할 요소</h5>
                   <div className="space-y-1">
                     {analysisResult.title_analysis.dos_and_donts.avoid_elements?.map((el: string, i: number) => (
-                      <p key={i} className="text-sm text-gray-700">✗ {el}</p>
+                      <p key={i} className="text-xs md:text-sm text-gray-700">✗ {el}</p>
                     ))}
                   </div>
                 </div>
@@ -781,71 +781,71 @@ export default function ChannelAnalysisTab() {
             </div>
           )}
           
-          <div className="bg-white rounded-xl shadow-lg p-6">
-            <h3 className="text-2xl font-bold text-black mb-6 flex items-center gap-2">
+          <div className="bg-white rounded-xl shadow-lg p-4 md:p-6">
+            <h3 className="text-xl md:text-2xl font-bold text-black mb-4 md:mb-6 flex items-center gap-2">
               🧬 채널 DNA (현재 스타일)
             </h3>
 
-            <div className="mb-6">
+            <div className="mb-4 md:mb-6">
               <h4 className="font-bold text-gray-800 mb-3">영상 구조</h4>
-              <div className="flex gap-1 h-12 rounded-lg overflow-hidden">
+              <div className="flex gap-1 h-10 md:h-12 rounded-lg overflow-hidden">
                 <div
-                  className="bg-green-500 flex items-center justify-center text-white text-sm font-bold"
+                  className="bg-green-500 flex items-center justify-center text-white text-xs md:text-sm font-bold"
                   style={{ width: `${analysisResult.channel_dna?.structure?.intro_pct || 0}%` }}
                 >
                   도입 {analysisResult.channel_dna?.structure?.intro_pct}%
                 </div>
                 <div
-                  className="bg-blue-500 flex items-center justify-center text-white text-sm font-bold"
+                  className="bg-blue-500 flex items-center justify-center text-white text-xs md:text-sm font-bold"
                   style={{ width: `${analysisResult.channel_dna?.structure?.body_pct || 0}%` }}
                 >
                   전개 {analysisResult.channel_dna?.structure?.body_pct}%
                 </div>
                 <div
-                  className="bg-purple-500 flex items-center justify-center text-white text-sm font-bold"
+                  className="bg-purple-500 flex items-center justify-center text-white text-xs md:text-sm font-bold"
                   style={{ width: `${analysisResult.channel_dna?.structure?.climax_pct || 0}%` }}
                 >
                   반전 {analysisResult.channel_dna?.structure?.climax_pct}%
                 </div>
                 <div
-                  className="bg-red-500 flex items-center justify-center text-white text-sm font-bold"
+                  className="bg-red-500 flex items-center justify-center text-white text-xs md:text-sm font-bold"
                   style={{ width: `${analysisResult.channel_dna?.structure?.outro_pct || 0}%` }}
                 >
                   결말 {analysisResult.channel_dna?.structure?.outro_pct}%
                 </div>
               </div>
               {analysisResult.channel_dna?.structure?.description && (
-                <p className="mt-3 text-sm text-gray-600">
+                <p className="mt-3 text-xs md:text-sm text-gray-600">
                   {analysisResult.channel_dna.structure.description}
                 </p>
               )}
             </div>
 
             {/* 문장 리듬 분석 */}
-            <div className="mb-6">
+            <div className="mb-4 md:mb-6">
               <h4 className="font-bold text-gray-800 mb-3">📊 문장 리듬 패턴</h4>
-              <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-lg p-4">
-                <div className="flex gap-1 h-12 rounded-lg overflow-hidden mb-3">
+              <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-lg p-3 md:p-4">
+                <div className="flex gap-1 h-10 md:h-12 rounded-lg overflow-hidden mb-3">
                   <div
-                    className="bg-green-500 flex items-center justify-center text-white text-sm font-bold"
+                    className="bg-green-500 flex items-center justify-center text-white text-xs md:text-sm font-bold"
                     style={{ width: `${(analysisResult.channel_dna?.sentence_rhythm?.short_ratio || 0) * 100}%` }}
                   >
                     짧음 {((analysisResult.channel_dna?.sentence_rhythm?.short_ratio || 0) * 100).toFixed(0)}%
                   </div>
                   <div
-                    className="bg-blue-500 flex items-center justify-center text-white text-sm font-bold"
+                    className="bg-blue-500 flex items-center justify-center text-white text-xs md:text-sm font-bold"
                     style={{ width: `${(analysisResult.channel_dna?.sentence_rhythm?.medium_ratio || 0) * 100}%` }}
                   >
                     중간 {((analysisResult.channel_dna?.sentence_rhythm?.medium_ratio || 0) * 100).toFixed(0)}%
                   </div>
                   <div
-                    className="bg-purple-500 flex items-center justify-center text-white text-sm font-bold"
+                    className="bg-purple-500 flex items-center justify-center text-white text-xs md:text-sm font-bold"
                     style={{ width: `${(analysisResult.channel_dna?.sentence_rhythm?.long_ratio || 0) * 100}%` }}
                   >
                     긺 {((analysisResult.channel_dna?.sentence_rhythm?.long_ratio || 0) * 100).toFixed(0)}%
                   </div>
                 </div>
-                <div className="text-sm text-gray-700">
+                <div className="text-xs md:text-sm text-gray-700">
                   <p className="mb-2">
                     <span className="font-semibold">유형:</span> {analysisResult.channel_dna?.sentence_rhythm?.dominant_lengths || 'N/A'}
                   </p>
@@ -860,42 +860,42 @@ export default function ChannelAnalysisTab() {
             </div>
 
             {/* 말투 분석 */}
-            <div className="mb-6">
+            <div className="mb-4 md:mb-6">
               <h4 className="font-bold text-gray-800 mb-3">💬 말투 스타일</h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-lg p-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
+                <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-lg p-3 md:p-4">
                   <h5 className="font-bold text-gray-800 mb-2">종결어미 분포</h5>
                   <div className="space-y-2">
                     <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-700">반말</span>
+                      <span className="text-xs md:text-sm text-gray-700">반말</span>
                       <span className="font-semibold text-green-700">
                         {((analysisResult.channel_dna?.speech_pattern?.banmal_ratio || 0) * 100).toFixed(0)}%
                       </span>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-700">존댓말</span>
+                      <span className="text-xs md:text-sm text-gray-700">존댓말</span>
                       <span className="font-semibold text-blue-700">
                         {((analysisResult.channel_dna?.speech_pattern?.jondae_ratio || 0) * 100).toFixed(0)}%
                       </span>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-700">혼용</span>
+                      <span className="text-xs md:text-sm text-gray-700">혼용</span>
                       <span className="font-semibold text-purple-700">
                         {((analysisResult.channel_dna?.speech_pattern?.mixed_ratio || 0) * 100).toFixed(0)}%
                       </span>
                     </div>
                   </div>
                   <div className="mt-3 pt-3 border-t border-green-200">
-                    <p className="text-sm">
+                    <p className="text-xs md:text-sm">
                       <span className="font-semibold text-gray-700">유형:</span>{' '}
                       <span className="text-green-700 font-bold">{analysisResult.channel_dna?.speech_pattern?.dominant_style || 'N/A'}</span>
                     </p>
                   </div>
                 </div>
 
-                <div className="bg-gradient-to-br from-yellow-50 to-orange-100 rounded-lg p-4">
+                <div className="bg-gradient-to-br from-yellow-50 to-orange-100 rounded-lg p-3 md:p-4">
                   <h5 className="font-bold text-gray-800 mb-2">특징</h5>
-                  <div className="space-y-2 text-sm">
+                  <div className="space-y-2 text-xs md:text-sm">
                     <p>
                       <span className="font-semibold text-gray-700">시점:</span>{' '}
                       <span className="text-orange-700">{analysisResult.channel_dna?.speech_pattern?.viewpoint || 'N/A'}</span>
@@ -914,27 +914,27 @@ export default function ChannelAnalysisTab() {
                 </div>
               </div>
 
-              <div className="mt-3 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-lg p-4">
-                <p className="text-sm text-gray-700">
+              <div className="mt-3 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-lg p-3 md:p-4">
+                <p className="text-xs md:text-sm text-gray-700">
                   <span className="font-semibold">설명:</span> {analysisResult.channel_dna?.speech_pattern?.tone_description || 'N/A'}
                 </p>
               </div>
             </div>
 
             {/* 콘텐츠 유형 - 기존 위치 유지 */}
-            <div className="bg-gradient-to-br from-purple-50 to-pink-100 rounded-lg p-4">
+            <div className="bg-gradient-to-br from-purple-50 to-pink-100 rounded-lg p-3 md:p-4">
               <h5 className="font-bold text-gray-800 mb-2">📺 콘텐츠 유형</h5>
-              <p className="text-lg font-semibold text-purple-700">
+              <p className="text-base md:text-lg font-semibold text-purple-700">
                 {analysisResult.channel_dna?.content_type || 'N/A'}
               </p>
             </div>
 
             {analysisResult.channel_dna?.style?.signature && (
-              <div className="mt-6 bg-gradient-to-r from-yellow-50 to-orange-50 rounded-lg p-4">
+              <div className="mt-4 md:mt-6 bg-gradient-to-r from-yellow-50 to-orange-50 rounded-lg p-3 md:p-4">
                 <h5 className="font-bold text-gray-800 mb-2">특징적 요소</h5>
                 <div className="flex flex-wrap gap-2">
                   {analysisResult.channel_dna.style.signature.split('|').map((sig: string, i: number) => (
-                    <span key={i} className="px-3 py-1 bg-white text-orange-700 rounded-full text-sm font-medium border border-orange-300">
+                    <span key={i} className="px-3 py-1 bg-white text-orange-700 rounded-full text-xs md:text-sm font-medium border border-orange-300">
                       {sig.trim()}
                     </span>
                   ))}
@@ -943,31 +943,31 @@ export default function ChannelAnalysisTab() {
             )}
           </div>
 
-          <div className="bg-white rounded-xl shadow-lg p-6">
-            <h3 className="text-2xl font-bold text-black mb-6 flex items-center gap-2">
+          <div className="bg-white rounded-xl shadow-lg p-4 md:p-6">
+            <h3 className="text-xl md:text-2xl font-bold text-black mb-4 md:mb-6 flex items-center gap-2">
               🔥 성공 패턴
             </h3>
 
-            <div className="space-y-4">
+            <div className="space-y-3 md:space-y-4">
               {analysisResult.performance_gap?.top_strengths?.map((strength: any, i: number) => (
-                <details key={i} className="border-l-4 border-green-500 bg-green-50 rounded-lg p-4" open>
+                <details key={i} className="border-l-4 border-green-500 bg-green-50 rounded-lg p-3 md:p-4" open>
                   <summary className="cursor-pointer font-bold text-green-900 flex items-center gap-2">
-                    <span className="text-2xl">✓</span>
+                    <span className="text-xl md:text-2xl">✓</span>
                     <span>{strength.feature}</span>
                   </summary>
                   <div className="mt-3 space-y-2">
-                    <p className="text-gray-800">{strength.description}</p>
+                    <p className="text-gray-800 text-xs md:text-sm">{strength.description}</p>
                     {strength.impact && (
                       <div className="bg-white rounded p-3">
-                        <p className="text-sm font-semibold text-gray-700 mb-1">영향:</p>
-                        <p className="text-sm text-gray-600">{strength.impact}</p>
+                        <p className="text-xs md:text-sm font-semibold text-gray-700 mb-1">영향:</p>
+                        <p className="text-xs md:text-sm text-gray-600">{strength.impact}</p>
                       </div>
                     )}
                     {strength.examples && strength.examples.length > 0 && (
                       <div className="bg-white rounded p-3">
-                        <p className="text-sm font-semibold text-gray-700 mb-2">예시:</p>
+                        <p className="text-xs md:text-sm font-semibold text-gray-700 mb-2">예시:</p>
                         {strength.examples.map((ex: string, j: number) => (
-                          <p key={j} className="text-sm text-gray-600 mb-1">📺 {ex}</p>
+                          <p key={j} className="text-xs md:text-sm text-gray-600 mb-1">📺 {ex}</p>
                         ))}
                       </div>
                     )}
@@ -977,25 +977,25 @@ export default function ChannelAnalysisTab() {
             </div>
           </div>
 
-          <div className="bg-white rounded-xl shadow-lg p-6">
-            <h3 className="text-2xl font-bold text-black mb-6 flex items-center gap-2">
+          <div className="bg-white rounded-xl shadow-lg p-4 md:p-6">
+            <h3 className="text-xl md:text-2xl font-bold text-black mb-4 md:mb-6 flex items-center gap-2">
               ⚠️ 개선 필요한 부분
             </h3>
 
-            <div className="space-y-4">
+            <div className="space-y-3 md:space-y-4">
               {analysisResult.performance_gap?.bottom_weaknesses?.map((weakness: any, i: number) => (
-                <details key={i} className="border-l-4 border-red-500 bg-red-50 rounded-lg p-4" open>
+                <details key={i} className="border-l-4 border-red-500 bg-red-50 rounded-lg p-3 md:p-4" open>
                   <summary className="cursor-pointer font-bold text-red-900 flex items-center gap-2">
-                    <span className="text-2xl">❌</span>
+                    <span className="text-xl md:text-2xl">❌</span>
                     <span>{weakness.feature}</span>
                   </summary>
                   <div className="mt-3 space-y-2">
-                    <p className="text-gray-800">{weakness.description}</p>
+                    <p className="text-gray-800 text-xs md:text-sm">{weakness.description}</p>
                     {weakness.examples && weakness.examples.length > 0 && (
                       <div className="bg-white rounded p-3">
-                        <p className="text-sm font-semibold text-gray-700 mb-2">예시:</p>
+                        <p className="text-xs md:text-sm font-semibold text-gray-700 mb-2">예시:</p>
                         {weakness.examples.map((ex: string, j: number) => (
-                          <p key={j} className="text-sm text-gray-600 mb-1">📺 {ex}</p>
+                          <p key={j} className="text-xs md:text-sm text-gray-600 mb-1">📺 {ex}</p>
                         ))}
                       </div>
                     )}
@@ -1005,17 +1005,17 @@ export default function ChannelAnalysisTab() {
             </div>
           </div>
 
-          <div className="bg-gradient-to-r from-yellow-50 to-orange-50 rounded-xl p-6 border-2 border-orange-200">
-            <h3 className="text-2xl font-bold text-black mb-4 flex items-center gap-2">
+          <div className="bg-gradient-to-r from-yellow-50 to-orange-50 rounded-xl p-4 md:p-6 border-2 border-orange-200">
+            <h3 className="text-xl md:text-2xl font-bold text-black mb-3 md:mb-4 flex items-center gap-2">
               💡 핵심 차이점 (간단 정리)
             </h3>
-            <div className="space-y-3">
+            <div className="space-y-2 md:space-y-3">
               {analysisResult.performance_gap?.key_differences?.map((diff: string, i: number) => (
                 <div key={i} className="flex gap-3 items-start">
-                  <span className="flex-shrink-0 w-6 h-6 bg-orange-500 text-white rounded-full flex items-center justify-center text-sm font-bold">
+                  <span className="flex-shrink-0 w-5 h-5 md:w-6 md:h-6 bg-orange-500 text-white rounded-full flex items-center justify-center text-xs md:text-sm font-bold">
                     {i + 1}
                   </span>
-                  <p className="text-gray-800 flex-1">{diff}</p>
+                  <p className="text-gray-800 flex-1 text-xs md:text-sm">{diff}</p>
                 </div>
               ))}
             </div>
@@ -1024,12 +1024,12 @@ export default function ChannelAnalysisTab() {
       )}
 
       {analysisResult && analysisResult.error && (
-        <div className="bg-red-50 border-l-4 border-red-500 p-6 rounded">
-          <h3 className="text-xl font-bold text-red-800 mb-2">⚠️ 분석 오류</h3>
-          <p className="text-red-700 mb-4">{analysisResult.error}</p>
+        <div className="bg-red-50 border-l-4 border-red-500 p-4 md:p-6 rounded">
+          <h3 className="text-lg md:text-xl font-bold text-red-800 mb-2">⚠️ 분석 오류</h3>
+          <p className="text-red-700 mb-4 text-sm md:text-base">{analysisResult.error}</p>
           {analysisResult.raw && (
             <details>
-              <summary className="cursor-pointer text-sm text-red-600 hover:text-red-800">
+              <summary className="cursor-pointer text-xs md:text-sm text-red-600 hover:text-red-800">
                 원본 응답 보기
               </summary>
               <pre className="mt-2 text-xs bg-white p-3 rounded overflow-auto max-h-60">
@@ -1041,20 +1041,20 @@ export default function ChannelAnalysisTab() {
       )}
 
       {generatedGuideline && (
-        <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg shadow-lg p-6 mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-2xl font-bold text-gray-800">✅ 콘텐츠 제작 가이드</h3>
+        <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg shadow-lg p-4 md:p-6 mb-6 md:mb-8">
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-3 md:mb-4 gap-2">
+            <h3 className="text-xl md:text-2xl font-bold text-gray-800">✅ 콘텐츠 제작 가이드</h3>
             <button
               onClick={() => {
                 navigator.clipboard.writeText(generatedGuideline);
                 alert('가이드가 클립보드에 복사되었습니다!');
               }}
-              className="px-4 py-2 bg-purple-600 text-white rounded-lg text-sm hover:bg-purple-700"
+              className="px-3 md:px-4 py-2 bg-purple-600 text-white rounded-lg text-xs md:text-sm hover:bg-purple-700"
             >
               📋 전체 복사
             </button>
           </div>
-          <div className="bg-white rounded-lg p-4 whitespace-pre-wrap text-sm text-gray-800 leading-relaxed max-h-96 overflow-y-auto">
+          <div className="bg-white rounded-lg p-3 md:p-4 whitespace-pre-wrap text-xs md:text-sm text-gray-800 leading-relaxed max-h-96 overflow-y-auto">
             {generatedGuideline}
           </div>
           <p className="text-xs text-gray-500 mt-3">
@@ -1064,50 +1064,50 @@ export default function ChannelAnalysisTab() {
       )}
 
       {videos.length > 0 && (
-        <div className="bg-white rounded-lg shadow-lg p-6">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">
+        <div className="bg-white rounded-lg shadow-lg p-4 md:p-6">
+          <h2 className="text-lg md:text-xl font-bold text-gray-900 mb-3 md:mb-4">
             📹 수집된 영상 ({videos.length}개)
           </h2>
-          <div className="space-y-4">
+          <div className="space-y-3 md:space-y-4">
             {videos.map((video, index) => (
-              <div key={index} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
-                <div className="flex items-start gap-4">
+              <div key={index} className="border border-gray-200 rounded-lg p-3 md:p-4 hover:shadow-md transition-shadow">
+                <div className="flex flex-col md:flex-row items-start gap-3 md:gap-4">
                   <img
                     src={video.thumbnail || '/default-thumbnail.jpg'}
                     alt={video.title}
-                    className="w-40 h-28 object-cover rounded flex-shrink-0"
+                    className="w-full md:w-40 h-40 md:h-28 object-cover rounded flex-shrink-0"
                   />
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-gray-900 mb-3 line-clamp-2">{video.title}</h3>
+                  <div className="flex-1 min-w-0 w-full">
+                    <h3 className="font-semibold text-gray-900 mb-2 md:mb-3 line-clamp-2 text-sm md:text-base">{video.title}</h3>
 
-                    <div className="grid grid-cols-3 md:grid-cols-6 gap-3 mb-3">
-                      <div className="flex items-center gap-1 text-sm">
-                        <Eye className="w-4 h-4 text-blue-600 flex-shrink-0" />
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2 md:gap-3 mb-2 md:mb-3">
+                      <div className="flex items-center gap-1 text-xs md:text-sm">
+                        <Eye className="w-3 md:w-4 h-3 md:h-4 text-blue-600 flex-shrink-0" />
                         <span className="text-gray-700 truncate">{video.views.toLocaleString()}</span>
                       </div>
 
-                      <div className="flex items-center gap-1 text-sm">
-                        <ThumbsUp className="w-4 h-4 text-green-600 flex-shrink-0" />
+                      <div className="flex items-center gap-1 text-xs md:text-sm">
+                        <ThumbsUp className="w-3 md:w-4 h-3 md:h-4 text-green-600 flex-shrink-0" />
                         <span className="text-gray-700 truncate">{video.likes.toLocaleString()}</span>
                       </div>
 
-                      <div className="flex items-center gap-1 text-sm">
-                        <MessageCircle className="w-4 h-4 text-orange-600 flex-shrink-0" />
+                      <div className="flex items-center gap-1 text-xs md:text-sm">
+                        <MessageCircle className="w-3 md:w-4 h-3 md:h-4 text-orange-600 flex-shrink-0" />
                         <span className="text-gray-700 truncate">{video.comments.toLocaleString()}</span>
                       </div>
 
-                      <div className="flex items-center gap-1 text-sm">
-                        <Clock className="w-4 h-4 text-purple-600 flex-shrink-0" />
+                      <div className="flex items-center gap-1 text-xs md:text-sm">
+                        <Clock className="w-3 md:w-4 h-3 md:h-4 text-purple-600 flex-shrink-0" />
                         <span className="text-gray-700">{video.duration}초</span>
                       </div>
 
-                      <div className="flex items-center gap-1 text-sm">
-                        <Calendar className="w-4 h-4 text-gray-600 flex-shrink-0" />
+                      <div className="flex items-center gap-1 text-xs md:text-sm">
+                        <Calendar className="w-3 md:w-4 h-3 md:h-4 text-gray-600 flex-shrink-0" />
                         <span className="text-gray-700 truncate">{formatDate(video.publishedAt)}</span>
                       </div>
 
-                      <div className="flex items-center gap-1 text-sm">
-                        <Tag className="w-4 h-4 text-pink-600 flex-shrink-0" />
+                      <div className="flex items-center gap-1 text-xs md:text-sm">
+                        <Tag className="w-3 md:w-4 h-3 md:h-4 text-pink-600 flex-shrink-0" />
                         <button
                           onClick={() => toggleTags(video.id)}
                           className="text-gray-700 hover:text-pink-600 transition-colors truncate"
@@ -1118,7 +1118,7 @@ export default function ChannelAnalysisTab() {
                     </div>
 
                     {expandedTags[video.id] && video.tagList.length > 0 && (
-                      <div className="flex flex-wrap gap-1 mb-3 p-2 bg-pink-50 rounded">
+                      <div className="flex flex-wrap gap-1 mb-2 md:mb-3 p-2 bg-pink-50 rounded">
                         {video.tagList.map((tag: string, i: number) => (
                           <span
                             key={i}
@@ -1130,11 +1130,11 @@ export default function ChannelAnalysisTab() {
                       </div>
                     )}
 
-                    <details className="text-sm">
+                    <details className="text-xs md:text-sm">
                       <summary className="cursor-pointer text-gray-600 hover:text-gray-900 font-medium">
                         📄 자막 보기
                       </summary>
-                      <p className="mt-2 text-gray-700 whitespace-pre-wrap p-3 bg-gray-50 rounded max-h-40 overflow-y-auto">
+                      <p className="mt-2 text-gray-700 whitespace-pre-wrap p-2 md:p-3 bg-gray-50 rounded max-h-40 overflow-y-auto text-xs">
                         {video.script}
                       </p>
                     </details>

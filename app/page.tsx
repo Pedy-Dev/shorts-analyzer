@@ -1,15 +1,16 @@
-//\app\page.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Youtube } from 'lucide-react';
+import { Youtube, CircleHelp } from 'lucide-react';
 import ApiKeyModal from './components/ApiKeyModal';
+import ServiceGuideModal from './components/ServiceGuideModal';
 import ChannelAnalysisTab from './components/ChannelAnalysisTab';
 import MyChannelTab from './components/MyChannelTab';
 
 export default function ChannelAnalyzer() {
   const [currentTab, setCurrentTab] = useState<'analyze' | 'myChannel'>('analyze');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isServiceGuideOpen, setIsServiceGuideOpen] = useState(false);
 
   // 👇 이 부분 전체 추가
   useEffect(() => {
@@ -30,28 +31,41 @@ export default function ChannelAnalyzer() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-red-50 via-white to-pink-50">
-      {/* Header */}
+      {/* Header - 모바일 2줄, PC 1줄 레이아웃 */}
       <header className="bg-white shadow-sm sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Youtube className="w-8 h-8 text-red-600" />
-              <h1 className="text-2xl font-bold text-gray-900">유튜브 쇼츠 해커 (Beta)</h1>
+        <div className="max-w-7xl mx-auto px-4 py-3 md:py-4">
+          {/* 모바일: 2줄 레이아웃, PC: 1줄 레이아웃 */}
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between">
+            {/* 첫째 줄: 로고와 타이틀 */}
+            <div className="flex items-center gap-2 mb-2 md:mb-0">
+              <Youtube className="w-6 md:w-8 h-6 md:h-8 text-red-600" />
+              <h1 className="text-xl md:text-2xl font-bold text-gray-900">유튜브 쇼츠 해커 (Beta)</h1>
             </div>
 
-            <button
-              onClick={() => setIsModalOpen(true)}
-              className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg flex items-center gap-2 transition-colors"
-            >
-              ⚙️ API 키 설정
-            </button>
+            {/* 둘째 줄: 버튼들 - 모바일에서는 오른쪽 정렬 */}
+            <div className="flex items-center gap-2 justify-end">
+              <button
+                onClick={() => setIsServiceGuideOpen(true)}
+                className="px-3 md:px-4 py-1.5 md:py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg flex items-center gap-1.5 md:gap-2 transition-colors text-sm md:text-base"
+              >
+                <CircleHelp size={16} className="text-red-600 md:w-[18px] md:h-[18px]" />
+                <span className="whitespace-nowrap">서비스 안내</span>
+              </button>
+              <button
+                onClick={() => setIsModalOpen(true)}
+                className="px-3 md:px-4 py-1.5 md:py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg flex items-center gap-1.5 md:gap-2 transition-colors text-sm md:text-base"
+              >
+                <span className="text-sm md:text-base">⚙️</span>
+                <span className="whitespace-nowrap">API 키 설정</span>
+              </button>
+            </div>
           </div>
 
           {/* 탭 메뉴 */}
-          <div className="flex gap-4 mt-4 border-b">
+          <div className="flex gap-3 md:gap-4 mt-3 md:mt-4 border-b">
             <button
               onClick={() => setCurrentTab('analyze')}
-              className={`px-4 py-2 font-medium transition-colors ${currentTab === 'analyze'
+              className={`px-3 md:px-4 py-2 text-sm md:text-base font-medium transition-colors ${currentTab === 'analyze'
                   ? 'text-red-600 border-b-2 border-red-600'
                   : 'text-gray-600 hover:text-gray-900'
                 }`}
@@ -60,7 +74,7 @@ export default function ChannelAnalyzer() {
             </button>
             <button
               onClick={() => setCurrentTab('myChannel')}
-              className={`px-4 py-2 font-medium transition-colors ${currentTab === 'myChannel'
+              className={`px-3 md:px-4 py-2 text-sm md:text-base font-medium transition-colors ${currentTab === 'myChannel'
                   ? 'text-red-600 border-b-2 border-red-600'
                   : 'text-gray-600 hover:text-gray-900'
                 }`}
@@ -72,13 +86,19 @@ export default function ChannelAnalyzer() {
       </header>
 
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 py-8">
+      <div className="max-w-7xl mx-auto px-4 py-4 md:py-8">
         {currentTab === 'analyze' ? (
           <ChannelAnalysisTab />
         ) : (
           <MyChannelTab />
         )}
       </div>
+
+      {/* 서비스 안내 모달 */}
+      <ServiceGuideModal
+        isOpen={isServiceGuideOpen}
+        onClose={() => setIsServiceGuideOpen(false)}
+      />
 
       {/* API 키 설정 모달 */}
       <ApiKeyModal

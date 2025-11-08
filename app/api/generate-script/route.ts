@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
       console.log(`📊 3일 이상 경과: ${matureVideos.length}개`);
       console.log(`⏰ 제외된 최근 영상: ${validVideos.length - matureVideos.length}개`);
 
-      if (matureVideos.length < 10) {
+      if (matureVideos.length < 5) {
         return NextResponse.json({
           error: `분석하기에 영상이 부족합니다. (3일 이상 경과한 영상: ${matureVideos.length}개, 최소 10개 필요)`,
           details: `${validVideos.length - matureVideos.length}개의 최근 영상은 게시 후 시간이 부족하여 제외되었습니다.`
