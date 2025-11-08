@@ -623,6 +623,164 @@ export default function ChannelAnalysisTab() {
             </div>
           )}
 
+          {/* 제목 전략 분석 섹션 */}
+          {analysisResult.title_analysis && (
+            <div className="bg-gradient-to-r from-cyan-50 to-blue-50 rounded-xl shadow-lg p-6">
+              <h3 className="text-2xl font-bold text-black mb-6 flex items-center gap-2">
+                📝 제목 전략 분석
+              </h3>
+
+              {/* 핵심 요약 */}
+              <div className="bg-gradient-to-r from-blue-100 to-cyan-100 rounded-lg p-4 mb-6">
+                <h4 className="font-bold text-blue-900 mb-2">💡 핵심 요약</h4>
+                <p className="text-sm text-gray-800">{analysisResult.title_analysis.summary}</p>
+              </div>
+
+              {/* 상위 영상 제목 패턴 */}
+              <div className="mb-6">
+                <h4 className="font-bold text-gray-800 mb-3 flex items-center gap-2">
+                  <span className="text-green-600">✅</span> 효과적인 제목 패턴
+                </h4>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                  {/* 제목 구조 */}
+                  {analysisResult.title_analysis.top_patterns.common_structures?.map((struct: any, i: number) => (
+                    <div key={i} className="bg-green-50 border border-green-200 rounded-lg p-3">
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="font-semibold text-green-900">{struct.structure_type}</span>
+                        <span className="text-xs bg-green-500 text-white px-2 py-1 rounded">
+                          {struct.frequency}회 사용
+                        </span>
+                      </div>
+                      <p className="text-xs text-gray-700 mb-2">{struct.why_works}</p>
+                      <div className="space-y-1">
+                        {struct.examples.map((ex: string, j: number) => (
+                          <p key={j} className="text-xs text-gray-600">• {ex}</p>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* 파워 키워드 */}
+                <div className="bg-white rounded-lg p-4">
+                  <h5 className="text-sm font-semibold text-gray-800 mb-3">🔥 파워 키워드</h5>
+                  <div className="flex flex-wrap gap-2">
+                    {analysisResult.title_analysis.top_patterns.power_keywords?.map((kw: any, i: number) => (
+                      <div key={i} className="group relative">
+                        <span className="px-3 py-1 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-full text-sm font-medium">
+                          {kw.keyword} ({kw.frequency})
+                        </span>
+                        <div className="hidden group-hover:block absolute z-10 w-48 p-2 bg-gray-800 text-white text-xs rounded shadow-lg -top-16 left-0">
+                          <p className="mb-1"><strong>맥락:</strong> {kw.context}</p>
+                          <p><strong>감정:</strong> {kw.emotional_impact}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* 제목 특성 */}
+                <div className="grid grid-cols-2 gap-4 mt-4">
+                  <div className="bg-green-50 rounded p-3">
+                    <p className="text-xs text-gray-600 mb-1">평균 글자 수</p>
+                    <p className="text-2xl font-bold text-green-700">
+                      {analysisResult.title_analysis.top_patterns.avg_length}자
+                    </p>
+                  </div>
+                  <div className="bg-green-50 rounded p-3">
+                    <p className="text-xs text-gray-600 mb-1">톤</p>
+                    <p className="text-2xl font-bold text-green-700">
+                      {analysisResult.title_analysis.top_patterns.tone}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* 하위 영상 제목 문제점 */}
+              <div className="mb-6">
+                <h4 className="font-bold text-gray-800 mb-3 flex items-center gap-2">
+                  <span className="text-red-600">❌</span> 피해야 할 제목 패턴
+                </h4>
+                
+                <div className="space-y-2">
+                  {analysisResult.title_analysis.bottom_patterns.common_problems?.map((prob: any, i: number) => (
+                    <div key={i} className="bg-red-50 border border-red-200 rounded-lg p-3">
+                      <p className="font-semibold text-red-900 mb-2">{prob.problem_type}</p>
+                      <p className="text-sm text-gray-700 mb-2">{prob.why_fails}</p>
+                      <div className="space-y-1">
+                        {prob.examples.map((ex: string, j: number) => (
+                          <p key={j} className="text-xs text-gray-600">• {ex}</p>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="grid grid-cols-2 gap-4 mt-4">
+                  <div className="bg-red-50 rounded p-3">
+                    <p className="text-xs text-gray-600 mb-1">평균 글자 수</p>
+                    <p className="text-2xl font-bold text-red-700">
+                      {analysisResult.title_analysis.bottom_patterns.avg_length}자
+                    </p>
+                  </div>
+                  <div className="bg-red-50 rounded p-3">
+                    <p className="text-xs text-gray-600 mb-1">톤</p>
+                    <p className="text-2xl font-bold text-red-700">
+                      {analysisResult.title_analysis.bottom_patterns.tone}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* 제목 공식 */}
+              <div className="mb-6">
+                <h4 className="font-bold text-gray-800 mb-3">🎯 검증된 제목 공식</h4>
+                <div className="space-y-3">
+                  {analysisResult.title_analysis.title_formulas?.map((formula: any, i: number) => (
+                    <div key={i} className="bg-white border border-blue-200 rounded-lg p-4">
+                      <div className="flex justify-between items-start mb-2">
+                        <p className="font-semibold text-blue-900 flex-1">{formula.formula}</p>
+                        <span className="text-sm bg-blue-500 text-white px-2 py-1 rounded ml-2">
+                          성공률: {(formula.success_rate * 100).toFixed(0)}%
+                        </span>
+                      </div>
+                      <p className="text-xs text-gray-600 mb-2">
+                        <strong>효과적인 주제:</strong> {formula.best_for}
+                      </p>
+                      <div className="bg-blue-50 rounded p-2">
+                        <p className="text-xs text-gray-700 mb-1"><strong>적용 예시:</strong></p>
+                        {formula.examples.map((ex: string, j: number) => (
+                          <p key={j} className="text-xs text-gray-600">• {ex}</p>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Do's and Don'ts */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="bg-green-50 rounded-lg p-4">
+                  <h5 className="font-bold text-green-900 mb-3">✅ 제목에 포함할 요소</h5>
+                  <div className="space-y-1">
+                    {analysisResult.title_analysis.dos_and_donts.effective_elements?.map((el: string, i: number) => (
+                      <p key={i} className="text-sm text-gray-700">✓ {el}</p>
+                    ))}
+                  </div>
+                </div>
+                <div className="bg-red-50 rounded-lg p-4">
+                  <h5 className="font-bold text-red-900 mb-3">❌ 제목에서 피할 요소</h5>
+                  <div className="space-y-1">
+                    {analysisResult.title_analysis.dos_and_donts.avoid_elements?.map((el: string, i: number) => (
+                      <p key={i} className="text-sm text-gray-700">✗ {el}</p>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+          
           <div className="bg-white rounded-xl shadow-lg p-6">
             <h3 className="text-2xl font-bold text-black mb-6 flex items-center gap-2">
               🧬 채널 DNA (현재 스타일)
