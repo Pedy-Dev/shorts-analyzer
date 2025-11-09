@@ -385,6 +385,9 @@ export default function MyChannelTab() {
 
           {/* ⭐ 새로운 분석 결과 UI ⭐ */}
 
+          {myChannelAnalysis && (
+            <div className="space-y-4 md:space-y-6">
+
           {/* 5단계 분석 프레임워크 설명 */}
 <div className="bg-white rounded-xl shadow-lg border-2 border-gray-200 p-5 md:p-6">
   <div className="flex items-center gap-3 mb-4">
@@ -447,8 +450,8 @@ export default function MyChannelTab() {
   </div>
 </div>
 
-          {myChannelAnalysis && (
-            <div className="space-y-4 md:space-y-6">
+          
+            
               
               {/* 1. 핵심 요약 */}
               {myChannelAnalysis.executive_summary && (
