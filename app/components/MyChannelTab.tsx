@@ -388,71 +388,71 @@ export default function MyChannelTab() {
           {myChannelAnalysis && (
             <div className="space-y-4 md:space-y-6">
 
-          {/* 5단계 분석 프레임워크 설명 */}
-<div className="bg-white rounded-xl shadow-lg border-2 border-gray-200 p-5 md:p-6">
-  <div className="flex items-center gap-3 mb-4">
-    <BarChart3 className="w-6 h-6 md:w-7 md:h-7 text-indigo-600" />
-    <h3 className="text-xl md:text-2xl font-bold text-gray-900">5단계 채널 정밀 분석</h3>
-  </div>
-  <p className="text-sm md:text-base text-gray-700 mb-4">
-    이 분석은 다음 5단계를 기반으로 채널을 정밀 진단합니다:
-  </p>
-  <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-    {/* 1단계 - 파란색 */}
-    <div className="bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-lg p-4 shadow-md">
-      <div className="flex items-center gap-2 mb-2">
-        <span className="w-6 h-6 bg-white text-blue-600 rounded-full flex items-center justify-center text-xs font-bold">1</span>
-        <p className="font-bold text-sm">알고리즘 노출</p>
-      </div>
-      <p className="text-xs opacity-90">조회수</p>
-    </div>
-    
-    {/* 2단계 - 주황색 */}
-    <div className="bg-gradient-to-br from-orange-500 to-orange-600 text-white rounded-lg p-4 shadow-md">
-      <div className="flex items-center gap-2 mb-2">
-        <span className="w-6 h-6 bg-white text-orange-600 rounded-full flex items-center justify-center text-xs font-bold">2</span>
-        <p className="font-bold text-sm">후킹 성공</p>
-      </div>
-      <p className="text-xs opacity-90">이탈 vs 시청</p>
-    </div>
-    
-    {/* 3단계 - 초록색 */}
-    <div className="bg-gradient-to-br from-green-500 to-green-600 text-white rounded-lg p-4 shadow-md">
-      <div className="flex items-center gap-2 mb-2">
-        <span className="w-6 h-6 bg-white text-green-600 rounded-full flex items-center justify-center text-xs font-bold">3</span>
-        <p className="font-bold text-sm">시청 완주</p>
-      </div>
-      <p className="text-xs opacity-90">끝까지 봄</p>
-    </div>
-    
-    {/* 4단계 - 보라색 */}
-    <div className="bg-gradient-to-br from-purple-500 to-purple-600 text-white rounded-lg p-4 shadow-md">
-      <div className="flex items-center gap-2 mb-2">
-        <span className="w-6 h-6 bg-white text-purple-600 rounded-full flex items-center justify-center text-xs font-bold">4</span>
-        <p className="font-bold text-sm">상호작용</p>
-      </div>
-      <p className="text-xs opacity-90">좋아요/댓글</p>
-    </div>
-    
-    {/* 5단계 - 분홍색 */}
-    <div className="bg-gradient-to-br from-pink-500 to-pink-600 text-white rounded-lg p-4 shadow-md">
-      <div className="flex items-center gap-2 mb-2">
-        <span className="w-6 h-6 bg-white text-pink-600 rounded-full flex items-center justify-center text-xs font-bold">5</span>
-        <p className="font-bold text-sm">구독 전환</p>
-      </div>
-      <p className="text-xs opacity-90">구독 클릭</p>
-    </div>
-  </div>
-  <div className="mt-4 bg-blue-50 rounded-lg p-3 border border-blue-200">
-    <p className="text-xs md:text-sm text-blue-800">
-      💡 각 단계별 상위 vs 하위 그룹 차이를 분석하여 정확한 문제점을 진단합니다.
-    </p>
-  </div>
-</div>
+              {/* 5단계 분석 프레임워크 설명 */}
+              <div className="bg-white rounded-xl shadow-lg border-2 border-gray-200 p-5 md:p-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <BarChart3 className="w-6 h-6 md:w-7 md:h-7 text-indigo-600" />
+                  <h3 className="text-xl md:text-2xl font-bold text-gray-900">5단계 채널 정밀 분석</h3>
+                </div>
+                <p className="text-sm md:text-base text-gray-700 mb-4">
+                  이 분석은 다음 5단계를 기반으로 채널을 정밀 진단합니다:
+                </p>
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                  {/* 1단계 - 파란색 */}
+                  <div className="bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-lg p-4 shadow-md">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="w-6 h-6 bg-white text-blue-600 rounded-full flex items-center justify-center text-xs font-bold">1</span>
+                      <p className="font-bold text-sm">알고리즘 노출</p>
+                    </div>
+                    <p className="text-xs opacity-90">조회수</p>
+                  </div>
 
-          
-            
-              
+                  {/* 2단계 - 주황색 */}
+                  <div className="bg-gradient-to-br from-orange-500 to-orange-600 text-white rounded-lg p-4 shadow-md">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="w-6 h-6 bg-white text-orange-600 rounded-full flex items-center justify-center text-xs font-bold">2</span>
+                      <p className="font-bold text-sm">후킹 성공</p>
+                    </div>
+                    <p className="text-xs opacity-90">이탈 vs 시청</p>
+                  </div>
+
+                  {/* 3단계 - 초록색 */}
+                  <div className="bg-gradient-to-br from-green-500 to-green-600 text-white rounded-lg p-4 shadow-md">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="w-6 h-6 bg-white text-green-600 rounded-full flex items-center justify-center text-xs font-bold">3</span>
+                      <p className="font-bold text-sm">시청 완주</p>
+                    </div>
+                    <p className="text-xs opacity-90">끝까지 봄</p>
+                  </div>
+
+                  {/* 4단계 - 보라색 */}
+                  <div className="bg-gradient-to-br from-purple-500 to-purple-600 text-white rounded-lg p-4 shadow-md">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="w-6 h-6 bg-white text-purple-600 rounded-full flex items-center justify-center text-xs font-bold">4</span>
+                      <p className="font-bold text-sm">상호작용</p>
+                    </div>
+                    <p className="text-xs opacity-90">좋아요/댓글</p>
+                  </div>
+
+                  {/* 5단계 - 분홍색 */}
+                  <div className="bg-gradient-to-br from-pink-500 to-pink-600 text-white rounded-lg p-4 shadow-md">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="w-6 h-6 bg-white text-pink-600 rounded-full flex items-center justify-center text-xs font-bold">5</span>
+                      <p className="font-bold text-sm">구독 전환</p>
+                    </div>
+                    <p className="text-xs opacity-90">구독 클릭</p>
+                  </div>
+                </div>
+                <div className="mt-4 bg-blue-50 rounded-lg p-3 border border-blue-200">
+                  <p className="text-xs md:text-sm text-blue-800">
+                    💡 각 단계별 상위 vs 하위 그룹 차이를 분석하여 정확한 문제점을 진단합니다.
+                  </p>
+                </div>
+              </div>
+
+
+
+
               {/* 1. 핵심 요약 */}
               {myChannelAnalysis.executive_summary && (
                 <div className="bg-gradient-to-br from-blue-500 to-purple-600 text-white rounded-xl shadow-2xl p-5 md:p-7">
@@ -499,11 +499,10 @@ export default function MyChannelTab() {
                                 <p className="font-bold text-gray-900 text-base md:text-lg">{topic.topic}</p>
                                 <p className="text-xs md:text-sm text-gray-600">{topic.video_count}개 영상</p>
                               </div>
-                              <span className={`px-2 py-1 rounded text-xs font-bold ${
-                                topic.type === '안정형' ? 'bg-blue-100 text-blue-700' :
+                              <span className={`px-2 py-1 rounded text-xs font-bold ${topic.type === '안정형' ? 'bg-blue-100 text-blue-700' :
                                 topic.type === '알고리즘선호형' ? 'bg-orange-100 text-orange-700' :
-                                'bg-purple-100 text-purple-700'
-                              }`}>
+                                  'bg-purple-100 text-purple-700'
+                                }`}>
                                 {topic.type}
                               </span>
                             </div>
@@ -957,6 +956,8 @@ export default function MyChannelTab() {
                       <th className="px-4 py-3 text-center font-semibold text-gray-700">유효조회수</th>
                       <th className="px-4 py-3 text-center font-semibold text-gray-700">좋아요</th>
                       <th className="px-4 py-3 text-center font-semibold text-gray-700">댓글</th>
+                      <th className="px-4 py-3 text-center font-semibold text-gray-700">공유수</th>
+                      <th className="px-4 py-3 text-center font-semibold text-gray-700">평균<br />시청시간</th>
                       <th className="px-4 py-3 text-center font-semibold text-gray-700">평균<br />조회율</th>
                       <th className="px-4 py-3 text-center font-semibold text-gray-700">구독자<br />증가</th>
                     </tr>
@@ -1020,6 +1021,16 @@ export default function MyChannelTab() {
                           </td>
                           <td className="px-4 py-3 text-center">
                             <p className="text-gray-700">
+                              {video.shares?.toLocaleString() || '0'}
+                            </p>
+                          </td>
+                          <td className="px-4 py-3 text-center">
+                            <p className="text-gray-700">
+                              {video.averageViewDuration ? Math.round(video.averageViewDuration) + '초' : '-'}
+                            </p>
+                          </td>
+                          <td className="px-4 py-3 text-center">
+                            <p className="text-gray-700">
                               {video.averageViewPercentage !== null
                                 ? video.averageViewPercentage.toFixed(1) + '%'
                                 : '-'}
@@ -1060,51 +1071,104 @@ export default function MyChannelTab() {
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-2 mb-3">
-                      <div className="bg-white border border-gray-200 rounded p-2 text-center">
-                        <div className="flex items-center justify-center gap-1 text-xs text-gray-600 mb-0.5">
-                          <Eye className="w-3 h-3" />
-                          <span>조회수</span>
-                        </div>
-                        <p className="text-sm font-bold text-gray-900">
-                          {video.views?.toLocaleString() || '0'}
-                        </p>
-                      </div>
-                      <div className="bg-white border border-gray-200 rounded p-2 text-center">
-                        <div className="flex items-center justify-center gap-1 text-xs text-gray-600 mb-0.5">
-                          <Eye className="w-3 h-3 text-blue-600" />
-                          <span>유효조회</span>
-                        </div>
-                        <p className="text-sm font-bold text-blue-600">
-                          {video.engagedViews?.toLocaleString() || '-'}
-                        </p>
-                      </div>
-                      <div className="bg-white border border-gray-200 rounded p-2 text-center">
-                        <div className="flex items-center justify-center gap-1 text-xs text-gray-600 mb-0.5">
-                          <ThumbsUp className="w-3 h-3" />
-                          <span>좋아요</span>
-                        </div>
-                        <p className="text-sm font-bold text-gray-900">
-                          {video.likes.toLocaleString()}
-                        </p>
-                      </div>
-                      <div className="bg-white border border-gray-200 rounded p-2 text-center">
-                        <div className="flex items-center justify-center gap-1 text-xs text-gray-600 mb-0.5">
-                          <Clock className="w-3 h-3" />
-                          <span>시청률</span>
-                        </div>
-                        <p className="text-sm font-bold text-gray-900">
-                          {video.averageViewPercentage !== null
-                            ? video.averageViewPercentage.toFixed(1) + '%'
-                            : '-'}
-                        </p>
-                      </div>
-                    </div>
+                   <div className="grid grid-cols-2 gap-2 mb-3">
+  {/* 1. 조회수 - 회색 */}
+  <div className="bg-white border border-gray-200 rounded p-2 text-center">
+    <div className="flex items-center justify-center gap-1 text-xs text-gray-600 mb-0.5">
+      <Eye className="w-3 h-3 text-gray-500" />
+      <span>조회수</span>
+    </div>
+    <p className="text-sm font-bold text-gray-900">
+      {video.views?.toLocaleString() || '0'}
+    </p>
+  </div>
+  
+  {/* 2. 유효조회 - 파란색 */}
+  <div className="bg-white border border-gray-200 rounded p-2 text-center">
+    <div className="flex items-center justify-center gap-1 text-xs text-gray-600 mb-0.5">
+      <Eye className="w-3 h-3 text-blue-500" />
+      <span>유효조회</span>
+    </div>
+    <p className="text-sm font-bold text-gray-900">
+      {video.engagedViews?.toLocaleString() || '-'}
+    </p>
+  </div>
+  
+  {/* 3. 좋아요 - 핑크 */}
+  <div className="bg-white border border-gray-200 rounded p-2 text-center">
+    <div className="flex items-center justify-center gap-1 text-xs text-gray-600 mb-0.5">
+      <ThumbsUp className="w-3 h-3 text-pink-500" />
+      <span>좋아요</span>
+    </div>
+    <p className="text-sm font-bold text-gray-900">
+      {video.likes.toLocaleString()}
+    </p>
+  </div>
+  
+  {/* 4. 댓글 - 주황 */}
+  <div className="bg-white border border-gray-200 rounded p-2 text-center">
+    <div className="flex items-center justify-center gap-1 text-xs text-gray-600 mb-0.5">
+      <BookOpen className="w-3 h-3 text-orange-500" />
+      <span>댓글</span>
+    </div>
+    <p className="text-sm font-bold text-gray-900">
+      {video.comments.toLocaleString()}
+    </p>
+  </div>
+  
+  {/* 5. 공유수 - 청록 */}
+  <div className="bg-white border border-gray-200 rounded p-2 text-center">
+    <div className="flex items-center justify-center gap-1 text-xs text-gray-600 mb-0.5">
+      <TrendingUp className="w-3 h-3 text-teal-500" />
+      <span>공유수</span>
+    </div>
+    <p className="text-sm font-bold text-gray-900">
+      {video.shares?.toLocaleString() || '0'}
+    </p>
+  </div>
+  
+  {/* 6. 시청시간 - 남색 */}
+  <div className="bg-white border border-gray-200 rounded p-2 text-center">
+    <div className="flex items-center justify-center gap-1 text-xs text-gray-600 mb-0.5">
+      <Clock className="w-3 h-3 text-indigo-500" />
+      <span>시청시간</span>
+    </div>
+    <p className="text-sm font-bold text-gray-900">
+      {video.averageViewDuration ? Math.round(video.averageViewDuration) + '초' : '-'}
+    </p>
+  </div>
+  
+  {/* 7. 시청률 - 초록 */}
+  <div className="bg-white border border-gray-200 rounded p-2 text-center">
+    <div className="flex items-center justify-center gap-1 text-xs text-gray-600 mb-0.5">
+      <BarChart3 className="w-3 h-3 text-green-500" />
+      <span>시청률</span>
+    </div>
+    <p className="text-sm font-bold text-gray-900">
+      {video.averageViewPercentage !== null
+        ? video.averageViewPercentage.toFixed(1) + '%'
+        : '-'}
+    </p>
+  </div>
+  
+  {/* 8. 구독증가 - 보라 */}
+  <div className="bg-white border border-gray-200 rounded p-2 text-center">
+    <div className="flex items-center justify-center gap-1 text-xs text-gray-600 mb-0.5">
+      <Award className="w-3 h-3 text-purple-500" />
+      <span>구독증가</span>
+    </div>
+    <p className="text-sm font-bold text-gray-900">
+      {video.subscribersGained > 0 ? '+' : ''}
+      {video.subscribersGained}
+    </p>
+  </div>
+</div>
 
+                    {/* 대본 보기 버튼 */}
                     {video.script && video.script !== '자막이 없습니다' && video.script !== '자막 추출 실패' && (
                       <button
                         onClick={() => openScriptModal(video.title, video.script)}
-                        className="w-full py-2 bg-blue-50 text-blue-600 rounded-lg text-sm font-medium hover:bg-blue-100"
+                        className="w-full mt-3 py-2 bg-blue-50 text-blue-600 rounded-lg text-sm font-medium hover:bg-blue-100 transition-colors"
                       >
                         📄 대본 보기
                       </button>
