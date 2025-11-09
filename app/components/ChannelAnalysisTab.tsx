@@ -271,7 +271,7 @@ export default function ChannelAnalysisTab() {
             type="text"
             value={channelUrl}
             onChange={(e) => setChannelUrl(e.target.value)}
-            placeholder="YouTube 채널 URL (예: https://www.youtube.com/@channelname)"
+            placeholder="(예: https://www.youtube.com/@channelname)"
             className="flex-1 px-3 md:px-4 py-2 md:py-3 border border-gray-300 rounded-lg text-gray-900 text-sm md:text-base font-medium"
             disabled={loading}
           />
