@@ -372,11 +372,11 @@ export default function MyChannelTab() {
                 {detailedAnalysisLoading ? (
                   <>
                     <Loader2 className="w-5 h-5 md:w-6 md:h-6 animate-spin" />
-                    채널 성과 분석 중...
+                    채널 정밀 분석 중...
                   </>
                 ) : (
                   <>
-                    🔬 채널 성과 분석
+                    📊 채널 정밀 분석
                   </>
                 )}
               </button>
