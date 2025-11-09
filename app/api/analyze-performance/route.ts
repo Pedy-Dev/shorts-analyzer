@@ -3,13 +3,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
 /**
- * 채널 성과 분석 API
- * - 5대 지표: 조회수, 유효조회수, 평균 조회율, 바이럴 지수, 구독 전환율
- * - 조회수 = 알고리즘 평가 (노출량)
- * - 4단계 깔때기 분석
- * - 4가지 영상 타입 분류
- * - 대본 중심 분석
- * - 채널 총평가 (5가지 평가축)
+ * 채널 성과 분석 API (재설계 버전)
+ * 
+ * 3대 핵심 질문에 답하기:
+ * 1. 뭘 만들지? (주제/소재/각도/제목 인사이트)
+ * 2. 왜 안됐는지? (깔때기 분석, 패턴 진단)
+ * 3. 다음엔 어떻게? (실행 가이드, 블루프린트)
  */
 
 export async function POST(request: NextRequest) {
@@ -20,32 +19,25 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: '분석할 영상 데이터가 없습니다' }, { status: 400 });
     }
 
-    // Gemini API 키 확인
     const geminiApiKey = request.headers.get('x-gemini-api-key');
     if (!geminiApiKey) {
       return NextResponse.json({ error: 'Gemini API 키가 필요합니다' }, { status: 400 });
     }
 
-    // 1) 서버에서 핵심 지표만 계산
+    // 1) 핵심 지표 계산
     const enrichedVideos = videos.map((v: any) => {
       const len = num(v.duration);
-      const avgDur = num(v?.analytics?.averageViewDuration || v?.averageViewDuration);
-      const avgPctRaw = num(v?.analytics?.averageViewPercentage || v?.averageViewPercentage);
-      const avgPct = avgPctRaw > 1 ? avgPctRaw / 100 : avgPctRaw; // 0~1
-      const shares = num(v?.analytics?.shares || v?.shares);
-      const subsGained = num(v?.analytics?.subscribersGained || v?.subscribersGained);
+      const avgPctRaw = num(v?.averageViewPercentage);
+      const avgPct = avgPctRaw > 1 ? avgPctRaw / 100 : avgPctRaw;
+      const shares = num(v?.shares);
+      const subsGained = num(v?.subscribersGained);
       const views = num(v.views);
       const engagedViews = num(v?.engagedViews);
       const likes = num(v.likes);
       const comments = num(v.comments);
 
-      // 바이럴 지수: 좋아요 + 댓글 + 공유
       const viralIndex = views > 0 ? (likes + comments + shares) / views : 0;
-
-      // 구독 전환율
       const subConv = views > 0 ? subsGained / views : 0;
-
-      // 유효조회율 (유효조회수/조회수)
       const engagedRate = views > 0 ? engagedViews / views : 0;
 
       return {
@@ -61,7 +53,6 @@ export async function POST(request: NextRequest) {
         shares,
         subscribers_gained: subsGained,
         avg_view_pct: avgPct || 0,
-        avg_view_duration: avgDur,
         viral_index: viralIndex || 0,
         subscriber_conversion_rate: subConv || 0,
         script: v.script || '',
@@ -71,10 +62,10 @@ export async function POST(request: NextRequest) {
     // 2) 벤치마크 계산
     const benchmarks = calculateBenchmarks(enrichedVideos);
 
-    // 3) 성과별 그룹 분류 (조회수/유효조회수 기준)
+    // 3) 성과별 그룹 분류
     const groups = classifyVideosByPerformance(enrichedVideos);
 
-    // 4) LLM에 전달할 페이로드 구성
+    // 4) 페이로드 구성
     const payload = {
       channel_meta: {
         channel_name: channelInfo?.title || '알 수 없음',
@@ -164,7 +155,6 @@ function num(x: any): number {
   return Number.isFinite(n) ? n : 0;
 }
 
-/** 중앙값 */
 function median(values: number[]) {
   const arr = values.filter((v) => Number.isFinite(v)).sort((a, b) => a - b);
   if (arr.length === 0) return 0;
@@ -172,14 +162,12 @@ function median(values: number[]) {
   return arr[mid];
 }
 
-/** 평균 */
 function average(values: number[]) {
   const arr = values.filter((v) => Number.isFinite(v));
   if (arr.length === 0) return 0;
   return arr.reduce((sum, v) => sum + v, 0) / arr.length;
 }
 
-/** 벤치마크 계산 (상위 30% 평균 추가) */
 function calculateBenchmarks(videos: any[]) {
   const viewPctValues = videos.map((v) => v.avg_view_pct).filter((p) => p > 0);
   const medianViewPct = viewPctValues.length ? median(viewPctValues) : 0.85;
@@ -193,7 +181,6 @@ function calculateBenchmarks(videos: any[]) {
   const engagedRateValues = videos.map((v) => v.engaged_rate).filter((e) => e > 0);
   const medianEngagedRate = engagedRateValues.length ? median(engagedRateValues) : 0.5;
 
-  // 상위 30% 평균 계산
   const topCount = Math.max(1, Math.floor(videos.length * 0.3));
   
   const sortedByViewPct = [...viewPctValues].sort((a, b) => b - a);
@@ -220,20 +207,16 @@ function calculateBenchmarks(videos: any[]) {
   };
 }
 
-/** 성과별 영상 그룹 분류 (조회수/유효조회수 기준) */
 function classifyVideosByPerformance(videos: any[]) {
-  // 유효조회수 or 조회수로 정렬
   const sorted = [...videos].sort((a, b) => {
     const aViews = a.engaged_views || a.views;
     const bViews = b.engaged_views || b.views;
     return bViews - aViews;
   });
 
-  // 상위 30%
   const topCount = Math.max(3, Math.floor(sorted.length * 0.3));
   const top = sorted.slice(0, topCount);
 
-  // 하위 30%
   const bottomCount = Math.max(3, Math.floor(sorted.length * 0.3));
   const bottom = sorted.slice(-bottomCount);
 
@@ -242,7 +225,6 @@ function classifyVideosByPerformance(videos: any[]) {
   return { top, bottom };
 }
 
-/** JSON 파서 */
 function safeParseJSON(s: string) {
   try {
     return JSON.parse(s);
@@ -252,496 +234,378 @@ function safeParseJSON(s: string) {
 }
 
 /* =========================
- * 프롬프트 (채널 내 상대 평가 + 채널 총평가)
+ * 프롬프트 (3단계 니즈 기반)
  * ========================= */
 function buildPromptForGemini(payload: any) {
   const data = JSON.stringify(payload, null, 2);
 
   const prompt = `
-{
-  "role": "system",
-  "content": "당신은 YouTube Shorts 성과 분석가입니다. 제공된 데이터를 기반으로 조회수/유효조회수 기준 상위/하위 그룹을 비교 분석하고, 대본 중심의 구체적 개선안을 제시하세요. **모든 분석 결과는 반드시 한국어로 작성**하되, JSON 스키마는 그대로 유지하세요."
-}
+당신은 나레이션 기반 YouTube Shorts 채널 분석 전문가입니다.
+
+# 핵심 목표
+과거 데이터로 **다음 영상 제작 전략** 도출하기
 
 # INPUT_DATA
 ${data}
 
-# summary 작성 지침
-summary는 채널 전체 분석의 핵심을 6개 항목으로 압축하여 작성하세요.
-이 summary만 봐도 채널의 현황과 개선 방향을 파악할 수 있어야 합니다.
-각 항목은 구체적인 수치와 함께 작성하되, 한 문장으로 명확하게 전달하세요.
-다른 AI 도구나 프롬프트에 바로 활용할 수 있도록 실용적인 정보 위주로 작성하세요.
-# 5대 분석 지표 정의
+---
 
+# 분석 철학
 
-## 1. 조회수 (views)
-**의미:** 유튜브 알고리즘이 이 영상을 얼마나 많이 노출시켰는가
+이 툴의 사용자는 **나레이션 쇼츠 크리에이터**입니다.
+- vlog 아님 (얼굴/배경 무관)
+- 편집 기교 무관
+- **오직 대본(말하는 내용)으로 승부**
 
-## 2. 유효조회수 (engaged_views)
-**의미:** 진지하게 시청한 조회수 (바로 이탈 제외)
-**평가:** engaged_views / views 비율로 "진지한 시청" 정도 측정
-
-## 3. 평균 조회율 (avg_view_pct) = 시청 지속률
-**의미:** 영상을 끝까지 봤는가 (완주력)
-**평가 방법:**
-- 이 채널의 상위 30% 평균(benchmarks.avg_view_pct.p30_top)과 비교하여 상대 평가
-- 시청 지속률로 이탈 구간 추정:
-  * 0.90 이상: 거의 완주 (마지막까지 시청)
-  * 0.70-0.90: 후반부 일부 이탈
-  * 0.50-0.70: 중반부 이탈
-  * 0.50 미만: 초반 이탈
-
-## 4. 바이럴 지수 (viral_index)
-**의미:** (좋아요+댓글+공유)/조회수
-**평가:** 이 채널의 상위 30% 평균(benchmarks.viral_index.p30_top)과 비교
-
-## 5. 구독 전환율 (subscriber_conversion_rate)
-**의미:** 구독자 증가/조회수
-**평가:** 이 채널의 상위 30% 평균(benchmarks.subscriber_conversion.p30_top)과 비교
+따라서 분석의 100%는 **대본**과 **소재 선정**에 집중합니다.
 
 ---
 
-# 평가 기준: 채널 내 상대 평가
+# 사용자의 3가지 핵심 질문
 
-**중요:** 절대적 수치가 아닌, **이 채널 내에서의 상대적 위치**로 평가하세요.
+## 질문 1: "뭘 만들지?"
+→ content_analysis 섹션으로 답변
+- 어떤 소재가 잘 먹히는가?
+- 같은 소재도 어떤 각도가 효과적인가?
+- 제목은 어떤 패턴이 좋은가?
 
-예시:
-- 채널 A의 상위 30% 평균 조회율이 0.75라면, 0.75가 이 채널의 "우수" 기준
-- 채널 B의 상위 30% 평균 조회율이 0.60이라면, 0.60이 이 채널의 "우수" 기준
+## 질문 2: "왜 안됐는지?"
+→ funnel_analysis + retention_analysis + subscription_trigger로 답변
+- 5단계 깔때기 중 어디서 막혔는가?
+- 상위 vs 하위 차이의 원인은?
+- 구독 전환 높은 영상의 비밀은?
 
-**절대값 비교 금지:**
-- "90% 이상이면 우수" (X)
-- "이 채널 상위 30% 평균보다 높으면 우수" (O)
-
----
-
-# 4단계 깔때기 분석 프레임워크
-
-\`\`\`
-1단계: 알고리즘 평가 (조회수)
-   ↓ 유튜브가 얼마나 많이 노출시켰나?
-   
-2단계: 실제 관심 (유효조회수)
-   ↓ 클릭 후 바로 이탈? vs 진지하게 시청?
-   
-3단계: 시청 유지 (평균 조회율 = 시청 지속률)
-   ↓ 끝까지 봤는가? 어느 구간에서 이탈했는가?
-   
-4단계: 상호작용 (바이럴 지수 + 구독 전환율)
-   ↓ 좋아요/댓글/공유 남겼는가? 구독까지 했는가?
-\`\`\`
+## 질문 3: "다음엔 어떻게?"
+→ next_video_blueprint + checklist로 답변
+- 다음 영상 소재는?
+- 제목은 어떻게?
+- 대본 구조는?
+- 체크리스트는?
 
 ---
 
-# 4가지 영상 타입 분류 (채널 기준)
+# 분석 원칙
 
-**판단 기준:** 각 지표를 **이 채널의 상위 30% 평균**과 비교
-
-## A. 🚀 대박형
-- 조회수: 채널 상위 30% 이상
-- 평균 조회율: 채널 상위 30% 평균 이상
-- 바이럴: 채널 상위 30% 평균 이상
-- 구독전환: 채널 상위 30% 평균 이상
-→ **4가지 모두 상위권 = 알고리즘도 좋아하고, 사람들도 끝까지 보고, 반응도 좋음!**
-
-## B. 📢 알고리즘 선호형
-- 조회수: 채널 상위 30% 이상
-- 평균 조회율: 채널 중앙값 미만
-- 바이럴: 채널 중앙값 미만
-→ **유튜브가 많이 노출시켰는데, 사람들이 클릭 후 바로 이탈**
-→ **원인:** 썸네일/제목 vs 내용 괴리 (쇼츠는 피드 노출이라 제목은 크게 영향 없음)
-→ **개선:** 대본 개선 최우선! 특히 첫 3초
-
-## C. 💎 숨은 보석형
-- 조회수: 채널 중앙값 미만
-- 평균 조회율: 채널 상위 30% 평균 이상
-- 바이럴: 채널 상위 30% 평균 이상
-- 구독전환: 채널 상위 30% 평균 이상
-→ **본 사람들은 다 좋아하는데, 알고리즘이 안 밀어줌**
-→ **원인:** 알고리즘 트리거 부족 (초기 반응 부족 등)
-→ **개선:** 대본은 그대로! 초반 후킹 강화로 초기 반응 유도
-
-## D. 📊 개선 필요형
-- 조회수: 채널 중앙값 미만
-- 평균 조회율: 채널 중앙값 미만
-- 바이럴: 채널 중앙값 미만
-→ **알고리즘도 안 밀어주고, 사람들도 안 봄**
-→ **개선:** 전면 재검토
+1. **데이터만 사용**: 추측 금지, 제공된 대본과 수치만 활용
+2. **채널 내 상대 평가**: "이 채널에서" 잘된 것 vs 안된 것 비교
+3. **구체적 피드백**: "개선 필요" (X) → "첫 3초를 숫자로 시작" (O)
+4. **실행 가능성**: 창작자가 바로 적용 가능한 조언
+5. **순수 한국어**: 모든 분석 결과는 한국어로
 
 ---
 
-# 영상 시작 패턴 분석
+# 중요한 연구 결과: 유효조회수의 진짜 의미
 
-**분류 기준:**
-- A. 제목 나레이션형: 영상 제목을 그대로 나레이션으로 시작
-- B. 서사형: 제목과 다른 서사적 도입
-- C. 질문형: 질문으로 시작
-- D. 충격형: 강한 단어/숫자로 시작
+**핵심 발견:**
+유효조회수(engaged_views)는 "영상의 70~85% 이상을 시청한 경우"에만 카운트됩니다.
 
-**평가 방법:**
-1. 각 패턴별로 상위/하위 그룹 분포 확인
-2. 어떤 패턴이 **이 채널에서** 효과적인지 데이터 기반 판단
-3. 패턴별 장단점을 **실제 성과 데이터**로 도출
+**데이터 근거:**
+- 30초 영상: 21초(70%) 시점에서 유효조회 인정
+- 47초 영상: 32초(68%) 시점에서 유효조회 인정
+- 51초 영상: 45초(88%) 시점에서 유효조회 인정
 
-**중요:** "제목형은 뻔하다" 같은 일반론 금지! 
-→ "이 채널에서는 제목형이 상위 그룹의 70%를 차지하므로 효과적"처럼 데이터 기반 판단
+**이것이 의미하는 것:**
+1. "후킹"은 첫 3초만의 문제가 아님
+2. 영상 전체 흐름(첫 3초 + 중반 전개 + 후반 일부)이 중요
+3. 유효조회율이 낮다 = 대부분이 영상 중간에 이탈
 
----
+**이탈 구간 역추정 공식:**
+- 유효조회율 30% → 영상의 약 20~30% 지점에서 대량 이탈
+- 유효조회율 50% → 영상의 약 50~60% 지점에서 이탈
+- 유효조회율 70%+ → 영상 대부분 시청 (후킹 성공)
 
-# 분석 프로세스
-
-## 1단계: 상위 그룹 대본 분석
-performance_groups.top의 영상들을 분석:
-- **시작 패턴** (제목 나레이션형? 서사형? 질문형? 충격형? 비율은?)
-- **첫 3초 패턴** (어떤 문장? 어떤 감정? 공통점은?)
-- **스토리 전개 구조** (빠른 전개? 반전 있음? 몇 초마다 전환?)
-- **감정 유발 요소** (어떤 감정? 어떤 단어? 빈도는?)
-- **자주 쓰이는 핵심 문구** (실제 대본에서 반복되는 표현)
-- **마무리 방식** (CTA? 질문? 여운? 비율은?)
-
-## 2단계: 하위 그룹 대본 분석
-performance_groups.bottom의 영상들을 분석:
-- 상위 그룹과 **어떻게 다른가?**
-- 시작 패턴이 효과적인가?
-- 첫 3초가 평범한가?
-- 전개가 느린가?
-- 감정 유발 요소가 없는가?
-
-## 3단계: 영상별 타입 분류
-각 하위 그룹 영상을 4가지 타입으로 분류 (채널 기준 상대 평가)
-
-## 4단계: 구체적 개선안 도출
-각 영상마다:
-- 어떤 타입인지
-- 무엇이 문제인지
-- **시청 지속률 기반 피드백** (이탈 구간 추정)
-- **대본을 어떻게 고칠지 (구체적 예시)**
+**예시:**
+45초 영상의 유효조회율이 38%라면:
+→ 대부분이 영상의 약 30% 지점(13.5초)에서 이탈
+→ 10~15초 구간의 대본을 분석하여 문제 파악 필요
 
 ---
 
-# 5단계: 채널 총평가 (5가지 평가축)
+# JSON 스키마
 
-## 평가 관점 1: 콘텐츠 정체성 (Channel DNA)
-
-**무엇을 평가하는가:**
-- 상위 30% 영상들의 공통 패턴이 명확한가?
-- 채널 전체에서 "성공 패턴"을 따르는 비율은?
-- 하위 영상들은 왜 이 패턴에서 벗어났는가?
-
-**평가 방법:**
-1. 상위 그룹 대본에서 반복되는 요소 찾기 (시작 패턴, 전개 구조, 감정 트리거 등)
-2. 전체 영상 중 이 요소를 가진 비율 계산
-3. 10점 만점으로 점수 부여
-   - 8-10점: 정체성 매우 명확 (상위 그룹의 80%+ 공통점 있음)
-   - 5-7점: 정체성 보통 (50-80%)
-   - 0-4점: 정체성 불명확 (50% 미만)
-
-**출력 형식:**
 {
-  "channel_dna_score": {
-    "score": 0-10,
-    "core_identity": "이 채널의 핵심 정체성을 한 문장으로 (예: 일상 속 놀라운 반전 + 감정 자극)",
-    "success_pattern_ratio": 0.00-1.00,
-    "key_elements": ["요소1", "요소2", "요소3"],
-    "recommendation": "정체성 강화를 위한 구체적 조언 (예: 앞으로 모든 영상에 반전 요소 필수 배치)"
-  }
-}
-
----
-
-## 평가 관점 2: 대본 섹션별 완성도 (Script Quality)
-
-**무엇을 평가하는가:**
-- 첫 3초, 중반 전개, 마무리 각각의 강약점
-- 상위 vs 하위 그룹의 각 섹션별 차이
-
-**평가 방법:**
-1. 각 섹션을 10점 만점으로 평가 (대본 내용 기반)
-   - 첫 3초: 후킹력 (충격/호기심/감정 자극 정도)
-   - 중반 전개: 몰입도 (반전/템포/스토리 전개)
-   - 마무리: 여운 (CTA/질문/감정 강조)
-2. 상위/하위 그룹 평균 비교
-3. 가장 약한 섹션 파악
-
-**출력 형식:**
-{
-  "script_quality": {
-    "opening_3sec": {
-      "score": 0-10,
-      "top_group_avg": 0-10,
-      "bottom_group_avg": 0-10,
-      "issue": "하위 그룹의 문제점 (예: 진부한 질문형 시작이 70%)",
-      "fix": "개선 방법 (예: 숫자/충격 요소로 시작 변경)"
-    },
-    "development": {
-      "score": 0-10,
-      "top_group_avg": 0-10,
-      "bottom_group_avg": 0-10,
-      "issue": "문제점",
-      "fix": "개선 방법"
-    },
-    "ending": {
-      "score": 0-10,
-      "top_group_avg": 0-10,
-      "bottom_group_avg": 0-10,
-      "issue": "문제점",
-      "fix": "개선 방법"
-    },
-    "weakest_section": "opening_3sec|development|ending"
-  }
-}
-
----
-
-## 평가 관점 3: 시청 이탈 패턴 (Retention Pattern)
-
-**무엇을 평가하는가:**
-- 채널 전체의 평균 시청지속률(avg_view_pct)
-- 상위 vs 하위 그룹의 시청지속률 차이
-- 이탈이 주로 발생하는 구간 추정
-
-**평가 방법:**
-1. avg_view_pct 기반으로 이탈 시점 추정
-   - 0.90 이상 → 거의 완주
-   - 0.70-0.90 → 후반부 이탈
-   - 0.50-0.70 → 중반부 이탈
-   - 0.50 미만 → 초반 이탈
-2. 대본 분석해서 이탈 원인 파악
-3. 상위/하위 차이 분석
-
-**출력 형식:**
-{
-  "retention_pattern": {
-    "channel_avg_retention": 0.00-1.00,
-    "top_group_avg": 0.00-1.00,
-    "bottom_group_avg": 0.00-1.00,
-    "critical_drop_point": "초반|중반|후반",
-    "estimated_drop_timing": "X-Y초 구간 (영상 길이 고려)",
-    "drop_reasons": [
-      {"reason": "원인1 (예: 반전 없이 단조로운 전개)", "affected_videos": 0},
-      {"reason": "원인2", "affected_videos": 0}
+  "executive_summary": {
+    "total_videos": 0,
+    "avg_views": 0,
+    "key_findings": [
+      "핵심 발견 1 (수치 포함)",
+      "핵심 발견 2",
+      "핵심 발견 3"
     ],
-    "solution": "이탈 방지 구체적 방법 (예: 12초 이전에 반드시 예상 밖 요소 삽입)"
-  }
-}
-
----
-
-## 평가 관점 4: 타겟 오디언스 정렬도 (Audience Fit)
-
-**무엇을 평가하는가:**
-- 상위 그룹이 자극하는 감정/주제
-- 하위 그룹이 타겟에서 벗어난 정도
-
-**평가 방법:**
-1. 상위 그룹 대본에서 공통 감정/주제 추출
-2. 하위 그룹이 이 요소를 놓친 비율
-3. 10점 만점 점수
-
-**출력 형식:**
-{
-  "audience_fit": {
-    "score": 0-10,
-    "top_group_profile": {
-      "target_emotion": ["감정1", "감정2"],
-      "target_theme": ["주제1", "주제2"],
-      "content_style": "스타일 설명 (예: 빠른 템포 + 반전)"
-    },
-    "bottom_group_issues": [
-      {"issue": "문제1 (예: 너무 전문적)", "ratio": 0.00-1.00},
-      {"issue": "문제2", "ratio": 0.00-1.00}
-    ],
-    "recommendation": "타겟 정렬 방법 (예: 모든 영상을 20-35세 타겟, 감정 자극(놀라움+공감) 기준으로)"
-  }
-}
-
----
-
-## 평가 관점 5: 우선순위 개선 로드맵 (Priority Actions)
-
-**무엇을 제시하는가:**
-- 난이도 vs 효과를 고려한 개선 우선순위
-- 즉시 실행 가능한 것부터 나열
-
-**평가 방법:**
-1. 위 4가지 평가에서 가장 점수 낮은 영역 파악
-2. 효과 크고 난이도 낮은 것 우선
-3. 3-5개 액션 아이템 제시
-
-**중요:** 쇼츠는 피드 노출이므로 썸네일/제목 A/B 테스트는 의미 없음!
-→ 대본 개선에만 집중
-
-**출력 형식:**
-{
-  "priority_actions": [
-    {
-      "priority": 1,
-      "area": "channel_dna|script_quality|retention|audience_fit",
-      "action": "구체적으로 무엇을 해야 하는지 (예: 첫 3초를 숫자/충격 요소로 변경)",
-      "difficulty": "낮음|중간|높음",
-      "expected_impact": "예상되는 효과 (수치로, 예: 평균 조회율 +15%p)",
-      "how_to": "실행 방법 상세 설명 (예: 현재 질문형 시작을 '무려 X만원', '충격! X가...'로 교체)"
-    }
-  ]
-}
-
----
-
-# 필수 JSON 스키마
-
-{
-  "summary": [
-  "[채널 현황] 총 X개 영상 분석, 평균 조회수 X, 평균 유효조회수 X, 평균 시청지속률 X%",
-  "[강점] 상위 그룹의 핵심 성공 패턴: (구체적 패턴 설명)",
-  "[약점] 하위 그룹의 주요 문제점: (구체적 문제 설명)",
-  "[차별화 포인트] 이 채널만의 고유한 특징이나 스타일",
-  "[즉시 개선사항] 지금 당장 적용 가능한 가장 효과적인 개선 방법 1-2가지",
-  "[중장기 전략] 채널 성장을 위한 핵심 전략 방향"
-],
-  "top_group_videos": [
-    {
-      "title": "영상 제목",
-      "views": 0,
-      "engaged_views": 0,
-      "avg_view_pct": 0.00
-    }
-  ],
-  "bottom_group_videos": [
-    {
-      "title": "영상 제목",
-      "views": 0,
-      "engaged_views": 0,
-      "avg_view_pct": 0.00
-    }
-  ],
-  "top_group_patterns": {
-    "opening_pattern": "이 채널 상위 그룹의 시작 패턴 분석 (데이터 기반)",
-    "first_3_seconds": "첫 3초 공통 패턴",
-    "story_structure": "스토리 전개 구조",
-    "emotion_triggers": ["감정1", "감정2"],
-    "key_phrases": ["자주 나오는 문구1", "문구2"],
-    "ending_style": "마무리 방식"
+    "next_video_formula": "다음 영상 성공 공식 한 문장"
   },
-  "bottom_group_weaknesses": {
-    "opening_pattern": "시작 패턴의 문제점 (데이터 기반)",
-    "first_3_seconds": "첫 3초 약점",
-    "story_structure": "전개 약점",
-    "missing_elements": ["놓친 요소1", "요소2"]
-  },
-  "video_analysis": [
-    {
-      "video_id": "string",
-      "title": "string",
-      "type": "대박형|알고리즘선호형|숨은보석형|개선필요형",
-      "current_performance": {
-        "views": 0,
-        "engaged_views": 0,
-        "likes": 0,
-        "comments": 0,
-        "shares": 0,
-        "avg_view_pct": 0.00,
-        "avg_view_duration_sec": 0,
-        "viral_index": 0.00,
-        "subscriber_conversion_rate": 0.0000
-      },
-      "diagnosis": "현재 상태 진단 (4단계 깔때기 중 어디서 막혔는지)",
-      "retention_feedback": "시청 지속률 X%는 보통 Y초에서 이탈을 의미합니다. 이 영상은...",
-      "opening_pattern_analysis": "이 영상은 [제목나레이션형/서사형/질문형/충격형]으로 시작하는데...",
-      "main_issues": ["문제1", "문제2"],
-      "script_improvements": [
+
+  "content_analysis": {
+    "by_topic": {
+      "topics": [
         {
-          "section": "시작부|첫 3초|중간|마무리",
-          "current_script": "현재 대본 발췌 (50자 이내)",
-          "improved_script": "개선된 대본 예시 (50자 이내)",
-          "why": "왜 이렇게 바꾸면 좋은지 (한 문장)"
+          "topic": "소재명",
+          "video_count": 0,
+          "performance": {
+            "avg_views": 0,
+            "avg_retention": 0.00,
+            "avg_sub_conversion": 0.0000
+          },
+          "type": "안정형|알고리즘선호형|숨은보석형",
+          "recommendation": "이 소재 전략"
+        }
+      ]
+    },
+    "by_angle": {
+      "topic": "대표 소재",
+      "angles": [
+        {
+          "angle": "접근 각도명",
+          "video_count": 0,
+          "avg_views": 0,
+          "avg_retention": 0.00,
+          "type": "대박형|알고리즘선호형|숨은보석형",
+          "strength": "이 각도의 강점",
+          "weakness": "이 각도의 약점",
+          "recommendation": "이 각도 활용법"
         }
       ],
-      "expected_result": "예상 효과"
-    }
-  ],
-  "channel_overall_evaluation": {
-    "channel_dna_score": { 
-      "score": 0-10,
-      "core_identity": "string",
-      "success_pattern_ratio": 0.00-1.00,
-      "key_elements": ["string"],
-      "recommendation": "string"
+      "best_angle": "최적 각도 설명"
     },
-    "script_quality": {
-      "opening_3sec": {
-        "score": 0-10,
-        "top_group_avg": 0-10,
-        "bottom_group_avg": 0-10,
-        "issue": "string",
-        "fix": "string"
+    "by_title": {
+      "top_patterns": {
+        "avg_length": 0,
+        "common_structures": [
+          {
+            "structure": "제목 구조 패턴",
+            "frequency": 0,
+            "example": "실제 제목 예시",
+            "why_works": "효과적인 이유"
+          }
+        ],
+        "power_keywords": [
+          {"keyword": "키워드", "frequency": 0}
+        ],
+        "tone": "자극적|중립적|차분함"
       },
-      "development": {
-        "score": 0-10,
-        "top_group_avg": 0-10,
-        "bottom_group_avg": 0-10,
-        "issue": "string",
-        "fix": "string"
+      "bottom_patterns": {
+        "avg_length": 0,
+        "common_problems": [
+          {
+            "problem": "문제 유형",
+            "examples": ["실패 제목1", "실패 제목2"],
+            "why_fails": "실패 이유"
+          }
+        ]
       },
-      "ending": {
-        "score": 0-10,
-        "top_group_avg": 0-10,
-        "bottom_group_avg": 0-10,
-        "issue": "string",
-        "fix": "string"
-      },
-      "weakest_section": "opening_3sec|development|ending"
-    },
-    "retention_pattern": {
-      "channel_avg_retention": 0.00-1.00,
-      "top_group_avg": 0.00-1.00,
-      "bottom_group_avg": 0.00-1.00,
-      "critical_drop_point": "초반|중반|후반",
-      "estimated_drop_timing": "string",
-      "drop_reasons": [
-        {"reason": "string", "affected_videos": 0}
-      ],
-      "solution": "string"
-    },
-    "audience_fit": {
-      "score": 0-10,
-      "top_group_profile": {
-        "target_emotion": ["string"],
-        "target_theme": ["string"],
-        "content_style": "string"
-      },
-      "bottom_group_issues": [
-        {"issue": "string", "ratio": 0.00-1.00}
-      ],
-      "recommendation": "string"
-    },
-    "priority_actions": [
-      {
-        "priority": 1,
-        "area": "string",
-        "action": "string",
-        "difficulty": "낮음|중간|높음",
-        "expected_impact": "string",
-        "how_to": "string"
+      "optimal_formula": {
+        "structure": "최적 제목 구조",
+        "length": "X-Y자",
+        "must_include": ["필수 요소1", "필수 요소2"]
       }
+    }
+  },
+
+  "funnel_analysis": {
+    "stage_2_engagement": {
+      "top_group_engaged_rate": 0.00,
+      "bottom_group_engaged_rate": 0.00,
+      "gap": "차이 해석 + 이탈 구간 추정 (예: 하위는 영상의 30% 지점에서 이탈, 초반 전개 개선 필요)"
+    },
+    "stage_3_retention": {
+      "top_group_avg_retention": 0.00,
+      "bottom_group_avg_retention": 0.00,
+      "gap": "차이 해석 (예: 중반 템포 저하, 반전 부족)"
+    },
+    "stage_5_subscription": {
+      "top_group_sub_conv": 0.0000,
+      "bottom_group_sub_conv": 0.0000,
+      "gap": "차이 해석 (예: 마무리에 질문/CTA 부족)"
+    },
+    "biggest_gap_stage": "2단계|3단계|5단계",
+    "priority_fix": "최우선 개선 포인트 설명"
+  },
+
+  "retention_analysis": {
+    "top_group": {
+      "avg_length": 0,
+      "avg_retention": 0.00,
+      "pattern": "잘되는 영상의 대본 패턴"
+    },
+    "bottom_group": {
+      "avg_length": 0,
+      "avg_retention": 0.00,
+      "pattern": "안되는 영상의 문제점"
+    },
+    "critical_insight": "시청 완주의 핵심 비결",
+    "optimal_length": "X-Y초"
+  },
+
+  "subscription_trigger": {
+    "high_conversion_videos": {
+      "avg_sub_conversion": 0.0000,
+      "avg_retention": 0.00,
+      "common_topics": ["소재1", "소재2"],
+      "emotional_triggers": ["감정1", "감정2"],
+      "ending_pattern": "마무리 패턴 설명"
+    },
+    "key_findings": [
+      "구독 유도 발견1",
+      "구독 유도 발견2"
+    ],
+    "subscription_formula": "구독 전환 공식"
+  },
+
+  "next_video_blueprint": {
+    "topic_selection": {
+      "primary": "1순위 소재 (이유 포함)",
+      "secondary": "2순위 소재 (이유 포함)",
+      "avoid": "피해야 할 소재 (이유 포함)"
+    },
+    "title_formula": {
+      "structure": "제목 구조 공식",
+      "length": "X-Y자",
+      "must_keywords": ["필수 키워드1", "필수 키워드2"],
+      "example": "예시 제목"
+    },
+    "script_structure": {
+      "opening": "오프닝 전략 (구체적)",
+      "development": "본론 전개 방법 (구체적)",
+      "ending": "마무리 전략 (구체적)",
+      "optimal_length": "X-Y초"
+    },
+    "target_metrics": {
+      "engaged_rate": "목표 후킹 성공률",
+      "retention": "목표 완주율",
+      "sub_conversion": "목표 구독 전환율"
+    }
+  },
+
+  "checklist": {
+    "topic": [
+      "소재 선정 체크 항목 (구체적)"
+    ],
+    "angle": [
+      "각도 선택 체크 항목 (구체적)"
+    ],
+    "title": [
+      "제목 작성 체크 항목 (구체적)"
+    ],
+    "script": [
+      "대본 작성 체크 항목 (구체적)"
     ]
   }
 }
 
 ---
 
-# 중요 지시사항
+# 세부 분석 가이드
 
-1. **데이터 기반 평가:** 제공된 수치와 대본만 사용. 추측 금지
-2. **채널 내 상대 평가:** 절대값(90%, 3% 등) 사용 금지. 이 채널의 상위 30% 기준으로 평가
-3. **구체적 피드백:** "대본 개선 필요" (X) → "첫 3초에 숫자 요소 추가" (O)
-4. **실행 가능성:** 창작자가 바로 적용할 수 있는 조언
-5. **우선순위 명확:** 효과 크고 난이도 낮은 것부터 순서대로
-6. **채널 맞춤형:** 이 채널만의 고유한 특성 반영
-7. **쇼츠 특성 고려:** 피드 노출이므로 썸네일/제목 A/B 테스트 제안 금지
-8. **대본 없는 영상:** "자막이 없습니다", "자막 추출 실패" 영상은 분석 제외하되 언급
-9. **JSON만 출력:** 마크다운, 추가 설명 금지
-10. **퍼센트 표기:** 소수점 (0.92, "92%" 아님)
-11. **구독 전환율:** 소수점 4자리 (0.0012 등)
+## 1. content_analysis (뭘 만들지?)
+
+### by_topic (소재별 성과)
+- 대본과 제목을 보고 소재를 3-5개 그룹으로 분류
+- 각 소재별 평균 성과 계산
+- 타입 분류 기준:
+  * 안정형: 시청률 높음 + 조회수 중간
+  * 알고리즘선호형: 조회수 높음 + 시청률 낮음
+  * 숨은보석형: 시청률 매우 높음 + 조회수 낮음
+
+### by_angle (각도별 성과)
+- 가장 많은 소재를 선택
+- 같은 소재 내에서 접근 각도 분류 (예: 서사형, 팩트형, 위기극복형)
+- 각도별 성과 비교 분석
+
+### by_title (제목 전략)
+- 상위 그룹 제목의 공통 패턴 추출
+- 하위 그룹 제목의 문제점 분석
+- 파워 키워드는 빈도 3회 이상만 포함
+
+## 2. funnel_analysis (왜 안됐는지?)
+
+### stage_2_engagement (후킹 성공률) - 가장 중요!
+
+**분석 절차:**
+1. 상위 vs 하위 그룹의 engaged_rate 비교
+2. 하위 그룹의 engaged_rate로 이탈 구간 추정
+3. 추정된 이탈 구간의 대본 분석
+4. 구체적 개선 방향 제시
+
+**이탈 구간 추정 예시:**
+- 하위 engaged_rate 35%, 평균 영상 길이 40초
+  → 영상의 약 25~35% 지점 이탈 = 10~14초 구간
+  → 10~14초 대본 확인: "그리고 두 번째로..." (지루한 나열)
+  → 개선: 10초 전에 반전/충격 요소 삽입
+
+**gap 작성 예시:**
+"상위 72% vs 하위 38%. 하위는 영상의 약 30% 지점(12초)에서 대량 이탈. 10~15초 구간에 템포 저하 또는 반전 부족으로 추정. 초반 전개 전체를 개선해야 함."
+
+### stage_3_retention (시청 완주율)
+- 상위 vs 하위 평균 시청률 비교
+- 영상 길이와 시청률의 상관관계
+- 대본 패턴 분석
+
+### stage_5_subscription (구독 전환율)
+- 상위 vs 하위 구독 전환율 비교
+- 마무리 패턴 차이 분석
+
+**최우선 개선 단계 선정:**
+3개 단계 중 격차가 가장 큰 것을 biggest_gap_stage로 지정
+
+## 3. retention_analysis (시청 완주력)
+
+- 상위 vs 하위 그룹의 평균 시청률 비교
+- 영상 길이와 시청률의 관계
+- 대본 패턴 분석 (후킹, 전개 속도, 반전 등)
+
+## 4. subscription_trigger (구독 유도 요인)
+
+- 구독 전환 상위 영상들의 공통점
+- 감정 자극 요소
+- 마무리 패턴 (질문형/CTA형/여운형)
+
+## 5. next_video_blueprint (다음엔 어떻게?)
+
+**모든 항목이 구체적이어야 함:**
+- topic_selection: "인간관계" (X) → "직장 내 인간관계 갈등" (O)
+- title_formula: "좋은 제목" (X) → "[상황] + [반전결과]" (O)
+- script_structure: "잘 시작하기" (X) → "숫자로 시작 + 3초 내 포인트" (O)
+
+## 6. checklist (실행 전 확인)
+
+각 항목이 Yes/No로 체크 가능하도록 구체적으로:
+- "소재가 적절한가?" (X)
+- "이전 상위 30% 소재와 동일 카테고리인가?" (O)
+
+---
+
+# 필수 준수 사항
+
+1. **대본 없는 영상 제외**: "자막이 없습니다", "자막 추출 실패" 영상은 분석에서 제외
+2. **소수점 표기**: 퍼센트는 0.85 형식 ("85%" 아님)
+3. **구독 전환율**: 0.0012 형식 (소수점 4자리)
+4. **순수 JSON만 출력**: 마크다운, 코드블록, 설명 모두 금지
+5. **순수 한국어**: 모든 텍스트는 한국어로 (영어 전문용어 금지)
+6. **데이터 기반**: 추측이나 일반론 금지, 오직 제공된 데이터만 사용
+7. **채널 맞춤형**: "일반적으로 좋다" (X) → "이 채널에서 효과적이다" (O)
+8. **이탈 구간 추정**: stage_2_engagement 분석 시 반드시 이탈 구간을 추정하고 해당 구간의 문제 지적
+
+---
+
+# 출력 예시 (구조 참고용)
+
+{
+  "executive_summary": {
+    "key_findings": [
+      "최대 격차는 2단계(후킹 성공률)로 상위 72% vs 하위 38%, 하위는 영상 12초 지점에서 이탈",
+      "구독 전환 높은 영상(0.0015+)은 모두 '인간관계 갈등' 소재 + 질문형 마무리",
+      "제목은 15-18자 + '절대/진짜' 키워드 포함 시 평균 조회수 2.3배 증가"
+    ],
+    "next_video_formula": "인간관계 갈등 소재 + 숫자 시작 + 15초 반전 + 질문 마무리 (45-50초)"
+  },
+  "funnel_analysis": {
+    "stage_2_engagement": {
+      "top_group_engaged_rate": 0.72,
+      "bottom_group_engaged_rate": 0.38,
+      "gap": "상위 72% vs 하위 38% (34%p 차이). 하위 그룹은 영상의 약 30% 지점(평균 12초)에서 대량 이탈. 10~15초 구간을 분석한 결과 지루한 나열식 전개가 공통점. 이 구간에 반전 요소 삽입 필요."
+    }
+  }
+}
 `;
 
   return prompt;
