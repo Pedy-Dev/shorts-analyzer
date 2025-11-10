@@ -70,7 +70,7 @@ export default function ApiKeyModal({ isOpen, onClose }: ApiKeyModalProps) {
           <div className="bg-blue-50 rounded-lg p-4 mb-6">
             <p className="text-sm text-gray-700 leading-relaxed">
               🔒 API 키는 <strong>브라우저에만</strong> 저장되며, 서버로 전송되지 않습니다.<br />
-              💡 두 API 모두 <strong>무료</strong>로 발급받을 수 있습니다!
+              💡 두 API 모두 <strong className="text-red-500">무료</strong>로 발급 및 사용 할 수 있습니다!
             </p>
           </div>
 
