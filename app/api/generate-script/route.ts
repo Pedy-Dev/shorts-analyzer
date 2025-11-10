@@ -2,18 +2,80 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
+// 🔥 Fallback 헬퍼 함수
+async function callGeminiWithFallback(
+  prompt: string,
+  serverKey: string | undefined,
+  userKey: string | undefined,
+  model: string = 'gemini-2.5-flash'
+) {
+  const tryApiCall = async (apiKey: string, keyType: 'server' | 'user') => {
+    try {
+      console.log(`[Gemini] ${keyType} API로 시도 중...`);
+      const genAI = new GoogleGenerativeAI(apiKey);
+      const geminiModel = genAI.getGenerativeModel({ model });
+      const result = await geminiModel.generateContent(prompt);
+      const text = result.response.text();
+      console.log(`[Gemini] ✅ ${keyType} API 성공!`);
+      return { success: true, text, usedKey: keyType };
+    } catch (error: any) {
+      const errorCode = error?.status || error?.code;
+      const errorMessage = error?.message || '';
+      console.log(`[Gemini] ❌ ${keyType} API 실패:`, errorCode, errorMessage);
+      
+      const isQuotaError = 
+        errorCode === 429 || 
+        errorCode === 403 ||
+        errorMessage.includes('quota') ||
+        errorMessage.includes('exhausted') ||
+        errorMessage.includes('RESOURCE_EXHAUSTED');
+      
+      return { success: false, error, isQuotaError };
+    }
+  };
+
+  // 1차: 서버 키 시도
+  if (serverKey) {
+    const result = await tryApiCall(serverKey, 'server');
+    if (result.success) return result;
+    
+    if (!result.isQuotaError) {
+      throw result.error;
+    }
+    console.log('[Gemini] ⚠️ 서버 API 한도 초과, 유저 API로 전환...');
+  }
+
+  // 2차: 유저 키 시도
+  if (userKey) {
+    const result = await tryApiCall(userKey, 'user');
+    if (result.success) return result;
+    
+    if (result.isQuotaError) {
+      throw new Error('모든 API 키가 한도를 초과했습니다. 잠시 후 다시 시도해주세요.');
+    }
+    throw result.error;
+  }
+
+  throw new Error('사용 가능한 Gemini API 키가 없습니다. API 키를 설정해주세요.');
+}
+
 export async function POST(request: NextRequest) {
   try {
-    const { videos, mode, analysisResult, geminiApiKey } = await request.json();
+    const { videos, mode, analysisResult, geminiApiKey: userGeminiKey } = await request.json();
 
-    if (!geminiApiKey) {
+    // 🔥 Fallback 시스템: 서버 키 → 유저 키
+    const serverGeminiKey = process.env.GEMINI_API_KEY;
+    
+    console.log('[generate-script] API 키 상태:');
+    console.log('  - 서버 키:', serverGeminiKey ? '✅ 있음' : '❌ 없음');
+    console.log('  - 유저 키:', userGeminiKey ? '✅ 있음' : '❌ 없음');
+    
+    if (!serverGeminiKey && !userGeminiKey) {
       return NextResponse.json(
         { error: 'Gemini API 키가 필요합니다. API 키 설정 버튼을 눌러 키를 입력해주세요.' },
         { status: 400 }
       );
     }
-
-    const genAI = new GoogleGenerativeAI(geminiApiKey);
 
     const validVideos = videos.filter(
       (v: any) => v.script && v.script !== '자막이 없습니다' && v.script !== '자막 추출 실패'
@@ -262,8 +324,48 @@ ${v.script}
         "description": "이 카테고리의 특징"
       }
     ],
-
+    "successful_topics": [
+      {
+        "topic": "구체적 주제",
+        "category": "속한 카테고리",
+        "video_count": 0,
+        "avg_performance_score": 0.0,
+        "successful_angle": "효과적이었던 접근 각도",
+        "key_elements": ["요소1", "요소2"],
+        "examples": ["영상 제목1", "영상 제목2"],
+        "why_works": "성공 이유 분석"
+      }
+    ],
+    "unsuccessful_topics": [
+      {
+        "topic": "구체적 주제",
+        "category": "속한 카테고리",
+        "video_count": 0,
+        "avg_performance_score": 0.0,
+        "problematic_angle": "문제가 된 접근 각도",
+        "examples": ["영상 제목1"],
+        "why_fails": "실패 이유 분석"
+      }
+    ],
+    "angle_analysis": {
+      "effective_angles": [
+        {
+          "angle_type": "각도 유형 (예: 개인스토리형/충격폭로형/정보나열형)",
+          "success_rate": 0.0,
+          "characteristics": "이 각도의 특징",
+          "best_for": "어떤 주제에 효과적인지"
+        }
+      ],
+      "ineffective_angles": [
+        {
+          "angle_type": "각도 유형",
+          "success_rate": 0.0,
+          "problem": "왜 효과가 떨어지는지"
+        }
+      ]
     },
+    "topic_pattern": "전체적인 주제 선정 패턴 요약"
+  },
   
   "title_analysis": {
     "summary": "상위와 하위 제목의 가장 큰 차이 1-2문장",
@@ -310,51 +412,6 @@ ${v.script}
       "effective_elements": ["요소1", "요소2"],
       "avoid_elements": ["피해야할 요소1", "피해야할 요소2"]
     }
-  },
-  
-  "trend_analysis": {
-  
-    "successful_topics": [
-      {
-        "topic": "구체적 주제",
-        "category": "속한 카테고리",
-        "video_count": 0,
-        "avg_performance_score": 0.0,
-        "successful_angle": "효과적이었던 접근 각도",
-        "key_elements": ["요소1", "요소2"],
-        "examples": ["영상 제목1", "영상 제목2"],
-        "why_works": "성공 이유 분석"
-      }
-    ],
-    "unsuccessful_topics": [
-      {
-        "topic": "구체적 주제",
-        "category": "속한 카테고리",
-        "video_count": 0,
-        "avg_performance_score": 0.0,
-        "problematic_angle": "문제가 된 접근 각도",
-        "examples": ["영상 제목1"],
-        "why_fails": "실패 이유 분석"
-      }
-    ],
-    "angle_analysis": {
-      "effective_angles": [
-        {
-          "angle_type": "각도 유형 (예: 개인스토리형/충격폭로형/정보나열형)",
-          "success_rate": 0.0,
-          "characteristics": "이 각도의 특징",
-          "best_for": "어떤 주제에 효과적인지"
-        }
-      ],
-      "ineffective_angles": [
-        {
-          "angle_type": "각도 유형",
-          "success_rate": 0.0,
-          "problem": "왜 효과가 떨어지는지"
-        }
-      ]
-    },
-    "topic_pattern": "전체적인 주제 선정 패턴 요약"
   },
   
   "trend_analysis": {
@@ -465,11 +522,11 @@ ${v.script}
 - 시의성은 게시일과 내용의 키워드를 연결하여 분석
 - 인물명, 사건명, 브랜드명이 반복되면 당시 트렌드로 판단`;
 
-      const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
-      const result = await model.generateContent(prompt);
-      const generatedContent = result.response.text();
-
-      console.log(`✅ 채널 컨텐츠 분석 완료!`);
+      // 🔥 Fallback 로직으로 API 호출
+      console.log(`✅ 채널 컨텐츠 분석 시작...`);
+      const apiResult = await callGeminiWithFallback(prompt, serverGeminiKey, userGeminiKey);
+      const generatedContent = apiResult.text;
+      console.log(`✅ 채널 컨텐츠 분석 완료! (사용된 API: ${apiResult.usedKey})`);
 
       return NextResponse.json({
         success: true,
@@ -479,6 +536,7 @@ ${v.script}
         excludedCount: validVideos.length - matureVideos.length,
         topCount: topVideos.length,
         bottomCount: bottomVideos.length,
+        usedApiKey: apiResult.usedKey,
         metadata: {
           avgViews: Math.round(avgViews),
           avgLikes: Math.round(avgLikes),
@@ -757,16 +815,17 @@ ${analysisResult}
 - 특히 시의성과 트렌드 활용은 이 채널의 핵심 성공 요인입니다
 - AI에게 이 가이드를 제공하면 채널 맞춤형 콘텐츠를 생성할 수 있습니다`;
 
-      const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
-      const result = await model.generateContent(prompt);
-      const generatedContent = result.response.text();
-
-      console.log(`✅ 콘텐츠 제작 가이드 생성 완료!`);
+      // 🔥 Fallback 로직으로 API 호출
+      console.log(`✅ 콘텐츠 제작 가이드 생성 시작...`);
+      const apiResult = await callGeminiWithFallback(prompt, serverGeminiKey, userGeminiKey);
+      const generatedContent = apiResult.text;
+      console.log(`✅ 콘텐츠 제작 가이드 생성 완료! (사용된 API: ${apiResult.usedKey})`);
 
       return NextResponse.json({
         success: true,
         result: generatedContent,
         analyzedCount: validVideos.length,
+        usedApiKey: apiResult.usedKey,
       });
     }
 
@@ -777,6 +836,22 @@ ${analysisResult}
 
   } catch (error: any) {
     console.error('❌ Gemini API 오류:', error);
+
+    // 한도 초과 에러 특별 처리
+    if (error?.message?.includes('한도')) {
+      return NextResponse.json(
+        { error: error.message },
+        { status: 429 }
+      );
+    }
+
+    if (error?.message?.includes('API 키')) {
+      return NextResponse.json(
+        { error: error.message },
+        { status: 400 }
+      );
+    }
+
     return NextResponse.json(
       { error: `처리 실패: ${error.message}` },
       { status: 500 }

@@ -185,12 +185,7 @@ export default function MyChannelTab() {
   };
 
   const analyzeChannelPerformance = async () => {
-    const geminiApiKey = localStorage.getItem('gemini_api_key');
-
-    if (!geminiApiKey) {
-      alert('⚠️ Gemini API 키가 필요합니다!\n\n오른쪽 상단의 "⚙️ API 키 설정" 버튼을 눌러 API 키를 입력해주세요.');
-      return;
-    }
+    
 
     if (!myChannelData || !myChannelData.videos) {
       alert('⚠️ 먼저 영상 데이터를 불러와주세요.');
@@ -206,7 +201,6 @@ export default function MyChannelTab() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-gemini-api-key': geminiApiKey,
         },
         body: JSON.stringify({
           videos: myChannelData.videos,

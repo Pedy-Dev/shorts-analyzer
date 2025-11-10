@@ -144,11 +144,6 @@ export default function ChannelAnalysisTab() {
       return;
     }
 
-    const geminiApiKey = localStorage.getItem('gemini_api_key');
-    if (!geminiApiKey) {
-      alert('⚠️ Gemini API 키가 필요합니다!\n\n오른쪽 상단의 "⚙️ API 키 설정" 버튼을 눌러 Gemini API 키를 입력해주세요.');
-      return;
-    }
 
     setScriptLoading(true);
     setAnalysisResult(null);
@@ -162,7 +157,6 @@ export default function ChannelAnalysisTab() {
         body: JSON.stringify({
           videos: videos,
           mode: 'analyze',
-          geminiApiKey: geminiApiKey
         }),
       });
 
@@ -220,12 +214,6 @@ export default function ChannelAnalysisTab() {
       return;
     }
 
-    const geminiApiKey = localStorage.getItem('gemini_api_key');
-    if (!geminiApiKey) {
-      alert('⚠️ Gemini API 키가 필요합니다!');
-      return;
-    }
-
     setScriptLoading(true);
     setGeneratedGuideline('');
 
@@ -239,7 +227,6 @@ export default function ChannelAnalysisTab() {
           videos: videos,
           mode: 'guideline',
           analysisResult: JSON.stringify(analysisResult),
-          geminiApiKey: geminiApiKey
         }),
       });
 
@@ -285,7 +272,7 @@ export default function ChannelAnalysisTab() {
               <option value={10}>10개</option>
               <option value={20}>20개</option>
               <option value={30}>30개</option>
-              <option value={50}>50개</option>
+
             </select>
             <button
               onClick={handleAnalyze}
@@ -641,7 +628,7 @@ export default function ChannelAnalysisTab() {
                 <h4 className="font-bold text-gray-800 mb-3 flex items-center gap-2">
                   <span className="text-green-600">✅</span> 효과적인 제목 패턴
                 </h4>
-                
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                   {/* 제목 구조 */}
                   {analysisResult.title_analysis.top_patterns.common_structures?.map((struct: any, i: number) => (
@@ -702,7 +689,7 @@ export default function ChannelAnalysisTab() {
                 <h4 className="font-bold text-gray-800 mb-3 flex items-center gap-2">
                   <span className="text-red-600">❌</span> 피해야 할 제목 패턴
                 </h4>
-                
+
                 <div className="space-y-2">
                   {analysisResult.title_analysis.bottom_patterns.common_problems?.map((prob: any, i: number) => (
                     <div key={i} className="bg-red-50 border border-red-200 rounded-lg p-3">
@@ -780,7 +767,7 @@ export default function ChannelAnalysisTab() {
               </div>
             </div>
           )}
-          
+
           <div className="bg-white rounded-xl shadow-lg p-4 md:p-6">
             <h3 className="text-xl md:text-2xl font-bold text-black mb-4 md:mb-6 flex items-center gap-2">
               🧬 채널 DNA (현재 스타일)

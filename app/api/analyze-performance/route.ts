@@ -11,6 +11,78 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
  * 3. 다음엔 어떻게? (실행 가이드, 블루프린트)
  */
 
+// 🔥 Fallback 헬퍼 함수 추가
+async function callGeminiWithFallback(
+  prompt: string,
+  serverKey: string | undefined,
+  userKey: string | undefined,
+  modelConfig = {}
+) {
+  const tryApiCall = async (apiKey: string, keyType: 'server' | 'user') => {
+    try {
+      console.log(`[Gemini] ${keyType} API로 시도 중...`);
+      const genAI = new GoogleGenerativeAI(apiKey);
+      const model = genAI.getGenerativeModel({
+        model: 'gemini-2.0-flash-exp',
+        generationConfig: {
+          temperature: 0.1,
+          topK: 1,
+          topP: 0.9,
+          maxOutputTokens: 8192,
+          responseMimeType: 'application/json',
+          ...modelConfig,
+        },
+      });
+      
+      const result = await model.generateContent(prompt);
+      const text = result?.response?.text() ?? '';
+      console.log(`[Gemini] ✅ ${keyType} API 성공!`);
+      return { success: true, text, usedKey: keyType };
+    } catch (error: any) {
+      const errorCode = error?.status || error?.code;
+      const errorMessage = error?.message || '';
+      console.log(`[Gemini] ❌ ${keyType} API 실패:`, errorCode, errorMessage);
+      
+      // 한도 에러 체크
+      const isQuotaError = 
+        errorCode === 429 || 
+        errorCode === 403 ||
+        errorMessage.includes('quota') ||
+        errorMessage.includes('exhausted') ||
+        errorMessage.includes('RESOURCE_EXHAUSTED') ||
+        errorMessage.includes('limit');
+      
+      return { success: false, error, isQuotaError };
+    }
+  };
+
+  // 1차: 서버 키 시도
+  if (serverKey) {
+    const result = await tryApiCall(serverKey, 'server');
+    if (result.success) return result;
+    
+    if (!result.isQuotaError) {
+      throw result.error;
+    }
+    console.log('[Gemini] ⚠️ 서버 API 한도 초과, 유저 API로 전환...');
+  }
+
+  // 2차: 유저 키 시도
+  if (userKey) {
+    const result = await tryApiCall(userKey, 'user');
+    if (result.success) return result;
+    
+    // 유저 키도 한도 초과면 특별 메시지
+    if (result.isQuotaError) {
+      throw new Error('모든 API 키가 한도를 초과했습니다. 잠시 후 다시 시도해주세요.');
+    }
+    throw result.error;
+  }
+
+  // 둘 다 없으면
+  throw new Error('사용 가능한 Gemini API 키가 없습니다. API 키를 설정해주세요.');
+}
+
 export async function POST(request: NextRequest) {
   try {
     const { videos, channelInfo } = await request.json();
@@ -19,9 +91,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: '분석할 영상 데이터가 없습니다' }, { status: 400 });
     }
 
-    const geminiApiKey = request.headers.get('x-gemini-api-key');
-    if (!geminiApiKey) {
-      return NextResponse.json({ error: 'Gemini API 키가 필요합니다' }, { status: 400 });
+    // 🔥 Fallback 시스템: 서버 키 → 유저 키
+    const userGeminiKey = request.headers.get('x-gemini-api-key');
+    const serverGeminiKey = process.env.GEMINI_API_KEY;
+    
+    console.log('[analyze-performance] API 키 상태:');
+    console.log('  - 서버 키:', serverGeminiKey ? '✅ 있음' : '❌ 없음');
+    console.log('  - 유저 키:', userGeminiKey ? '✅ 있음' : '❌ 없음');
+    
+    if (!serverGeminiKey && !userGeminiKey) {
+      return NextResponse.json({ 
+        error: 'Gemini API 키가 필요합니다. API 설정을 확인해주세요.' 
+      }, { status: 400 });
     }
 
     // 1) 핵심 지표 계산
@@ -83,23 +164,11 @@ export async function POST(request: NextRequest) {
 
     const prompt = buildPromptForGemini(payload);
 
-    // 5) Gemini 호출
-    const genAI = new GoogleGenerativeAI(geminiApiKey);
-    const model = genAI.getGenerativeModel({
-      model: 'gemini-2.0-flash-exp',
-      generationConfig: {
-        temperature: 0.1,
-        topK: 1,
-        topP: 0.9,
-        maxOutputTokens: 8192,
-        responseMimeType: 'application/json',
-      },
-    });
-
+    // 5) 🔥 Fallback 로직으로 Gemini 호출
     console.log('🤖 채널 성과 분석 시작...');
-    const result = await model.generateContent(prompt);
-    const rawText = result?.response?.text() ?? '';
-    console.log('✅ 분석 완료!');
+    const apiResult = await callGeminiWithFallback(prompt, serverGeminiKey, userGeminiKey);
+    const rawText = apiResult.text;
+    console.log(`✅ 분석 완료! (사용된 API: ${apiResult.usedKey})`);
 
     // 6) JSON 파싱
     const parsed = safeParseJSON(rawText);
@@ -112,6 +181,7 @@ export async function POST(request: NextRequest) {
           llm_json_ok: false,
           llm_raw: rawText,
           videosAnalyzed: videos.length,
+          usedApiKey: apiResult.usedKey,
         });
       }
       return NextResponse.json({
@@ -119,6 +189,7 @@ export async function POST(request: NextRequest) {
         llm_json_ok: true,
         llm: fallback,
         videosAnalyzed: videos.length,
+        usedApiKey: apiResult.usedKey,
       });
     }
 
@@ -127,15 +198,31 @@ export async function POST(request: NextRequest) {
       llm_json_ok: true,
       llm: parsed,
       videosAnalyzed: videos.length,
+      usedApiKey: apiResult.usedKey,
     });
 
   } catch (error: any) {
     console.error('❌ 분석 오류:', error);
 
+    // 한도 초과 에러 특별 처리
+    if (error?.message?.includes('한도')) {
+      return NextResponse.json(
+        { error: error.message },
+        { status: 429 }
+      );
+    }
+
     if (error?.message?.includes('overloaded')) {
       return NextResponse.json(
         { error: 'Gemini API가 일시적으로 과부하 상태입니다. 잠시 후 다시 시도해주세요.' },
         { status: 503 }
+      );
+    }
+
+    if (error?.message?.includes('API 키')) {
+      return NextResponse.json(
+        { error: error.message },
+        { status: 400 }
       );
     }
 
