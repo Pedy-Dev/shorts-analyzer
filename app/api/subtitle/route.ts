@@ -1,4 +1,4 @@
-// app/api/subtitle/route.ts(디버깅)
+// app/api/subtitle/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { Innertube } from 'youtubei.js';
 
@@ -25,9 +25,23 @@ export async function GET(request: NextRequest) {
     const youtube = await Innertube.create();
     const videoInfo = await youtube.getInfo(videoId);
     
-    // ✅ 새로 추가: 채널 정보 추출 및 로깅
-    const channelName = videoInfo.basic_info?.channel?.name || '알 수 없음';
-    const videoTitle = videoInfo.basic_info?.title || '알 수 없음';
+    // ✅ 🔥 디버깅: 실제 구조 확인
+    console.log('[자막 API] 🔍 videoInfo 구조 확인:');
+    console.log('basic_info keys:', Object.keys(videoInfo.basic_info || {}));
+    console.log('basic_info.author:', videoInfo.basic_info?.author);
+    console.log('basic_info.channel_id:', videoInfo.basic_info?.channel_id);
+    
+    // ✅ 여러 경로 시도
+    const channelName = 
+      videoInfo.basic_info?.author || 
+      videoInfo.basic_info?.channel?.name ||
+      videoInfo.basic_info?.owner?.author ||
+      '알 수 없음';
+    
+    const videoTitle = 
+      videoInfo.basic_info?.title || 
+      videoInfo.primary_info?.title?.text ||
+      '알 수 없음';
     
     console.log(`[자막 API] 📺 채널: ${channelName}`);
     console.log(`[자막 API] 🎬 제목: ${videoTitle}`);
@@ -69,7 +83,6 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error: any) {
-    // ✅ 개선: 에러 발생 시 videoId 포함해서 로깅
     console.error(`[자막 API] ❌ 오류 발생 | ${videoId || '없음'}`);
     console.error(`[자막 API] 💥 에러 내용: ${error.message}`);
     
