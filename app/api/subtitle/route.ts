@@ -25,24 +25,19 @@ export async function GET(request: NextRequest) {
     const youtube = await Innertube.create();
     const videoInfo = await youtube.getInfo(videoId);
 
-    // 디버깅 강화
-    console.log('[자막 API] 🔍 videoInfo 구조 확인:');
-    console.log('basic_info.channel:', videoInfo.basic_info?.channel);
-    console.log('basic_info.channel.name:', videoInfo.basic_info?.channel?.name);
+    // ✅ 디버깅: 구조 확인
+    console.log('[자막 API] 🔍 videoInfo 구조:');
+    console.log('  basic_info.channel:', videoInfo.basic_info?.channel);
+    console.log('  basic_info.title:', videoInfo.basic_info?.title);
 
+    // ✅ 채널명 추출 (여러 경로 시도)
     const channelName =
       videoInfo.basic_info?.channel?.name ||
       videoInfo.basic_info?.channel?.author ||
       videoInfo.basic_info?.author ||
       '알 수 없음';
 
-    // ✅ 여러 경로 시도
-    const channelName =
-      videoInfo.basic_info?.author ||
-      videoInfo.basic_info?.channel?.name ||
-      videoInfo.basic_info?.owner?.author ||
-      '알 수 없음';
-
+    // ✅ 제목 추출 (여러 경로 시도)
     const videoTitle =
       videoInfo.basic_info?.title ||
       videoInfo.primary_info?.title?.text ||
