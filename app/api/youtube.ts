@@ -32,7 +32,7 @@ export async function getChannelId(channelUrl: string, apiKey: string): Promise<
   }
 }
 
-// 채널의 쇼츠 영상 가져오기
+// 채널의 쇼츠 영상 가져오기 (페이지네이션)
 export async function getChannelShorts(channelId: string, apiKey: string, maxResults: number = 50) {
   try {
     // 1단계: 채널의 업로드 재생목록 ID 가져오기
@@ -47,42 +47,90 @@ export async function getChannelShorts(channelId: string, apiKey: string, maxRes
     
     const uploadsPlaylistId = channelData.items[0].contentDetails.relatedPlaylists.uploads;
     
-    // 2단계: 최근 업로드 영상 가져오기
-    const playlistResponse = await fetch(
-      `${BASE_URL}/playlistItems?part=snippet,contentDetails&playlistId=${uploadsPlaylistId}&maxResults=${maxResults}&key=${apiKey}`
-    );
-    const playlistData = await playlistResponse.json();
+    // 2단계: 페이지네이션으로 쇼츠 수집
+    const collectedShorts: any[] = [];
+    let nextPageToken: string | null = null;
+    let pageCount = 0;
+    const MAX_PAGES = 10; // 무한루프 방지
     
-    // 3단계: 각 영상의 상세 정보 가져오기
-    const videoIds = playlistData.items
-      .map((item: any) => item.contentDetails.videoId)
-      .join(',');
+    console.log(`🎯 목표: 쇼츠 ${maxResults}개 수집`);
     
-    const videosResponse = await fetch(
-      `${BASE_URL}/videos?part=snippet,statistics,contentDetails&id=${videoIds}&key=${apiKey}`
-    );
-    const videosData = await videosResponse.json();
+    while (collectedShorts.length < maxResults && pageCount < MAX_PAGES) {
+      pageCount++;
+      
+      // playlistItems API로 50개씩 가져오기
+      let playlistUrl = `${BASE_URL}/playlistItems?part=snippet,contentDetails&playlistId=${uploadsPlaylistId}&maxResults=50&key=${apiKey}`;
+      if (nextPageToken) {
+        playlistUrl += `&pageToken=${nextPageToken}`;
+      }
+      
+      const playlistResponse = await fetch(playlistUrl);
+      const playlistData = await playlistResponse.json();
+      
+      if (!playlistData.items || playlistData.items.length === 0) {
+        console.log('❌ 더 이상 영상이 없습니다');
+        break;
+      }
+      
+      // 비디오 ID들 추출
+      const videoIds = playlistData.items
+        .map((item: any) => item.contentDetails.videoId)
+        .join(',');
+      
+      // videos API로 상세 정보 가져오기
+      const videosResponse = await fetch(
+        `${BASE_URL}/videos?part=snippet,statistics,contentDetails&id=${videoIds}&key=${apiKey}`
+      );
+      const videosData = await videosResponse.json();
+      
+      // 61초 이하만 필터링 (쇼츠)
+      const shortsInThisPage = videosData.items.filter((video: any) => {
+        const duration = video.contentDetails.duration;
+        const seconds = parseDuration(duration);
+        return seconds <= 61;
+      });
+      
+      // 쇼츠 추가
+      shortsInThisPage.forEach((video: any) => {
+        if (collectedShorts.length < maxResults) {
+          collectedShorts.push({
+            id: video.id,
+            title: video.snippet.title,
+            publishedAt: video.snippet.publishedAt,
+            views: parseInt(video.statistics.viewCount || 0),
+            likes: parseInt(video.statistics.likeCount || 0),
+            comments: parseInt(video.statistics.commentCount || 0),
+            duration: parseDuration(video.contentDetails.duration),
+            thumbnail: video.snippet.thumbnails.default.url,
+            tags: video.snippet.tags ? video.snippet.tags.length : 0,
+            tagList: video.snippet.tags || [],
+          });
+        }
+      });
+      
+      console.log(`📄 [페이지 ${pageCount}] 이 페이지에서 쇼츠 ${shortsInThisPage.length}개 발견 → 현재 총 ${collectedShorts.length}개`);
+      
+      // 다음 페이지 토큰
+      nextPageToken = playlistData.nextPageToken || null;
+      
+      // 다음 페이지가 없으면 중단
+      if (!nextPageToken) {
+        console.log('✅ 모든 영상을 확인했습니다');
+        break;
+      }
+      
+      // 목표 개수 달성하면 중단
+      if (collectedShorts.length >= maxResults) {
+        console.log(`✅ 목표 달성! 쇼츠 ${collectedShorts.length}개 수집 완료`);
+        break;
+      }
+    }
     
-    // 4단계: 쇼츠만 필터링 (60초 이하)
-    const shorts = videosData.items.filter((video: any) => {
-      const duration = video.contentDetails.duration;
-      const seconds = parseDuration(duration);
-      return seconds <= 61; // 60초 이하만
-    });
+    if (collectedShorts.length === 0) {
+      throw new Error('Shorts 영상을 찾을 수 없습니다');
+    }
     
-    // 5단계: 필요한 정보만 추출
-    return shorts.map((video: any) => ({
-      id: video.id,
-      title: video.snippet.title,
-      publishedAt: video.snippet.publishedAt,
-      views: parseInt(video.statistics.viewCount || 0),
-      likes: parseInt(video.statistics.likeCount || 0),
-      comments: parseInt(video.statistics.commentCount || 0),
-      duration: parseDuration(video.contentDetails.duration),
-      thumbnail: video.snippet.thumbnails.default.url,
-      tags: video.snippet.tags ? video.snippet.tags.length : 0, 
-      tagList: video.snippet.tags || [], // ✅ 태그 배열 추가
-   }));
+    return collectedShorts;
     
   } catch (error) {
     console.error('쇼츠 가져오기 실패:', error);
