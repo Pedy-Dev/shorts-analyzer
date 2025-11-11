@@ -1,4 +1,4 @@
-// app/api/subtitle/route.ts
+// app/api/subtitle/route.ts(디버깅)
 import { NextRequest, NextResponse } from 'next/server';
 import { Innertube } from 'youtubei.js';
 
