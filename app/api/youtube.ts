@@ -35,43 +35,29 @@ export async function getChannelId(channelUrl: string, apiKey: string): Promise<
 // 채널의 쇼츠 영상 가져오기
 export async function getChannelShorts(channelId: string, apiKey: string, maxResults: number = 50) {
   try {
-    // 1단계: 채널의 업로드 재생목록 ID 가져오기
-    const channelResponse = await fetch(
-      `${BASE_URL}/channels?part=contentDetails&id=${channelId}&key=${apiKey}`
+    // Search API로 쇼츠만 직접 검색
+    const searchResponse = await fetch(
+      `${BASE_URL}/search?part=snippet&channelId=${channelId}&type=video&videoDuration=short&maxResults=${maxResults}&order=date&key=${apiKey}`
     );
-    const channelData = await channelResponse.json();
+    const searchData = await searchResponse.json();
     
-    if (!channelData.items || channelData.items.length === 0) {
-      throw new Error('채널을 찾을 수 없습니다');
+    if (!searchData.items || searchData.items.length === 0) {
+      return []; // 쇼츠가 없으면 빈 배열 반환
     }
     
-    const uploadsPlaylistId = channelData.items[0].contentDetails.relatedPlaylists.uploads;
-    
-    // 2단계: 최근 업로드 영상 가져오기
-    const playlistResponse = await fetch(
-      `${BASE_URL}/playlistItems?part=snippet,contentDetails&playlistId=${uploadsPlaylistId}&maxResults=${maxResults}&key=${apiKey}`
-    );
-    const playlistData = await playlistResponse.json();
-    
-    // 3단계: 각 영상의 상세 정보 가져오기
-    const videoIds = playlistData.items
-      .map((item: any) => item.contentDetails.videoId)
+    // 비디오 ID들 추출
+    const videoIds = searchData.items
+      .map((item: any) => item.id.videoId)
       .join(',');
     
+    // 상세 정보 가져오기 (조회수, 좋아요 등)
     const videosResponse = await fetch(
       `${BASE_URL}/videos?part=snippet,statistics,contentDetails&id=${videoIds}&key=${apiKey}`
     );
     const videosData = await videosResponse.json();
     
-    // 4단계: 쇼츠만 필터링 (60초 이하)
-    const shorts = videosData.items.filter((video: any) => {
-      const duration = video.contentDetails.duration;
-      const seconds = parseDuration(duration);
-      return seconds <= 61; // 60초 이하만
-    });
-    
-    // 5단계: 필요한 정보만 추출
-    return shorts.map((video: any) => ({
+    // 필요한 정보만 추출
+    return videosData.items.map((video: any) => ({
       id: video.id,
       title: video.snippet.title,
       publishedAt: video.snippet.publishedAt,
@@ -82,7 +68,7 @@ export async function getChannelShorts(channelId: string, apiKey: string, maxRes
       thumbnail: video.snippet.thumbnails.default.url,
       tags: video.snippet.tags ? video.snippet.tags.length : 0, 
       tagList: video.snippet.tags || [], // ✅ 태그 배열 추가
-   }));
+    }));
     
   } catch (error) {
     console.error('쇼츠 가져오기 실패:', error);
