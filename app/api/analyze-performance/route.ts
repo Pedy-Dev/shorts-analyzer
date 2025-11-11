@@ -26,13 +26,12 @@ async function callGeminiWithFallback(
       const model = genAI.getGenerativeModel({
         model: 'gemini-2.5-flash',
         generationConfig: {
-          temperature: 0.7,
-          maxOutputTokens: 8192,
+          temperature: 0.3,
+          maxOutputTokens: 32768,
         },
       });
 
       const result = await model.generateContent(prompt);
-
 
       // 🔥 디버깅: result 객체 전체 구조 확인
       console.log('[Gemini] result 객체 키:', Object.keys(result));
@@ -44,15 +43,27 @@ async function callGeminiWithFallback(
       // 방법 1: text() 메서드 시도
       try {
         text = await result.response.text();
+        console.log('[Gemini] text() 메서드 성공:', text.length);
       } catch (e) {
-        console.log('[Gemini] text() 메서드 실패, candidates 확인 중...');
+        console.log('[Gemini] text() 메서드 실패:', e.message);
       }
 
       // 방법 2: candidates에서 직접 추출
-      if (!text && result.response?.candidates?.[0]?.content?.parts) {
-        const parts = result.response.candidates[0].content.parts;
-        text = parts.map((part: any) => part.text || '').join('');
-        console.log('[Gemini] candidates에서 텍스트 추출 성공');
+      if (!text) {
+        console.log('[Gemini] candidates 확인 중...');
+
+        // candidates 구조 디버깅
+        if (result.response?.candidates) {
+          console.log('[Gemini] candidates 개수:', result.response.candidates.length);
+          console.log('[Gemini] 첫 번째 candidate:', JSON.stringify(result.response.candidates[0], null, 2).substring(0, 500));
+
+          if (result.response.candidates[0]?.content?.parts) {
+            const parts = result.response.candidates[0].content.parts;
+            console.log('[Gemini] parts 개수:', parts.length);
+            text = parts.map((part: any) => part.text || '').join('');
+            console.log('[Gemini] parts에서 추출한 텍스트 길이:', text.length);
+          }
+        }
       }
 
       // 방법 3: 다른 필드 확인
@@ -212,7 +223,6 @@ export async function POST(request: NextRequest) {
         engaged_rate: { median: benchmarks.medianEngagedRate, p30_top: benchmarks.top30AvgEngagedRate },
       },
       performance_groups: groups,
-      videos: enrichedVideos,
     };
 
     const prompt = buildPromptForGemini(payload);
@@ -366,11 +376,37 @@ function safeParseJSON(s: string) {
  * 프롬프트 (Simple Version)
  * ========================= */
 function buildPromptForGemini(payload: any) {
-  const data = JSON.stringify(payload, null, 2);
+  // 상위/하위 영상만 추출
+  const relevantVideos = [
+    ...payload.performance_groups.top,
+    ...payload.performance_groups.bottom
+  ];
+  
+  const optimizedPayload = {
+    channel_meta: {
+      ...payload.channel_meta,
+      analysis_context: {
+        total_channel_videos: payload.channel_meta.total_videos,
+        analyzed_videos_count: relevantVideos.length,
+        top_videos_count: payload.performance_groups.top.length,
+        bottom_videos_count: payload.performance_groups.bottom.length
+      }
+    },
+    benchmarks: payload.benchmarks,
+    performance_groups: payload.performance_groups,
+    videos: relevantVideos  // 상위+하위만
+  };
+
+  const data = JSON.stringify(optimizedPayload, null, 2);
 
   const prompt = `
 당신은 YouTube Shorts 채널 분석 전문가입니다.
 제공된 데이터를 분석하여 실행 가능한 인사이트를 도출해주세요.
+
+# 🔥 분석 방법론
+- 채널 전체 ${payload.channel_meta.total_videos}개 영상 중에서
+- 성과 상위 30%(${payload.performance_groups.top.length}개)와 하위 30%(${payload.performance_groups.bottom.length}개)만 비교 분석
+- 중간 성과 영상은 제외하고 극단적 성과 차이에 집중하여 명확한 패턴 도출
 
 # 핵심 목표
 과거 데이터로 **다음 영상 제작 전략** 도출하기
@@ -402,8 +438,8 @@ ${data}
 # 세부 분석 가이드
 
 ## content_analysis (뭘 만들지?)
-- by_topic: 소재를 3-5개 그룹으로 분류하고 각 소재별 평균 성과 계산
-- by_angle: 같은 소재 내에서 접근 각도별 성과 비교
+- by_topic: 제공된 상위/하위 영상들 내에서 소재를 3-5개 그룹으로 분류하고 각 소재별 평균 성과 계산
+- by_angle: 상위 그룹과 하위 그룹 간의 접근 각도 차이 비교
 - by_title: 상위 그룹 제목 패턴 vs 하위 그룹 문제점 분석
 
 ## funnel_analysis (왜 안됐는지?)
@@ -433,13 +469,15 @@ ${data}
 3. 구독 전환율은 0.0012 형식
 4. 대본 없는 영상("자막이 없습니다")은 분석에서 제외
 5. 채널 맞춤형 분석 (일반론 금지)
+6. total_videos는 채널 전체 영상 수(${payload.channel_meta.total_videos})로 표시
+7. 분석은 제공된 상위/하위 영상 데이터 기반으로만 진행
 
 아래 JSON 형식으로만 응답해주세요:
 
 \`\`\`json
 {
   "executive_summary": {
-    "total_videos": 정수,
+    "total_videos": ${payload.channel_meta.total_videos},
     "avg_views": 정수,
     "key_findings": ["핵심 발견 1", "핵심 발견 2", "핵심 발견 3"],
     "next_video_formula": "한 문장으로 정리한 다음 영상 공식"

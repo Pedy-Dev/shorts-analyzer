@@ -185,7 +185,7 @@ export default function MyChannelTab() {
   };
 
   const analyzeChannelPerformance = async () => {
-    
+
 
     if (!myChannelData || !myChannelData.videos) {
       alert('⚠️ 먼저 영상 데이터를 불러와주세요.');
@@ -405,7 +405,7 @@ export default function MyChannelTab() {
                   <div className="bg-gradient-to-br from-orange-500 to-orange-600 text-white rounded-lg p-4 shadow-md">
                     <div className="flex items-center gap-2 mb-2">
                       <span className="w-6 h-6 bg-white text-orange-600 rounded-full flex items-center justify-center text-xs font-bold">2</span>
-                      <p className="font-bold text-sm">후킹 성공</p>
+                      <p className="font-bold text-sm">진지한 시청</p>
                     </div>
                     <p className="text-xs opacity-90">이탈 vs 시청</p>
                   </div>
@@ -494,8 +494,9 @@ export default function MyChannelTab() {
                                 <p className="text-xs md:text-sm text-gray-600">{topic.video_count}개 영상</p>
                               </div>
                               <span className={`px-2 py-1 rounded text-xs font-bold ${topic.type === '안정형' ? 'bg-blue-100 text-blue-700' :
-                                topic.type === '알고리즘선호형' ? 'bg-orange-100 text-orange-700' :
-                                  'bg-purple-100 text-purple-700'
+                                  topic.type === '알고리즘선호형' ? 'bg-orange-100 text-orange-700' :
+                                    topic.type === '숨은보석형' ? 'bg-purple-100 text-purple-700' :
+                                      'bg-red-100 text-red-700'  // 나머지는 모두 빨간색
                                 }`}>
                                 {topic.type}
                               </span>
@@ -1065,98 +1066,98 @@ export default function MyChannelTab() {
                       </div>
                     </div>
 
-                   <div className="grid grid-cols-2 gap-2 mb-3">
-  {/* 1. 조회수 - 회색 */}
-  <div className="bg-white border border-gray-200 rounded p-2 text-center">
-    <div className="flex items-center justify-center gap-1 text-xs text-gray-600 mb-0.5">
-      <Eye className="w-3 h-3 text-gray-500" />
-      <span>조회수</span>
-    </div>
-    <p className="text-sm font-bold text-gray-900">
-      {video.views?.toLocaleString() || '0'}
-    </p>
-  </div>
-  
-  {/* 2. 유효조회 - 파란색 */}
-  <div className="bg-white border border-gray-200 rounded p-2 text-center">
-    <div className="flex items-center justify-center gap-1 text-xs text-gray-600 mb-0.5">
-      <Eye className="w-3 h-3 text-blue-500" />
-      <span>유효조회</span>
-    </div>
-    <p className="text-sm font-bold text-gray-900">
-      {video.engagedViews?.toLocaleString() || '-'}
-    </p>
-  </div>
-  
-  {/* 3. 좋아요 - 핑크 */}
-  <div className="bg-white border border-gray-200 rounded p-2 text-center">
-    <div className="flex items-center justify-center gap-1 text-xs text-gray-600 mb-0.5">
-      <ThumbsUp className="w-3 h-3 text-pink-500" />
-      <span>좋아요</span>
-    </div>
-    <p className="text-sm font-bold text-gray-900">
-      {video.likes.toLocaleString()}
-    </p>
-  </div>
-  
-  {/* 4. 댓글 - 주황 */}
-  <div className="bg-white border border-gray-200 rounded p-2 text-center">
-    <div className="flex items-center justify-center gap-1 text-xs text-gray-600 mb-0.5">
-      <BookOpen className="w-3 h-3 text-orange-500" />
-      <span>댓글</span>
-    </div>
-    <p className="text-sm font-bold text-gray-900">
-      {video.comments.toLocaleString()}
-    </p>
-  </div>
-  
-  {/* 5. 공유수 - 청록 */}
-  <div className="bg-white border border-gray-200 rounded p-2 text-center">
-    <div className="flex items-center justify-center gap-1 text-xs text-gray-600 mb-0.5">
-      <TrendingUp className="w-3 h-3 text-teal-500" />
-      <span>공유수</span>
-    </div>
-    <p className="text-sm font-bold text-gray-900">
-      {video.shares?.toLocaleString() || '0'}
-    </p>
-  </div>
-  
-  {/* 6. 시청시간 - 남색 */}
-  <div className="bg-white border border-gray-200 rounded p-2 text-center">
-    <div className="flex items-center justify-center gap-1 text-xs text-gray-600 mb-0.5">
-      <Clock className="w-3 h-3 text-indigo-500" />
-      <span>시청시간</span>
-    </div>
-    <p className="text-sm font-bold text-gray-900">
-      {video.averageViewDuration ? Math.round(video.averageViewDuration) + '초' : '-'}
-    </p>
-  </div>
-  
-  {/* 7. 시청률 - 초록 */}
-  <div className="bg-white border border-gray-200 rounded p-2 text-center">
-    <div className="flex items-center justify-center gap-1 text-xs text-gray-600 mb-0.5">
-      <BarChart3 className="w-3 h-3 text-green-500" />
-      <span>시청률</span>
-    </div>
-    <p className="text-sm font-bold text-gray-900">
-      {video.averageViewPercentage !== null
-        ? video.averageViewPercentage.toFixed(1) + '%'
-        : '-'}
-    </p>
-  </div>
-  
-  {/* 8. 구독증가 - 보라 */}
-  <div className="bg-white border border-gray-200 rounded p-2 text-center">
-    <div className="flex items-center justify-center gap-1 text-xs text-gray-600 mb-0.5">
-      <Award className="w-3 h-3 text-purple-500" />
-      <span>구독증가</span>
-    </div>
-    <p className="text-sm font-bold text-gray-900">
-      {video.subscribersGained > 0 ? '+' : ''}
-      {video.subscribersGained}
-    </p>
-  </div>
-</div>
+                    <div className="grid grid-cols-2 gap-2 mb-3">
+                      {/* 1. 조회수 - 회색 */}
+                      <div className="bg-white border border-gray-200 rounded p-2 text-center">
+                        <div className="flex items-center justify-center gap-1 text-xs text-gray-600 mb-0.5">
+                          <Eye className="w-3 h-3 text-gray-500" />
+                          <span>조회수</span>
+                        </div>
+                        <p className="text-sm font-bold text-gray-900">
+                          {video.views?.toLocaleString() || '0'}
+                        </p>
+                      </div>
+
+                      {/* 2. 유효조회 - 파란색 */}
+                      <div className="bg-white border border-gray-200 rounded p-2 text-center">
+                        <div className="flex items-center justify-center gap-1 text-xs text-gray-600 mb-0.5">
+                          <Eye className="w-3 h-3 text-blue-500" />
+                          <span>유효조회</span>
+                        </div>
+                        <p className="text-sm font-bold text-gray-900">
+                          {video.engagedViews?.toLocaleString() || '-'}
+                        </p>
+                      </div>
+
+                      {/* 3. 좋아요 - 핑크 */}
+                      <div className="bg-white border border-gray-200 rounded p-2 text-center">
+                        <div className="flex items-center justify-center gap-1 text-xs text-gray-600 mb-0.5">
+                          <ThumbsUp className="w-3 h-3 text-pink-500" />
+                          <span>좋아요</span>
+                        </div>
+                        <p className="text-sm font-bold text-gray-900">
+                          {video.likes.toLocaleString()}
+                        </p>
+                      </div>
+
+                      {/* 4. 댓글 - 주황 */}
+                      <div className="bg-white border border-gray-200 rounded p-2 text-center">
+                        <div className="flex items-center justify-center gap-1 text-xs text-gray-600 mb-0.5">
+                          <BookOpen className="w-3 h-3 text-orange-500" />
+                          <span>댓글</span>
+                        </div>
+                        <p className="text-sm font-bold text-gray-900">
+                          {video.comments.toLocaleString()}
+                        </p>
+                      </div>
+
+                      {/* 5. 공유수 - 청록 */}
+                      <div className="bg-white border border-gray-200 rounded p-2 text-center">
+                        <div className="flex items-center justify-center gap-1 text-xs text-gray-600 mb-0.5">
+                          <TrendingUp className="w-3 h-3 text-teal-500" />
+                          <span>공유수</span>
+                        </div>
+                        <p className="text-sm font-bold text-gray-900">
+                          {video.shares?.toLocaleString() || '0'}
+                        </p>
+                      </div>
+
+                      {/* 6. 시청시간 - 남색 */}
+                      <div className="bg-white border border-gray-200 rounded p-2 text-center">
+                        <div className="flex items-center justify-center gap-1 text-xs text-gray-600 mb-0.5">
+                          <Clock className="w-3 h-3 text-indigo-500" />
+                          <span>시청시간</span>
+                        </div>
+                        <p className="text-sm font-bold text-gray-900">
+                          {video.averageViewDuration ? Math.round(video.averageViewDuration) + '초' : '-'}
+                        </p>
+                      </div>
+
+                      {/* 7. 시청률 - 초록 */}
+                      <div className="bg-white border border-gray-200 rounded p-2 text-center">
+                        <div className="flex items-center justify-center gap-1 text-xs text-gray-600 mb-0.5">
+                          <BarChart3 className="w-3 h-3 text-green-500" />
+                          <span>시청률</span>
+                        </div>
+                        <p className="text-sm font-bold text-gray-900">
+                          {video.averageViewPercentage !== null
+                            ? video.averageViewPercentage.toFixed(1) + '%'
+                            : '-'}
+                        </p>
+                      </div>
+
+                      {/* 8. 구독증가 - 보라 */}
+                      <div className="bg-white border border-gray-200 rounded p-2 text-center">
+                        <div className="flex items-center justify-center gap-1 text-xs text-gray-600 mb-0.5">
+                          <Award className="w-3 h-3 text-purple-500" />
+                          <span>구독증가</span>
+                        </div>
+                        <p className="text-sm font-bold text-gray-900">
+                          {video.subscribersGained > 0 ? '+' : ''}
+                          {video.subscribersGained}
+                        </p>
+                      </div>
+                    </div>
 
                     {/* 대본 보기 버튼 */}
                     {video.script && video.script !== '자막이 없습니다' && video.script !== '자막 추출 실패' && (

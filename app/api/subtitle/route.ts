@@ -1,4 +1,4 @@
-// app/api/subtitle/route.ts
+// app/api/subtitle/route.ts(타채널분석시, 영상 스크립트 받아오는 역할)
 import { NextRequest, NextResponse } from 'next/server';
 import { Innertube } from 'youtubei.js';
 
