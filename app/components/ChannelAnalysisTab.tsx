@@ -172,12 +172,13 @@ export default function ChannelAnalysisTab() {
       try {
         let jsonText = data.result;
 
-        // 🔥 마크다운 코드 블록 제거
+        // 🔥 백틱 개수와 상관없이 처리
         if (typeof jsonText === 'string') {
-          // ```json으로 시작하고 ```으로 끝나는 경우 제거
-          jsonText = jsonText.replace(/^```json\s*\n?/i, '').replace(/\n?```\s*$/i, '');
-          // 혹시 ```만 있는 경우도 제거
-          jsonText = jsonText.replace(/^```\s*\n?/i, '').replace(/\n?```\s*$/i, '');
+          // 첫 { 와 마지막 } 사이의 내용만 추출
+          const match = jsonText.match(/\{[\s\S]*\}/);
+          if (match) {
+            jsonText = match[0];
+          }
         }
 
         parsedResult = typeof jsonText === 'string'
