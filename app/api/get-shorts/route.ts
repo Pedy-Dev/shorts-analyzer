@@ -1,12 +1,9 @@
-// app/api/youtube.ts
-// YouTube API 기본 설정
-const BASE_URL = 'https://www.googleapis.com/youtube/v3';
+import { NextRequest, NextResponse } from 'next/server';
 
-// API 에러 타입 판별 함수
+// API 에러 타입 판별 함수들
 function isQuotaError(error: any): boolean {
   if (!error) return false;
   
-  // YouTube API 에러 응답 체크
   if (error.code === 403 && error.message?.includes('quota')) {
     return true;
   }
@@ -23,7 +20,6 @@ function isQuotaError(error: any): boolean {
 function isInvalidKeyError(error: any): boolean {
   if (!error) return false;
   
-  // API 키 관련 에러
   if (error.code === 403 && (error.message?.includes('key') || error.message?.includes('API key'))) {
     return true;
   }
@@ -37,52 +33,22 @@ function isInvalidKeyError(error: any): boolean {
   return false;
 }
 
-// 채널 ID 추출하기 - API Route 호출로 변경
-export async function getChannelId(channelUrl: string, apiKey: string): Promise<string | null> {
-  try {
-    const response = await fetch('/api/get-channel-id', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ url: channelUrl, apiKey })
-    });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      throw new Error(data.error || '채널 ID 추출 실패');
-    }
-
-    return data.channelId;
-  } catch (error: any) {
-    console.error('채널 ID 추출 실패:', error);
-    throw error;
-  }
+// ISO 8601 duration을 초로 변환 (PT1M30S → 90)
+function parseDuration(duration: string): number {
+  const match = duration.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
+  if (!match) return 0;
+  
+  const hours = parseInt(match[1] || '0');
+  const minutes = parseInt(match[2] || '0');
+  const seconds = parseInt(match[3] || '0');
+  
+  return hours * 3600 + minutes * 60 + seconds;
 }
 
-// 채널의 쇼츠 영상 가져오기 - API Route 호출로 변경
-export async function getChannelShorts(channelId: string, apiKey: string, maxResults: number = 50) {
-  try {
-    const response = await fetch('/api/get-shorts', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ channelId, apiKey, maxResults })
-    });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      throw new Error(data.error || '쇼츠 목록 가져오기 실패');
-    }
-
-    return data.shorts;
-  } catch (error: any) {
-    console.error('쇼츠 가져오기 실패:', error);
-    throw error;
-  }
-}
-
-// 실제 쇼츠 가져오기 로직 (키 무관) - 이제 서버에서만 사용되지만 혹시 모르니 남겨둠
+// 실제 쇼츠 가져오기 로직
 async function fetchShortsWithKey(channelId: string, apiKey: string, maxResults: number) {
+  const BASE_URL = 'https://www.googleapis.com/youtube/v3';
+  
   try {
     // 1단계: 채널의 업로드 재생목록 ID 가져오기
     const channelResponse = await fetch(
@@ -104,10 +70,6 @@ async function fetchShortsWithKey(channelId: string, apiKey: string, maxResults:
     }
     
     const channelData = await channelResponse.json();
-    
-    if (channelData.error) {
-      throw channelData.error;
-    }
     
     if (!channelData.items || channelData.items.length === 0) {
       throw new Error('채널을 찾을 수 없습니다');
@@ -150,10 +112,6 @@ async function fetchShortsWithKey(channelId: string, apiKey: string, maxResults:
       
       const playlistData = await playlistResponse.json();
       
-      if (playlistData.error) {
-        throw playlistData.error;
-      }
-      
       if (!playlistData.items || playlistData.items.length === 0) {
         console.log('❌ 더 이상 영상이 없습니다');
         break;
@@ -184,10 +142,6 @@ async function fetchShortsWithKey(channelId: string, apiKey: string, maxResults:
       }
       
       const videosData = await videosResponse.json();
-      
-      if (videosData.error) {
-        throw videosData.error;
-      }
       
       // 61초 이하만 필터링 (쇼츠)
       const shortsInThisPage = videosData.items.filter((video: any) => {
@@ -239,60 +193,73 @@ async function fetchShortsWithKey(channelId: string, apiKey: string, maxResults:
     return collectedShorts;
     
   } catch (error) {
-    console.error('쇼츠 가져오기 실패:', error);
     throw error;
   }
 }
 
-// ISO 8601 duration을 초로 변환 (PT1M30S → 90)
-function parseDuration(duration: string): number {
-  const match = duration.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
-  if (!match) return 0;
-  
-  const hours = parseInt(match[1] || '0');
-  const minutes = parseInt(match[2] || '0');
-  const seconds = parseInt(match[3] || '0');
-  
-  return hours * 3600 + minutes * 60 + seconds;
-}
-
-// 날짜를 "X일 전" 형식으로 변환
-export function formatDate(dateString: string): string {
-  const now = new Date();
-  const published = new Date(dateString);
-  const diffMs = now.getTime() - published.getTime();
-  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-  
-  if (diffDays === 0) return '오늘';
-  if (diffDays === 1) return '1일 전';
-  if (diffDays < 7) return `${diffDays}일 전`;
-  if (diffDays < 30) return `${Math.floor(diffDays / 7)}주 전`;
-  if (diffDays < 365) return `${Math.floor(diffDays / 30)}개월 전`;
-  return `${Math.floor(diffDays / 365)}년 전`;
-}
-
-// 자막 추출 함수 (API Route 호출) - subtitle route는 API 키 필요 없음
-export async function getSubtitle(videoId: string): Promise<string | null> {
+export async function POST(request: NextRequest) {
   try {
-    // GET 요청: videoId만 전달
-    const response = await fetch(`/api/subtitle?videoId=${videoId}`);
+    const { channelId, apiKey, maxResults = 50 } = await request.json();
 
-    if (!response.ok) {
-      console.error('자막 API 응답 에러:', response.status);
-      return null;
+    if (!channelId || !apiKey) {
+      return NextResponse.json(
+        { error: '채널 ID와 API Key가 필요합니다.' },
+        { status: 400 }
+      );
     }
 
-    const data = await response.json();
-
-    // route.ts의 응답 형식: { subtitle: string } 또는 { error: string }
-    if (data.subtitle) {
-      return data.subtitle;
-    } else {
-      console.log('자막 없음:', data.error || '알 수 없는 오류');
-      return null;
+    // 1. 서버 API 키로 먼저 시도
+    const serverApiKey = process.env.YOUTUBE_API_KEY_SERVER;
+    if (serverApiKey) {
+      try {
+        console.log('🔑 서버 API 키로 쇼츠 목록 가져오기 시도...');
+        const shorts = await fetchShortsWithKey(channelId, serverApiKey, maxResults);
+        console.log('✅ 서버 API 키로 쇼츠 목록 가져오기 성공');
+        return NextResponse.json({ shorts });
+      } catch (error: any) {
+        if (isQuotaError(error)) {
+          console.log('⚠️ 서버 API 키 할당량 초과, 유저 API 키로 전환...');
+        } else {
+          console.error('서버 API 키 오류:', error);
+        }
+      }
     }
-  } catch (error) {
-    console.error('자막 추출 API 호출 실패:', error);
-    return null;
+
+    // 2. 유저 API 키로 폴백
+    console.log('🔑 유저 API 키로 쇼츠 목록 가져오기 시도...');
+    const shorts = await fetchShortsWithKey(channelId, apiKey, maxResults);
+    console.log('✅ 유저 API 키로 쇼츠 목록 가져오기 성공');
+    return NextResponse.json({ shorts });
+
+  } catch (error: any) {
+    console.error('쇼츠 가져오기 오류:', error);
+    
+    // 에러 타입별 메시지 구분
+    if (isInvalidKeyError(error)) {
+      return NextResponse.json(
+        { error: '입력하신 YouTube API 키가 유효하지 않습니다.' },
+        { status: 403 }
+      );
+    } else if (isQuotaError(error)) {
+      return NextResponse.json(
+        { error: 'YouTube API 일일 할당량을 초과했습니다. 내일 다시 시도해주세요.' },
+        { status: 429 }
+      );
+    } else if (error.message === '채널을 찾을 수 없습니다') {
+      return NextResponse.json(
+        { error: '채널을 찾을 수 없습니다. 채널 ID를 확인해주세요.' },
+        { status: 404 }
+      );
+    } else if (error.message === 'Shorts 영상을 찾을 수 없습니다') {
+      return NextResponse.json(
+        { error: '이 채널에서 Shorts 영상을 찾을 수 없습니다.' },
+        { status: 404 }
+      );
+    }
+    
+    return NextResponse.json(
+      { error: '쇼츠 목록을 가져오는 중 오류가 발생했습니다.' },
+      { status: 500 }
+    );
   }
 }

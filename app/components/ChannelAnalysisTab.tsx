@@ -69,11 +69,25 @@ export default function ChannelAnalysisTab() {
 
     try {
       console.log('📌 채널 ID 추출 중...');
-      const channelId = await getChannelId(channelUrl, youtubeApiKey);
-      if (!channelId) {
-        throw new Error('유효한 채널 URL이 아닙니다');
+
+      // 🔥 수정: getChannelId가 에러를 throw하면 catch로 가고,
+      // null 반환하면 채널 URL 문제로 처리
+      let channelId;
+      try {
+        channelId = await getChannelId(channelUrl, youtubeApiKey);
+      } catch (error: any) {
+        // API 키 에러 등은 여기서 처리
+        throw error;
       }
+
+      // null인 경우만 URL 형식 문제
+      if (!channelId) {
+        throw new Error('유효한 채널 URL이 아닙니다. URL 형식을 확인해주세요.');
+      }
+
       console.log('✅ 채널 ID:', channelId);
+
+      // ... 나머지 코드는 그대로 ...
 
       console.log('📌 Shorts 영상 목록 가져오는 중...');
       const shortsList = await getChannelShorts(channelId, youtubeApiKey, selectedCount);
@@ -131,7 +145,15 @@ export default function ChannelAnalysisTab() {
 
     } catch (error: any) {
       console.error('❌ 오류 발생:', error);
-      alert('오류가 발생했습니다: ' + error.message);
+
+      // 🔥 에러 타입별 메시지 구분
+      if (error.message?.includes('API 키')) {
+        alert(error.message);  // "입력하신 YouTube API 키가 유효하지 않습니다."
+      } else if (error.message?.includes('채널 URL')) {
+        alert(error.message);  // "유효한 채널 URL이 아닙니다."
+      } else {
+        alert('오류가 발생했습니다: ' + error.message);
+      }
     } finally {
       setLoading(false);
       setProgress({ current: 0, total: 0 });
