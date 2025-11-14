@@ -11,27 +11,41 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
  * 3. 다음엔 어떻게? (실행 가이드, 블루프린트)
  */
 
-// 🔥 Fallback 헬퍼 함수 (Simple Version)
+// 🔥 향상된 Fallback 헬퍼 함수 - 모델 자동 전환 포함
 async function callGeminiWithFallback(
   prompt: string,
   serverKey: string | undefined,
-  userKey: string | undefined
+  userKey: string | undefined,
+  initialModel: string = 'gemini-2.5-flash'
 ) {
-  const tryApiCall = async (apiKey: string, keyType: 'server' | 'user') => {
+  const models = [
+    { name: 'gemini-2.5-flash', displayName: '2.5 Flash' },
+    { name: 'gemini-2.0-flash-exp', displayName: '2.0 Flash Exp' }
+  ];
+
+  const tryApiCall = async (apiKey: string, keyType: 'server' | 'user', modelConfig: typeof models[0]) => {
     try {
-      console.log(`[Gemini] ${keyType} API로 시도 중...`);
+      console.log(`[Gemini] ${keyType} API로 ${modelConfig.displayName} 모델 시도 중...`);
       const genAI = new GoogleGenerativeAI(apiKey);
 
-      // ✨ 심플하게: 모델과 기본 설정만
-      const model = genAI.getGenerativeModel({
-        model: 'gemini-2.5-flash',
-        generationConfig: {
-          temperature: 0.3,
-          maxOutputTokens: 32768,
-        },
+      // 모델별 설정
+      const generationConfig = modelConfig.name === 'gemini-2.0-flash-exp' 
+        ? {
+            temperature: 0.3,
+            maxOutputTokens: 32768,
+            responseMimeType: 'application/json' as const,
+          }
+        : {
+            temperature: 0.3,
+            maxOutputTokens: 32768,
+          };
+
+      const geminiModel = genAI.getGenerativeModel({
+        model: modelConfig.name,
+        generationConfig,
       });
 
-      const result = await model.generateContent(prompt);
+      const result = await geminiModel.generateContent(prompt);
 
       // 🔥 디버깅: result 객체 전체 구조 확인
       console.log('[Gemini] result 객체 키:', Object.keys(result));
@@ -44,7 +58,7 @@ async function callGeminiWithFallback(
       try {
         text = await result.response.text();
         console.log('[Gemini] text() 메서드 성공:', text.length);
-      } catch (e) {
+      } catch (e: any) {
         console.log('[Gemini] text() 메서드 실패:', e.message);
       }
 
@@ -103,13 +117,13 @@ async function callGeminiWithFallback(
         throw new Error('Gemini가 빈 응답을 반환했습니다');
       }
 
-      console.log(`[Gemini] ✅ ${keyType} API 성공! (최종 길이: ${text.length})`);
-      return { success: true, text, usedKey: keyType };
+      console.log(`[Gemini] ✅ ${keyType} API + ${modelConfig.displayName} 성공! (최종 길이: ${text.length})`);
+      return { success: true, text, usedKey: keyType, usedModel: modelConfig.displayName };
 
     } catch (error: any) {
       const errorCode = error?.status || error?.code;
       const errorMessage = error?.message || '';
-      console.log(`[Gemini] ❌ ${keyType} API 실패:`, errorCode, errorMessage);
+      console.log(`[Gemini] ❌ ${keyType} API + ${modelConfig.displayName} 실패:`, errorCode, errorMessage);
 
       const isQuotaError =
         errorCode === 429 ||
@@ -118,33 +132,73 @@ async function callGeminiWithFallback(
         errorMessage.includes('exhausted') ||
         errorMessage.includes('RESOURCE_EXHAUSTED');
 
-      return { success: false, error, isQuotaError };
+      const isModelError = 
+        errorMessage.includes('models/gemini') ||
+        errorMessage.includes('not found') ||
+        errorMessage.includes('does not exist');
+
+      return { success: false, error, isQuotaError, isModelError };
     }
   };
 
-  // 1차: 서버 키 시도
-  if (serverKey) {
-    const result = await tryApiCall(serverKey, 'server');
-    if (result.success) return result;
-
-    if (!result.isQuotaError) {
-      throw result.error;
+  // 모든 조합 시도: (서버/유저 키) x (2.5-flash/2.0-flash-exp)
+  let lastError: any = null;
+  
+  for (const modelConfig of models) {
+    console.log(`\n🔄 ${modelConfig.displayName} 모델로 시도...`);
+    
+    // 1차: 서버 키 + 현재 모델
+    if (serverKey) {
+      const result = await tryApiCall(serverKey, 'server', modelConfig);
+      if (result.success) return result;
+      
+      lastError = result.error;
+      
+      // 모델 오류가 아니고 쿼터 오류도 아니면 즉시 실패
+      if (!result.isQuotaError && !result.isModelError) {
+        console.log(`[Gemini] 서버 키 + ${modelConfig.displayName} 실패 (쿼터/모델 오류 아님)`);
+      } else if (result.isQuotaError) {
+        console.log(`[Gemini] ⚠️ 서버 API 한도 초과, 유저 API로 전환...`);
+      } else if (result.isModelError) {
+        console.log(`[Gemini] ⚠️ ${modelConfig.displayName} 모델 오류, 다음 모델로 시도...`);
+        continue; // 다음 모델로
+      }
     }
-    console.log('[Gemini] ⚠️ 서버 API 한도 초과, 유저 API로 전환...');
+
+    // 2차: 유저 키 + 현재 모델  
+    if (userKey) {
+      const result = await tryApiCall(userKey, 'user', modelConfig);
+      if (result.success) return result;
+      
+      lastError = result.error;
+      
+      if (result.isQuotaError) {
+        console.log(`[Gemini] ⚠️ 유저 API도 한도 초과`);
+        // 다음 모델로 계속 시도
+      } else if (result.isModelError) {
+        console.log(`[Gemini] ⚠️ 유저 키에서도 ${modelConfig.displayName} 모델 오류`);
+        // 다음 모델로 계속 시도
+      } else {
+        console.log(`[Gemini] 유저 키 + ${modelConfig.displayName} 실패 (기타 오류)`);
+        // 다음 모델로 계속 시도
+      }
+    }
   }
 
-  // 2차: 유저 키 시도
-  if (userKey) {
-    const result = await tryApiCall(userKey, 'user');
-    if (result.success) return result;
-
-    if (result.isQuotaError) {
-      throw new Error('모든 API 키가 한도를 초과했습니다. 잠시 후 다시 시도해주세요.');
-    }
-    throw result.error;
+  // 모든 시도 실패
+  if (lastError?.message?.includes('quota') || lastError?.message?.includes('exhausted')) {
+    throw new Error('모든 API 키가 한도를 초과했습니다. 잠시 후 다시 시도해주세요.');
+  }
+  
+  if (lastError?.message?.includes('models/gemini')) {
+    throw new Error('사용 가능한 Gemini 모델이 없습니다. API 설정을 확인해주세요.');
   }
 
-  throw new Error('사용 가능한 Gemini API 키가 없습니다. API 키를 설정해주세요.');
+  if (!serverKey && !userKey) {
+    throw new Error('사용 가능한 Gemini API 키가 없습니다. API 키를 설정해주세요.');
+  }
+
+  throw lastError || new Error('알 수 없는 오류가 발생했습니다.');
 }
 
 export async function POST(request: NextRequest) {
@@ -227,11 +281,11 @@ export async function POST(request: NextRequest) {
 
     const prompt = buildPromptForGemini(payload);
 
-    // 5) 🔥 Gemini 호출
+    // 5) 🔥 Gemini 호출 - 2.5-flash 시작, 실패시 2.0-flash-exp 자동 폴백
     console.log('🤖 채널 성과 분석 시작...');
-    const apiResult = await callGeminiWithFallback(prompt, serverGeminiKey, userGeminiKey);
+    const apiResult = await callGeminiWithFallback(prompt, serverGeminiKey, userGeminiKey, 'gemini-2.5-flash');
     const rawText = apiResult.text;
-    console.log(`✅ 분석 완료! (사용된 API: ${apiResult.usedKey})`);
+    console.log(`✅ 분석 완료! (사용된 API: ${apiResult.usedKey}, 모델: ${apiResult.usedModel})`);
 
     // 6) JSON 파싱
     const parsed = safeParseJSON(rawText);
@@ -243,6 +297,7 @@ export async function POST(request: NextRequest) {
         llm_raw: rawText,
         videosAnalyzed: videos.length,
         usedApiKey: apiResult.usedKey,
+        usedModel: apiResult.usedModel,
       });
     }
 
@@ -252,6 +307,7 @@ export async function POST(request: NextRequest) {
       llm: parsed,
       videosAnalyzed: videos.length,
       usedApiKey: apiResult.usedKey,
+      usedModel: apiResult.usedModel,
     });
 
   } catch (error: any) {
