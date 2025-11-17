@@ -83,7 +83,7 @@ export async function POST(request: NextRequest) {
         if (response.ok) {
           const data = await response.json();
           if (data.items && data.items.length > 0) {
-            console.log('✅ 서버 API 키로 채널 ID 추출 성공');
+            console.log('✅ [API 키: 서버] 채널 ID 추출 성공');
             return NextResponse.json({ channelId: data.items[0].id });
           }
         } else {
@@ -104,7 +104,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 4. 유저 API 키로 폴백
-    console.log('🔑 유저 API 키로 채널 ID 추출 시도...');
+    console.log('🔑 [API 키: 유저] 채널 ID 추출 시도...');
     const response = await fetch(
       `https://www.googleapis.com/youtube/v3/channels?part=id&forHandle=${handle}&key=${apiKey}`
     );
@@ -163,7 +163,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log('✅ 유저 API 키로 채널 ID 추출 성공');
+    console.log('✅ [API 키: 유저] 채널 ID 추출 성공');
     return NextResponse.json({ channelId: data.items[0].id });
 
   } catch (error) {
