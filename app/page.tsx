@@ -1,3 +1,4 @@
+// app/page.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -6,27 +7,52 @@ import ApiKeyModal from './components/ApiKeyModal';
 import ServiceGuideModal from './components/ServiceGuideModal';
 import ChannelAnalysisTab from './components/ChannelAnalysisTab';
 import MyChannelTab from './components/MyChannelTab';
+import UserMenu from './components/UserMenu'; 
 
 export default function ChannelAnalyzer() {
   const [currentTab, setCurrentTab] = useState<'analyze' | 'myChannel'>('analyze');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isServiceGuideOpen, setIsServiceGuideOpen] = useState(false);
+  const [user, setUser] = useState<any>(null);
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
 
-  // 👇 이 부분 전체 추가
   useEffect(() => {
-    // URL에서 auth 파라미터 확인
-    const urlParams = new URLSearchParams(window.location.search);
-    const authResult = urlParams.get('auth');
+    // 로그인 상태 체크 (리다이렉트 없이)
+    fetch('/api/user/me')
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          setUser(data.user);
+        }
+        setIsCheckingAuth(false);
 
-    // 로그인 성공했을 때
-    if (authResult === 'success') {
-      // localStorage에서 돌아갈 탭 확인
-      const returnTab = localStorage.getItem('return_tab');
-      if (returnTab === 'myChannel') {
-        setCurrentTab('myChannel');
-        localStorage.removeItem('return_tab'); // 사용 후 삭제
-      }
-    }
+        // URL에서 파라미터 확인
+        const urlParams = new URLSearchParams(window.location.search);
+        const authResult = urlParams.get('auth');
+        const youtubeConnected = urlParams.get('youtube_connected');
+
+        // YouTube 채널 연동 완료 시
+        if (youtubeConnected === 'true') {
+          setCurrentTab('myChannel');
+          // URL 파라미터 제거 (깔끔하게)
+          window.history.replaceState({}, '', window.location.pathname);
+        }
+        // 사이트 로그인 성공했을 때
+        else if (authResult === 'success') {
+          // localStorage에서 돌아갈 탭 확인
+          const returnTab = localStorage.getItem('return_tab');
+          if (returnTab === 'myChannel') {
+            setCurrentTab('myChannel');
+            localStorage.removeItem('return_tab'); // 사용 후 삭제
+          }
+          // URL 파라미터 제거
+          window.history.replaceState({}, '', window.location.pathname);
+        }
+      })
+      .catch(error => {
+        console.error('인증 체크 실패:', error);
+        setIsCheckingAuth(false);
+      });
   }, []);
 
   return (
@@ -44,6 +70,20 @@ export default function ChannelAnalyzer() {
 
             {/* 둘째 줄: 버튼들 - 모바일에서는 오른쪽 정렬 */}
             <div className="flex items-center gap-2 justify-end">
+              {/* 로그인 상태에 따라 UserMenu 또는 로그인 버튼 표시 */}
+              {!isCheckingAuth && (
+                user ? (
+                  <UserMenu />
+                ) : (
+                  <button
+                    onClick={() => window.location.href = '/login'}
+                    className="px-3 md:px-4 py-1.5 md:py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg flex items-center gap-1.5 md:gap-2 transition-colors text-sm md:text-base font-medium"
+                  >
+                    <span className="whitespace-nowrap">로그인</span>
+                  </button>
+                )
+              )}
+
               <button
                 onClick={() => setIsServiceGuideOpen(true)}
                 className="px-3 md:px-4 py-1.5 md:py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg flex items-center gap-1.5 md:gap-2 transition-colors text-sm md:text-base"
@@ -88,9 +128,9 @@ export default function ChannelAnalyzer() {
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 py-4 md:py-8">
         {currentTab === 'analyze' ? (
-          <ChannelAnalysisTab />
+          <ChannelAnalysisTab isLoggedIn={!!user} />
         ) : (
-          <MyChannelTab />
+          <MyChannelTab isLoggedIn={!!user} />
         )}
       </div>
 

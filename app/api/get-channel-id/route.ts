@@ -2,6 +2,22 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 // API 에러 타입 판별 함수들
+function isQuotaError(error: any): boolean {
+  if (!error) return false;
+
+  if (error.code === 403 && error.message?.includes('quota')) {
+    return true;
+  }
+  if (error.code === 429) {
+    return true;
+  }
+  if (error.errors?.[0]?.reason === 'quotaExceeded') {
+    return true;
+  }
+
+  return false;
+}
+
 function isInvalidKeyError(error: any): boolean {
   if (!error) return false;
 

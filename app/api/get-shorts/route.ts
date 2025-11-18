@@ -214,7 +214,7 @@ export async function POST(request: NextRequest) {
       try {
         console.log('🔑 서버 API 키로 쇼츠 목록 가져오기 시도...');
         const shorts = await fetchShortsWithKey(channelId, serverApiKey, maxResults);
-        console.log('✅ [API 키: 서버] 쇼츠 목록 가져오기 성공');
+        console.log('✅ 서버 API 키로 쇼츠 목록 가져오기 성공');
         return NextResponse.json({ shorts });
       } catch (error: any) {
         if (isQuotaError(error)) {

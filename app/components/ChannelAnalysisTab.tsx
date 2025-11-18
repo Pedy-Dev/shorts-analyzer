@@ -4,7 +4,11 @@ import { useState } from 'react';
 import { Search, Loader2, Calendar, Clock, Eye, ThumbsUp, MessageCircle, Tag } from 'lucide-react';
 import { getChannelId, getChannelShorts, formatDate, getSubtitle } from '../api/youtube';
 
-export default function ChannelAnalysisTab() {
+interface ChannelAnalysisTabProps {
+  isLoggedIn: boolean;
+}
+
+export default function ChannelAnalysisTab({ isLoggedIn }: ChannelAnalysisTabProps) {
   const [channelUrl, setChannelUrl] = useState('');
   const [loading, setLoading] = useState(false);
   const [videos, setVideos] = useState<any[]>([]);
@@ -92,6 +96,12 @@ export default function ChannelAnalysisTab() {
   };
 
   const handleAnalyze = async () => {
+    // 로그인 체크
+    if (!isLoggedIn) {
+      alert('⚠️ 로그인이 필요한 기능입니다.\n\n상단의 로그인 버튼을 눌러 먼저 로그인해주세요.');
+      return;
+    }
+
     if (!channelUrl.trim()) {
       alert('채널 URL을 입력해주세요!');
       return;
@@ -270,7 +280,38 @@ export default function ChannelAnalysisTab() {
 
       setAnalysisResult(parsedResult);
 
+      try {
+        // 임시로 localStorage에서 userId 가져오기 (나중에 구글 로그인 연동 후 실제 userId로 변경)
+        const tempUserId = localStorage.getItem('temp_user_id') || 'anonymous_' + Date.now();
+        localStorage.setItem('temp_user_id', tempUserId);
+
+        const saveResponse = await fetch('/api/save-analysis-history', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId: tempUserId,
+            channelId: channelUrl.split('@')[1]?.split('/')[0] || channelUrl, // URL에서 채널 ID 추출
+            channelTitle: videos[0]?.title?.split(' ')[0] || '알 수 없는 채널', // 임시로 첫 영상 제목에서 채널명 추정
+            isOwnChannel: false,
+            videoCount: data.analyzedCount,
+            analysisResult: parsedResult,
+            videoTitles: videos.map((v: any) => v.title), // 영상 제목 배열
+          }),
+        });
+
+        if (saveResponse.ok) {
+          const saveData = await saveResponse.json();
+          console.log('✅ DB 저장 완료! 카테고리:', saveData.category);
+        } else {
+          console.error('⚠️ DB 저장 실패 (분석 결과는 정상 표시됨)');
+        }
+      } catch (saveError) {
+        console.error('⚠️ DB 저장 중 오류 (분석 결과는 정상 표시됨):', saveError);
+        // DB 저장 실패해도 분석 결과는 보여줌
+      }
+
     } catch (error: any) {
+
       console.error('❌ 구조 분석 실패:', error);
       alert('구조 분석 중 오류가 발생했습니다: ' + error.message);
     } finally {
@@ -853,7 +894,7 @@ export default function ChannelAnalysisTab() {
               {/* 영상 구조와 리듬 */}
               <div className="mb-6">
                 <h4 className="font-bold text-gray-800 mb-3">영상 구조와 리듬</h4>
-                
+
                 {/* 영상 구조 */}
                 <div className="mb-4">
                   <div className="flex gap-1 h-10 md:h-12 rounded-lg overflow-hidden">
@@ -953,7 +994,7 @@ export default function ChannelAnalysisTab() {
               {analysisResult.script_analysis.hook_analysis && (
                 <div className="mb-6 bg-gradient-to-r from-yellow-50 to-orange-50 rounded-lg p-4">
                   <h4 className="font-bold text-gray-800 mb-3">🎯 초반 3초 후킹 전략</h4>
-                  
+
                   {analysisResult.script_analysis.hook_analysis.first_3_seconds?.top_patterns?.map((pattern: any, i: number) => (
                     <div key={i} className="bg-white rounded-lg p-3 mb-3">
                       <div className="flex justify-between items-center mb-2">
@@ -987,7 +1028,7 @@ export default function ChannelAnalysisTab() {
               {analysisResult.script_analysis.retention_elements && (
                 <div className="mb-6">
                   <h4 className="font-bold text-gray-800 mb-3">🔥 영상을 끝까지 보게 만드는 요소</h4>
-                  
+
                   {/* 결론 배치 전략 */}
                   <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-3 md:p-4 mb-3">
                     <h5 className="font-semibold text-indigo-900 mb-2">결론/반전 배치</h5>
@@ -1008,7 +1049,7 @@ export default function ChannelAnalysisTab() {
                     <p className="text-xs md:text-sm text-gray-700 mb-3">
                       {analysisResult.script_analysis.retention_elements.conclusion_placement?.description}
                     </p>
-                    
+
                     {/* 결론/반전 예시들 */}
                     {analysisResult.script_analysis.retention_elements.conclusion_placement?.example_phrases && (
                       <div className="bg-white rounded p-3 border border-indigo-200">

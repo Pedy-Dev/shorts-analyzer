@@ -1,3 +1,5 @@
+//app/api-guide/page.tsx
+
 'use client';
 
 import { ArrowLeft } from 'lucide-react';

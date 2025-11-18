@@ -7,7 +7,11 @@ import { Youtube, Loader2, RefreshCw, Search, X, Eye, ThumbsUp, Clock, CheckCirc
 import { getSubtitle } from '../api/youtube';
 import GoogleLoginWarningModal from './GoogleLoginWarningModal';
 
-export default function MyChannelTab() {
+interface MyChannelTabProps {
+  isLoggedIn: boolean;
+}
+
+export default function MyChannelTab({ isLoggedIn }: MyChannelTabProps) {
   const [isLoginLoading, setIsLoginLoading] = useState(false);
   const [authStatus, setAuthStatus] = useState('');
   const [myChannelLoading, setMyChannelLoading] = useState(false);
@@ -24,47 +28,39 @@ export default function MyChannelTab() {
   const [showLoginWarning, setShowLoginWarning] = useState(false);
 
   useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const authResult = urlParams.get('auth');
-
-    if (authResult === 'success') {
-      setAuthStatus('✅ Google 로그인 성공!');
-      window.history.replaceState({}, '', window.location.pathname);
-      loadCurrentChannel();
-    } else if (urlParams.get('error')) {
-      const error = urlParams.get('error');
-      if (error === 'access_denied') {
-        setAuthStatus('❌ 로그인이 취소되었습니다');
-      } else {
-        setAuthStatus('❌ 로그인 실패');
-      }
-      window.history.replaceState({}, '', window.location.pathname);
+    // 로그인되어 있으면 자동으로 채널 정보 로드
+    if (isLoggedIn) {
+      checkYoutubeConnection();
     }
-  }, []);
+  }, [isLoggedIn]);
 
-  const loadCurrentChannel = async () => {
+  const checkYoutubeConnection = async () => {
     try {
-      console.log('📌 현재 채널 정보 불러오는 중...');
-      const response = await fetch('/api/my-channels');
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || '채널 정보 불러오기 실패');
-      }
-
+      const response = await fetch('/api/user/me');
       const data = await response.json();
-      console.log('✅ 현재 채널:', data.channels[0]);
 
-      if (data.channels.length > 0) {
-        setCurrentChannel(data.channels[0]);
+      if (data.success && data.user.youtubeChannelId) {
+        // DB에 YouTube 채널 정보가 있으면 자동으로 표시
+        setCurrentChannel({
+          id: data.user.youtubeChannelId,
+          title: data.user.youtubeChannelTitle,
+          // 썸네일과 구독자 수는 나중에 YouTube API로 가져오기
+        });
+        console.log('✅ 기존 YouTube 채널 연동 확인:', data.user.youtubeChannelTitle);
       }
-    } catch (error: any) {
-      console.error('❌ 채널 정보 불러오기 실패:', error);
-      alert('채널 정보를 불러올 수 없습니다:\n' + error.message);
+    } catch (error) {
+      console.error('❌ YouTube 연동 확인 실패:', error);
     }
   };
 
+
   const handleGoogleLogin = async () => {
+    // 로그인 체크
+    if (!isLoggedIn) {
+      alert('⚠️ 먼저 사이트에 로그인해주세요.\n\n상단의 로그인 버튼을 눌러 로그인한 후 내 채널을 연결할 수 있습니다.');
+      return;
+    }
+
     const hasSeenWarning = localStorage.getItem('login_warning_shown');
 
     if (!hasSeenWarning) {
@@ -80,9 +76,8 @@ export default function MyChannelTab() {
     setAuthStatus('');
 
     try {
-      localStorage.setItem('return_tab', 'myChannel');
-
-      const response = await fetch('/api/auth/google');
+      // YouTube 권한 요청 (type=youtube)
+      const response = await fetch('/api/auth/google?type=youtube');
       const data = await response.json();
 
       if (data.success && data.authUrl) {
@@ -244,7 +239,7 @@ export default function MyChannelTab() {
             내 채널 분석
           </h2>
           <p className="text-sm md:text-base text-gray-600 mb-4 md:mb-6">
-            YouTube 계정으로 로그인하여 내 채널의 Shorts 영상을 분석하세요
+            내 채널 데이터를 분석하려면 분석하고자 하는 유튜브 계정을 연결해주세요.
           </p>
 
           {authStatus && (
@@ -268,12 +263,12 @@ export default function MyChannelTab() {
               {isLoginLoading ? (
                 <>
                   <Loader2 className="w-4 h-4 md:w-5 md:h-5 animate-spin" />
-                  로그인 중...
+                  채널 연결 중...
                 </>
               ) : (
                 <>
                   <Youtube className="w-4 h-4 md:w-5 md:h-5" />
-                  Google 계정으로 로그인
+                  내 채널 불러오기
                 </>
               )}
             </button>
@@ -303,7 +298,7 @@ export default function MyChannelTab() {
                 className="px-3 py-1.5 md:px-4 md:py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg flex items-center gap-2 transition-colors text-sm md:text-base w-full md:w-auto justify-center"
               >
                 <RefreshCw className="w-3.5 h-3.5 md:w-4 md:h-4" />
-                채널 전환
+                연동 채널 변경
               </button>
             </div>
 
