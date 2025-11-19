@@ -27,29 +27,65 @@ export default function MyChannelTab({ isLoggedIn }: MyChannelTabProps) {
 
   const [showLoginWarning, setShowLoginWarning] = useState(false);
 
+  // 👇 Phase 3: 여러 채널 관리
+  const [connectedChannels, setConnectedChannels] = useState<any[]>([]);
+  const [selectedChannelId, setSelectedChannelId] = useState<string | null>(null);
+
   useEffect(() => {
     // 로그인되어 있으면 자동으로 채널 정보 로드
     if (isLoggedIn) {
-      checkYoutubeConnection();
+      loadConnectedChannels();
     }
   }, [isLoggedIn]);
 
-  const checkYoutubeConnection = async () => {
+  const loadConnectedChannels = async () => {
     try {
-      const response = await fetch('/api/user/me');
+      console.log('📌 연결된 채널 목록 로딩 시작...');
+      const response = await fetch('/api/my-channels/list');
+
+      // 디버깅: 응답 상태 확인
+      console.log('📌 API 응답 상태:', response.status, response.statusText);
+
       const data = await response.json();
 
-      if (data.success && data.user.youtubeChannelId) {
-        // DB에 YouTube 채널 정보가 있으면 자동으로 표시
-        setCurrentChannel({
-          id: data.user.youtubeChannelId,
-          title: data.user.youtubeChannelTitle,
-          // 썸네일과 구독자 수는 나중에 YouTube API로 가져오기
+      // 디버깅: 전체 응답 데이터
+      console.log('📌 전체 응답 데이터:', data);
+
+      if (data.success && data.channels && data.channels.length > 0) {
+        console.log(`✅ ${data.channels.length}개 채널 로드 완료:`);
+
+        // 디버깅: 각 채널 정보 상세 출력
+        data.channels.forEach((ch: any, idx: number) => {
+          console.log(`  [${idx + 1}] ${ch.youtube_channel_title} (ID: ${ch.youtube_channel_id}, is_default: ${ch.is_default})`);
         });
-        console.log('✅ 기존 YouTube 채널 연동 확인:', data.user.youtubeChannelTitle);
+
+        setConnectedChannels(data.channels);
+
+        // 기본 채널 자동 선택
+        const defaultChannel = data.channels.find((ch: any) => ch.is_default) || data.channels[0];
+        setSelectedChannelId(defaultChannel.id);
+
+        // 기존 currentChannel 형식으로도 저장 (호환성)
+        setCurrentChannel({
+          id: defaultChannel.youtube_channel_id,
+          title: defaultChannel.youtube_channel_title,
+          thumbnail: defaultChannel.youtube_channel_thumbnail,
+        });
+
+        console.log('✅ 기본 채널 선택:', defaultChannel.youtube_channel_title);
+      } else {
+        console.log('⚠️ 연결된 채널 없음 또는 오류:', {
+          success: data.success,
+          channelsLength: data.channels?.length,
+          error: data.error
+        });
+        setConnectedChannels([]);
+        setCurrentChannel(null);
       }
     } catch (error) {
-      console.error('❌ YouTube 연동 확인 실패:', error);
+      console.error('❌ 채널 목록 로딩 실패:', error);
+      setConnectedChannels([]);
+      setCurrentChannel(null);
     }
   };
 
@@ -101,6 +137,23 @@ export default function MyChannelTab({ isLoggedIn }: MyChannelTabProps) {
     handleGoogleLogin();
   };
 
+  // 👇 Phase 3: 채널 선택 변경 핸들러
+  const handleChannelChange = (channelId: string) => {
+    const selected = connectedChannels.find(ch => ch.id === channelId);
+    if (selected) {
+      setSelectedChannelId(channelId);
+      setCurrentChannel({
+        id: selected.youtube_channel_id,
+        title: selected.youtube_channel_title,
+        thumbnail: selected.youtube_channel_thumbnail,
+      });
+      // 분석 데이터 초기화 (다른 채널이므로)
+      setMyChannelData(null);
+      setMyChannelAnalysis(null);
+      console.log('✅ 채널 전환:', selected.youtube_channel_title);
+    }
+  };
+
   const openScriptModal = (title: string, script: string) => {
     setSelectedScript({ title, script });
     setIsScriptModalOpen(true);
@@ -119,7 +172,16 @@ export default function MyChannelTab({ isLoggedIn }: MyChannelTabProps) {
 
     try {
       console.log('📌 YouTube Analytics 데이터 가져오는 중...');
-      const analyticsResponse = await fetch('/api/youtube-analytics');
+      // ⭐ 선택된 채널 ID를 함께 전송
+      const analyticsResponse = await fetch('/api/youtube-analytics', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          channelRecordId: selectedChannelId,  // user_channels 테이블의 ID
+        }),
+      });
 
       if (!analyticsResponse.ok) {
         const errorData = await analyticsResponse.json();
@@ -200,6 +262,7 @@ export default function MyChannelTab({ isLoggedIn }: MyChannelTabProps) {
         body: JSON.stringify({
           videos: myChannelData.videos,
           channelInfo: myChannelData.channel,
+          channelRecordId: selectedChannelId,  // ⭐ 채널 ID 추가
         }),
       });
 
@@ -278,27 +341,50 @@ export default function MyChannelTab({ isLoggedIn }: MyChannelTabProps) {
         <>
           <div className="bg-white rounded-lg shadow-lg p-4 md:p-6">
             <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-3 md:mb-4 gap-3">
-              <div className="flex items-center gap-3 md:gap-4">
+              <div className="flex items-center gap-3 md:gap-4 flex-1">
                 <img
                   src={currentChannel.thumbnail}
                   alt={currentChannel.title}
                   className="w-12 h-12 md:w-16 md:h-16 rounded-full"
                 />
-                <div>
-                  <h2 className="text-lg md:text-xl font-bold text-gray-900">
-                    {currentChannel.title}
-                  </h2>
-                  <p className="text-sm md:text-base text-gray-600">
-                    구독자: {currentChannel.subscriberCount?.toLocaleString() || 'N/A'}명
-                  </p>
+                <div className="flex-1">
+                  {/* 👇 Phase 3: 여러 채널이 있으면 드롭다운, 없으면 제목만 */}
+                  {connectedChannels.length > 1 ? (
+                    <>
+                      <label className="text-xs text-gray-500 mb-1 block">분석할 채널 선택</label>
+                      <select
+                        value={selectedChannelId || ''}
+                        onChange={(e) => handleChannelChange(e.target.value)}
+                        className="text-lg md:text-xl font-bold text-gray-900 border-2 border-gray-200 rounded-lg px-3 py-1 w-full max-w-md hover:border-red-400 focus:border-red-500 focus:outline-none transition-colors"
+                      >
+                        {connectedChannels.map((ch) => (
+                          <option key={ch.id} value={ch.id}>
+                            {ch.youtube_channel_title} {ch.is_default ? '⭐' : ''}
+                          </option>
+                        ))}
+                      </select>
+                      <p className="text-xs text-gray-500 mt-1">
+                        총 {connectedChannels.length}개 채널 연결됨
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <h2 className="text-lg md:text-xl font-bold text-gray-900">
+                        {currentChannel.title}
+                      </h2>
+                      <p className="text-sm md:text-base text-gray-600">
+                        구독자: {currentChannel.subscriberCount?.toLocaleString() || 'N/A'}명
+                      </p>
+                    </>
+                  )}
                 </div>
               </div>
               <button
                 onClick={handleChannelSwitch}
-                className="px-3 py-1.5 md:px-4 md:py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg flex items-center gap-2 transition-colors text-sm md:text-base w-full md:w-auto justify-center"
+                className="px-3 py-1.5 md:px-4 md:py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg flex items-center gap-2 transition-colors text-sm md:text-base w-full md:w-auto justify-center whitespace-nowrap"
               >
                 <RefreshCw className="w-3.5 h-3.5 md:w-4 md:h-4" />
-                연동 채널 변경
+                + 다른 채널 연결
               </button>
             </div>
 

@@ -61,16 +61,41 @@ function safeNumber(value: any): number {
 // 메인 API 핸들러
 // ========================================
 
-export async function GET(request: NextRequest) {
+export async function POST(request: NextRequest) {
   try {
-    // 쿠키에서 access_token 가져오기
-    const cookieStore = await cookies();
-    const accessToken = cookieStore.get('google_access_token')?.value;
+    // Request body에서 채널 ID 가져오기
+    const { channelRecordId } = await request.json();
 
-    if (!accessToken) {
+    // 쿠키에서 user_id 가져오기 (로그인 확인용)
+    const cookieStore = await cookies();
+    const userId = cookieStore.get('user_id')?.value;
+
+    if (!userId) {
       return NextResponse.json(
         { error: '로그인이 필요합니다' },
         { status: 401 }
+      );
+    }
+
+    // ⭐ Supabase에서 선택된 채널의 토큰 가져오기
+    const { createClient } = require('@supabase/supabase-js');
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    );
+
+    const { data: channelData, error: channelError } = await supabase
+      .from('user_channels')
+      .select('access_token, refresh_token, youtube_channel_id')
+      .eq('id', channelRecordId)
+      .eq('user_id', userId)  // 보안: 본인 채널만 접근
+      .single();
+
+    if (channelError || !channelData) {
+      console.error('❌ 채널 정보 조회 실패:', channelError);
+      return NextResponse.json(
+        { error: '채널 정보를 찾을 수 없습니다' },
+        { status: 404 }
       );
     }
 
@@ -81,8 +106,10 @@ export async function GET(request: NextRequest) {
       `${process.env.NEXT_PUBLIC_BASE_URL}/api/auth/callback`
     );
 
+    // 선택된 채널의 토큰 사용
     oauth2Client.setCredentials({
-      access_token: accessToken,
+      access_token: channelData.access_token,
+      refresh_token: channelData.refresh_token,
     });
 
     // YouTube API 초기화
