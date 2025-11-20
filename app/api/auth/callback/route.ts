@@ -151,7 +151,7 @@ export async function GET(request: NextRequest) {
         userId = newUser.id;
       }
 
-      userEmail = userInfo.email;
+      userEmail = userInfo.email || undefined;
       console.log('✅ 사용자 저장 완료:', { userId, email: userEmail });
     }
 
@@ -185,30 +185,10 @@ export async function GET(request: NextRequest) {
 
           console.log(`📌 채널 상태: 첫 채널=${isFirstChannel}, 이미 연결=${isAlreadyConnected}, 기존 채널 수=${existingChannels?.length || 0}`);
 
-          // 👇 FIX: users 테이블은 첫 채널일 때만 업데이트 (덮어쓰기 방지)
-          if (isFirstChannel) {
-            console.log('📌 첫 채널이므로 users 테이블 업데이트...');
-            const { error: updateError } = await supabase
-              .from('users')
-              .update({
-                youtube_access_token: tokens.access_token,
-                youtube_refresh_token: tokens.refresh_token || null,
-                youtube_channel_id: channel.id,
-                youtube_channel_title: channel.snippet?.title || null,
-                youtube_token_updated_at: new Date().toISOString(),
-              })
-              .eq('id', userId);
+          // ⭐ users 테이블 YouTube 필드 제거됨 - user_channels만 사용
+          // 모든 YouTube 관련 정보는 user_channels 테이블에서 관리
 
-            if (updateError) {
-              console.error('❌ YouTube 정보 저장 실패:', updateError);
-              throw new Error(`YouTube 정보 저장 실패: ${updateError.message}`);
-            }
-            console.log('✅ users 테이블 업데이트 완료');
-          } else {
-            console.log('📌 추가 채널이므로 users 테이블 스킵 (덮어쓰기 방지)');
-          }
-
-          // 👇 FIX: 새 채널이 기본 채널이 될 경우, 기존 채널들의 is_default를 false로
+          // 👇 새 채널이 기본 채널이 될 경우, 기존 채널들의 is_default를 false로
           if (!isAlreadyConnected && !isFirstChannel) {
             console.log('📌 기존 기본 채널의 is_default를 false로 변경...');
             await supabase

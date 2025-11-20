@@ -1,6 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/app/lib/supabase';
+import { createClient } from '@supabase/supabase-js';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { cookies } from 'next/headers';
+
+// 서버용 Supabase 클라이언트 생성
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
 
 // AI 카테고리 분류 함수
 async function classifyChannelCategory(
@@ -74,8 +81,18 @@ ${categoryList.map((cat, i) => `${i + 1}. ${cat}`).join('\n')}
 
 export async function POST(request: NextRequest) {
   try {
+    // 쿠키에서 실제 사용자 ID 가져오기
+    const cookieStore = await cookies();
+    const userIdFromCookie = cookieStore.get('user_id')?.value;
+
+    if (!userIdFromCookie) {
+      return NextResponse.json(
+        { error: '로그인이 필요합니다.' },
+        { status: 401 }
+      );
+    }
+
     const {
-      userId,
       channelId,
       channelTitle,
       isOwnChannel,
@@ -85,7 +102,7 @@ export async function POST(request: NextRequest) {
     } = await request.json();
 
     // 필수 필드 검증
-    if (!userId || !channelId || !channelTitle) {
+    if (!channelId || !channelTitle) {
       return NextResponse.json(
         { error: '필수 정보가 누락되었습니다.' },
         { status: 400 }
@@ -104,7 +121,7 @@ export async function POST(request: NextRequest) {
     const { data, error } = await supabase
       .from('channel_analysis_history')
       .insert({
-        user_id: userId,
+        user_id: userIdFromCookie, // 쿠키에서 가져온 실제 사용자 ID 사용
         channel_id: channelId,
         channel_title: channelTitle,
         is_own_channel: isOwnChannel || false,

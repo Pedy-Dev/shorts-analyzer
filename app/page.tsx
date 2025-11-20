@@ -7,10 +7,11 @@ import ApiKeyModal from './components/ApiKeyModal';
 import ServiceGuideModal from './components/ServiceGuideModal';
 import ChannelAnalysisTab from './components/ChannelAnalysisTab';
 import MyChannelTab from './components/MyChannelTab';
+import AnalysisHistoryTab from './components/AnalysisHistoryTab';
 import UserMenu from './components/UserMenu'; 
 
 export default function ChannelAnalyzer() {
-  const [currentTab, setCurrentTab] = useState<'analyze' | 'myChannel'>('analyze');
+  const [currentTab, setCurrentTab] = useState<'analyze' | 'myChannel' | 'history'>('analyze');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isServiceGuideOpen, setIsServiceGuideOpen] = useState(false);
   const [user, setUser] = useState<any>(null);
@@ -121,6 +122,15 @@ export default function ChannelAnalyzer() {
             >
               내 채널 분석
             </button>
+            <button
+              onClick={() => setCurrentTab('history')}
+              className={`px-3 md:px-4 py-2 text-sm md:text-base font-medium transition-colors ${currentTab === 'history'
+                  ? 'text-red-600 border-b-2 border-red-600'
+                  : 'text-gray-600 hover:text-gray-900'
+                }`}
+            >
+              📚 분석 기록
+            </button>
           </div>
         </div>
       </header>
@@ -129,8 +139,10 @@ export default function ChannelAnalyzer() {
       <div className="max-w-7xl mx-auto px-4 py-4 md:py-8">
         {currentTab === 'analyze' ? (
           <ChannelAnalysisTab isLoggedIn={!!user} />
-        ) : (
+        ) : currentTab === 'myChannel' ? (
           <MyChannelTab isLoggedIn={!!user} />
+        ) : (
+          <AnalysisHistoryTab isLoggedIn={!!user} />
         )}
       </div>
 

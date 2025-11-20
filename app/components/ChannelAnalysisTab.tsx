@@ -281,17 +281,13 @@ export default function ChannelAnalysisTab({ isLoggedIn }: ChannelAnalysisTabPro
       setAnalysisResult(parsedResult);
 
       try {
-        // 임시로 localStorage에서 userId 가져오기 (나중에 구글 로그인 연동 후 실제 userId로 변경)
-        const tempUserId = localStorage.getItem('temp_user_id') || 'anonymous_' + Date.now();
-        localStorage.setItem('temp_user_id', tempUserId);
-
         const saveResponse = await fetch('/api/save-analysis-history', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            userId: tempUserId,
+            // userId는 서버에서 쿠키로부터 가져오므로 제거
             channelId: channelUrl.split('@')[1]?.split('/')[0] || channelUrl, // URL에서 채널 ID 추출
-            channelTitle: videos[0]?.title?.split(' ')[0] || '알 수 없는 채널', // 임시로 첫 영상 제목에서 채널명 추정
+            channelTitle: videos[0]?.channelTitle || videos[0]?.title?.split(' ')[0] || '알 수 없는 채널', // 채널명 추출
             isOwnChannel: false,
             videoCount: data.analyzedCount,
             analysisResult: parsedResult,

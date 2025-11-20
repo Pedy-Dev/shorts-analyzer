@@ -20,10 +20,10 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Supabase에서 사용자 정보 조회 (YouTube 채널 정보 포함)
+    // Supabase에서 사용자 정보 조회 (기본 정보만)
     const { data: user, error } = await supabase
       .from('users')
-      .select('id, google_id, email, name, profile_image, created_at, youtube_channel_id, youtube_channel_title, youtube_access_token, youtube_refresh_token, youtube_token_updated_at')
+      .select('id, google_id, email, name, profile_image, created_at')
       .eq('id', userId)
       .single();
 
@@ -35,6 +35,8 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // ⭐ YouTube 채널 정보는 user_channels 테이블에서 별도로 조회 필요
+    // 필요 시 /api/my-channels/list API 사용
     return NextResponse.json({
       success: true,
       user: {
@@ -43,9 +45,7 @@ export async function GET(request: NextRequest) {
         name: user.name,
         profileImage: user.profile_image,
         createdAt: user.created_at,
-        youtubeChannelId: user.youtube_channel_id,
-        youtubeChannelTitle: user.youtube_channel_title,
-        hasYoutubeAuth: !!user.youtube_access_token,
+        // YouTube 관련 필드 제거됨
       },
     });
 

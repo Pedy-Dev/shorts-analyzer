@@ -285,6 +285,101 @@ export default function MyChannelTab({ isLoggedIn }: MyChannelTabProps) {
         });
       }
 
+      // ⭐ Archive v1: 내 채널 분석 기록 저장
+      try {
+        const extractKeyInsights = (result: any) => {
+          const insights = [];
+          if (result.executive_summary?.key_findings) {
+            insights.push(...(Array.isArray(result.executive_summary.key_findings)
+              ? result.executive_summary.key_findings
+              : [result.executive_summary.key_findings]));
+          }
+          return insights.filter(Boolean).slice(0, 5);
+        };
+
+        const extractTopCharacteristics = (result: any) => {
+          const chars = [];
+          if (result.content_analysis?.top_performers) {
+            chars.push(...(Array.isArray(result.content_analysis.top_performers)
+              ? result.content_analysis.top_performers
+              : [result.content_analysis.top_performers]));
+          }
+          return chars.slice(0, 5);
+        };
+
+        const extractBottomCharacteristics = (result: any) => {
+          const chars = [];
+          if (result.content_analysis?.bottom_performers) {
+            chars.push(...(Array.isArray(result.content_analysis.bottom_performers)
+              ? result.content_analysis.bottom_performers
+              : [result.content_analysis.bottom_performers]));
+          }
+          return chars.slice(0, 5);
+        };
+
+        // 상위/하위 영상 요약
+        const sortedVideos = [...(myChannelData.videos || [])].sort((a, b) =>
+          (b.engagedViews || 0) - (a.engagedViews || 0)
+        );
+        const topCount = Math.ceil(sortedVideos.length * 0.3);
+        const topVideos = sortedVideos.slice(0, topCount);
+        const bottomVideos = sortedVideos.slice(-topCount);
+
+        const saveResponse = await fetch('/api/analysis-history/save', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            // 채널 정보
+            channelId: currentChannel?.id || '',
+            channelTitle: currentChannel?.title || '',
+            channelThumbnail: currentChannel?.thumbnail || '',
+            isOwnChannel: true,  // ⭐ 내 채널 분석
+
+            // 메타데이터
+            ytCategory: myChannelData.channel?.category || 'Unknown',
+            creatorCategory: 'Unknown',  // 나중에 AI 분류 추가
+            videoCount: myChannelData.videos?.length || 0,
+
+            // 요약 데이터만 저장
+            analysisSummary: {
+              keyInsights: extractKeyInsights(analysisResult.llm || {}),
+              topCharacteristics: extractTopCharacteristics(analysisResult.llm || {}),
+              bottomCharacteristics: extractBottomCharacteristics(analysisResult.llm || {}),
+              recommendations: analysisResult.llm?.next_video?.recommendations || []
+            },
+
+            topVideosSummary: topVideos.map(v => ({
+              videoId: v.video_id,
+              title: v.title,
+              views: v.views || 0,
+              likeRate: (v.likes / (v.views || 1)) * 100 || 0,
+              keyPoint: `조회수 ${v.engagedViews || 0}`
+            })),
+
+            bottomVideosSummary: bottomVideos.map(v => ({
+              videoId: v.video_id,
+              title: v.title,
+              views: v.views || 0,
+              likeRate: (v.likes / (v.views || 1)) * 100 || 0,
+              keyPoint: `조회수 ${v.engagedViews || 0}`
+            }))
+          }),
+        });
+
+        const saveData = await saveResponse.json();
+
+        if (saveResponse.ok && saveData.success) {
+          console.log('✅ 내 채널 분석 기록 저장 완료:', saveData.id);
+        } else if (saveResponse.status === 409) {
+          console.log('ℹ️ 오늘 이미 분석한 채널입니다');
+        } else {
+          console.error('❌ 분석 기록 저장 실패:', saveData.error);
+        }
+      } catch (saveError) {
+        console.error('❌ 분석 기록 저장 중 오류:', saveError);
+        // 저장 실패해도 분석 결과는 정상적으로 표시
+      }
+
     } catch (error: any) {
       console.error('❌ 분석 실패:', error);
       alert('❌ 분석에 실패했습니다:\n' + error.message);

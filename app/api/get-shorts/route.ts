@@ -50,14 +50,14 @@ async function fetchShortsWithKey(channelId: string, apiKey: string, maxResults:
   const BASE_URL = 'https://www.googleapis.com/youtube/v3';
   
   try {
-    // 1단계: 채널의 업로드 재생목록 ID 가져오기
+    // 1단계: 채널의 업로드 재생목록 ID와 채널 정보 가져오기
     const channelResponse = await fetch(
-      `${BASE_URL}/channels?part=contentDetails&id=${channelId}&key=${apiKey}`
+      `${BASE_URL}/channels?part=contentDetails,snippet&id=${channelId}&key=${apiKey}`
     );
-    
+
     if (!channelResponse.ok) {
       const errorData = await channelResponse.json();
-      
+
       if (channelResponse.status === 403 || channelResponse.status === 401) {
         if (isInvalidKeyError(errorData.error)) {
           throw { code: 403, message: 'Invalid API key' };
@@ -65,17 +65,20 @@ async function fetchShortsWithKey(channelId: string, apiKey: string, maxResults:
           throw { code: 403, message: 'quota exceeded' };
         }
       }
-      
+
       throw new Error(errorData.error?.message || 'YouTube API 요청 실패');
     }
-    
+
     const channelData = await channelResponse.json();
-    
+
     if (!channelData.items || channelData.items.length === 0) {
       throw new Error('채널을 찾을 수 없습니다');
     }
-    
-    const uploadsPlaylistId = channelData.items[0].contentDetails.relatedPlaylists.uploads;
+
+    const channelInfo = channelData.items[0];
+    const uploadsPlaylistId = channelInfo.contentDetails.relatedPlaylists.uploads;
+    const channelTitle = channelInfo.snippet.title;
+    const channelThumbnail = channelInfo.snippet.thumbnails.default?.url || channelInfo.snippet.thumbnails.medium?.url;
     
     // 2단계: 페이지네이션으로 쇼츠 수집
     const collectedShorts: any[] = [];
@@ -164,6 +167,8 @@ async function fetchShortsWithKey(channelId: string, apiKey: string, maxResults:
             thumbnail: video.snippet.thumbnails.default.url,
             tags: video.snippet.tags ? video.snippet.tags.length : 0,
             tagList: video.snippet.tags || [],
+            channelTitle: channelTitle,  // 채널 이름 추가
+            channelThumbnail: channelThumbnail,  // 채널 썸네일 추가
           });
         }
       });
