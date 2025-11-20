@@ -66,7 +66,7 @@ ${categoryList.map((cat, i) => `${i + 1}. ${cat}`).join('\n')}
 
     // JSON 파싱
     let cleaned = text.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
-    const match = cleaned.match(/\{.*\}/s);
+    const match = cleaned.match(/\{[\s\S]*\}/);
     if (match) {
       cleaned = match[0];
     }
@@ -95,6 +95,7 @@ export async function POST(request: NextRequest) {
     const {
       channelId,
       channelTitle,
+      channelThumbnail,
       isOwnChannel,
       videoCount,
       analysisResult,
@@ -124,10 +125,11 @@ export async function POST(request: NextRequest) {
         user_id: userIdFromCookie, // 쿠키에서 가져온 실제 사용자 ID 사용
         channel_id: channelId,
         channel_title: channelTitle,
+        channel_thumbnail: channelThumbnail || null,
         is_own_channel: isOwnChannel || false,
         creator_category: creatorCategory,
         video_count: videoCount || 0,
-        analysis_result: analysisResult,
+        analysis_summary: analysisResult,
       })
       .select();
 

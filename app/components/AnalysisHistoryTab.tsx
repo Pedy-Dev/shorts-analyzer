@@ -52,8 +52,9 @@ interface DetailedRecord {
   analysis_date: string;
 }
 
-// 분석 상세 내용 컴포넌트 - 2열 그리드 레이아웃
+// 분석 상세 내용 컴포넌트 - 탭 전환 레이아웃
 function AnalysisDetails({ record }: { record: DetailedRecord }) {
+  const [selectedView, setSelectedView] = useState<'analysis' | 'guideline'>('analysis');
   const analysisData = record.analysis_summary?.fullAnalysis;
   const hasGuideline = !!record.analysis_summary?.contentGuideline;
 
@@ -66,8 +67,33 @@ function AnalysisDetails({ record }: { record: DetailedRecord }) {
   };
 
   return (
-    <div className={`grid ${hasGuideline ? 'grid-cols-1 lg:grid-cols-2' : 'grid-cols-1'} gap-6`}>
-      {/* 왼쪽: 컨텐츠 분석 결과 */}
+    <div className="space-y-4">
+      {/* 탭 버튼 */}
+      <div className="flex gap-3">
+        <button
+          onClick={() => setSelectedView('analysis')}
+          className={`flex-1 py-3 px-4 rounded-lg font-semibold transition-all ${
+            selectedView === 'analysis'
+              ? 'bg-blue-600 text-white shadow-lg'
+              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+          }`}
+        >
+          📊 분석 결과
+        </button>
+        <button
+          onClick={() => setSelectedView('guideline')}
+          className={`flex-1 py-3 px-4 rounded-lg font-semibold transition-all ${
+            selectedView === 'guideline'
+              ? 'bg-purple-600 text-white shadow-lg'
+              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+          }`}
+        >
+          📝 제작 가이드
+        </button>
+      </div>
+
+      {/* 분석 결과 뷰 */}
+      {selectedView === 'analysis' && (
       <div className="bg-white rounded-lg shadow-lg p-6 overflow-hidden">
         <h2 className="text-xl font-bold mb-4 text-gray-900 flex items-center gap-2">
           📊 컨텐츠 분석 결과
@@ -375,55 +401,58 @@ function AnalysisDetails({ record }: { record: DetailedRecord }) {
           )}
         </div>
       </div>
+      )}
 
-      {/* 오른쪽: 제작 가이드 또는 안내 메시지 */}
-      {hasGuideline ? (
-        <div className="bg-white rounded-lg shadow-lg p-6 overflow-hidden">
-          <h2 className="text-xl font-bold mb-4 text-gray-900 flex items-center justify-between">
-            <span className="flex items-center gap-2">
-              📝 컨텐츠 제작 가이드
-            </span>
-            <button
-              onClick={() => {
-                navigator.clipboard.writeText(record.analysis_summary.contentGuideline || '');
-                alert('가이드가 클립보드에 복사되었습니다!');
-              }}
-              className="px-3 py-1 bg-purple-600 text-white text-sm rounded hover:bg-purple-700 transition-colors"
-            >
-              복사
-            </button>
-          </h2>
+      {/* 제작 가이드 뷰 */}
+      {selectedView === 'guideline' && (
+        hasGuideline ? (
+          <div className="bg-white rounded-lg shadow-lg p-6 overflow-hidden">
+            <h2 className="text-xl font-bold mb-4 text-gray-900 flex items-center justify-between">
+              <span className="flex items-center gap-2">
+                📝 컨텐츠 제작 가이드
+              </span>
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(record.analysis_summary.contentGuideline || '');
+                  alert('가이드가 클립보드에 복사되었습니다!');
+                }}
+                className="px-3 py-1 bg-purple-600 text-white text-sm rounded hover:bg-purple-700 transition-colors"
+              >
+                복사
+              </button>
+            </h2>
 
-          {/* 스크롤 가능한 영역 */}
-          <div className="overflow-y-auto max-h-[600px] pr-2">
-            <div className="bg-gradient-to-r from-yellow-50 to-orange-50 rounded-lg p-4">
-              <div className="whitespace-pre-wrap text-sm text-gray-700">
-                {record.analysis_summary.contentGuideline}
+            {/* 스크롤 가능한 영역 */}
+            <div className="overflow-y-auto max-h-[600px] pr-2">
+              <div className="bg-gradient-to-r from-yellow-50 to-orange-50 rounded-lg p-4">
+                <div className="whitespace-pre-wrap text-sm text-gray-700">
+                  {record.analysis_summary.contentGuideline}
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      ) : (
-        <div className="bg-gray-100 rounded-lg border-2 border-dashed border-gray-300 p-6 flex flex-col items-center justify-center min-h-[400px]">
-          <div className="text-center max-w-sm">
-            <span className="text-6xl mb-4 block opacity-50">📝</span>
-            <h3 className="text-lg font-semibold text-gray-700 mb-2">
-              제작 가이드가 생성되지 않았습니다
-            </h3>
-            <p className="text-sm text-gray-500 mb-6">
-              이 분석에서는 컨텐츠 제작 가이드를 생성하지 않았습니다.
-              <br />
-              제작 가이드가 필요하시면 채널을 다시 분석해주세요.
-            </p>
-            <button
-              onClick={() => navigateToChannelAnalysis(record.id)}
-              className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 text-sm inline-flex items-center gap-2 transition-colors"
-            >
-              채널 재분석하기
-              <span className="text-lg">→</span>
-            </button>
+        ) : (
+          <div className="bg-gray-100 rounded-lg border-2 border-dashed border-gray-300 p-6 flex flex-col items-center justify-center min-h-[400px]">
+            <div className="text-center max-w-sm">
+              <span className="text-6xl mb-4 block opacity-50">📝</span>
+              <h3 className="text-lg font-semibold text-gray-700 mb-2">
+                제작 가이드가 생성되지 않았습니다
+              </h3>
+              <p className="text-sm text-gray-500 mb-6">
+                이 분석에서는 컨텐츠 제작 가이드를 생성하지 않았습니다.
+                <br />
+                제작 가이드가 필요하시면 채널을 다시 분석해주세요.
+              </p>
+              <button
+                onClick={() => navigateToChannelAnalysis(record.id)}
+                className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 text-sm inline-flex items-center gap-2 transition-colors"
+              >
+                채널 재분석하기
+                <span className="text-lg">→</span>
+              </button>
+            </div>
           </div>
-        </div>
+        )
       )}
     </div>
   );

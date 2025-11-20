@@ -287,7 +287,8 @@ export default function ChannelAnalysisTab({ isLoggedIn }: ChannelAnalysisTabPro
           body: JSON.stringify({
             // userId는 서버에서 쿠키로부터 가져오므로 제거
             channelId: channelUrl.split('@')[1]?.split('/')[0] || channelUrl, // URL에서 채널 ID 추출
-            channelTitle: videos[0]?.channelTitle || videos[0]?.title?.split(' ')[0] || '알 수 없는 채널', // 채널명 추출
+            channelTitle: videos[0]?.channelTitle || '알 수 없는 채널', // API에서 받은 채널명 사용
+            channelThumbnail: videos[0]?.channelThumbnail || null, // 채널 썸네일도 추가
             isOwnChannel: false,
             videoCount: data.analyzedCount,
             analysisResult: parsedResult,
@@ -527,6 +528,56 @@ export default function ChannelAnalysisTab({ isLoggedIn }: ChannelAnalysisTabPro
             </div>
           )}
 
+          {/* 채널 특성 요약 (5축) */}
+          {analysisResult.channel_identity && (
+            <div className="bg-gradient-to-r from-indigo-500 to-blue-500 text-white rounded-xl p-4 md:p-6 shadow-lg">
+              <h3 className="text-xl md:text-2xl font-bold mb-4">
+                🎯 채널 특성 요약
+              </h3>
+              <div className="grid grid-cols-1 gap-3">
+                {/* 1. 주제 특성 */}
+                <div className="bg-white/90 backdrop-blur rounded-lg p-3 text-gray-800">
+                  <h4 className="font-bold text-indigo-600 mb-1 flex items-center gap-2">
+                    <span>📍</span> 주제 특성
+                  </h4>
+                  <p className="text-sm">{analysisResult.channel_identity.topic_feature}</p>
+                </div>
+
+                {/* 2. 제목 전략 */}
+                <div className="bg-white/90 backdrop-blur rounded-lg p-3 text-gray-800">
+                  <h4 className="font-bold text-indigo-600 mb-1 flex items-center gap-2">
+                    <span>✍️</span> 제목 전략
+                  </h4>
+                  <p className="text-sm">{analysisResult.channel_identity.title_strategy}</p>
+                </div>
+
+                {/* 3. 영상 구조 & 문장 리듬 */}
+                <div className="bg-white/90 backdrop-blur rounded-lg p-3 text-gray-800">
+                  <h4 className="font-bold text-indigo-600 mb-1 flex items-center gap-2">
+                    <span>🎬</span> 영상 구조 & 문장 리듬
+                  </h4>
+                  <p className="text-sm">{analysisResult.channel_identity.structure_rhythm}</p>
+                </div>
+
+                {/* 4. 초반 3초 후킹 */}
+                <div className="bg-white/90 backdrop-blur rounded-lg p-3 text-gray-800">
+                  <h4 className="font-bold text-indigo-600 mb-1 flex items-center gap-2">
+                    <span>⚡</span> 초반 3초 후킹
+                  </h4>
+                  <p className="text-sm">{analysisResult.channel_identity.hook_3sec}</p>
+                </div>
+
+                {/* 5. 끝까지 보게 만드는 요소 */}
+                <div className="bg-white/90 backdrop-blur rounded-lg p-3 text-gray-800">
+                  <h4 className="font-bold text-indigo-600 mb-1 flex items-center gap-2">
+                    <span>🎯</span> 끝까지 보게 만드는 요소
+                  </h4>
+                  <p className="text-sm">{analysisResult.channel_identity.retention_elements}</p>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* 상위 vs 하위 영상 핵심 차이 */}
           {analysisResult.summary_differences && (
             <div className="bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl p-4 md:p-6 shadow-lg">
@@ -549,15 +600,6 @@ export default function ChannelAnalysisTab({ isLoggedIn }: ChannelAnalysisTabPro
               </div>
             </div>
           )}
-
-          <div className="bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-xl p-4 md:p-6 shadow-lg">
-            <h3 className="text-xl md:text-2xl font-bold mb-3 flex items-center gap-2">
-              🎯 채널 핵심 정체성
-            </h3>
-            <p className="text-base md:text-lg">
-              {analysisResult.channel_summary || '분석 중...'}
-            </p>
-          </div>
 
           {/* 주제 특성 섹션 */}
           {analysisResult.topic_characteristics && (
@@ -1071,23 +1113,6 @@ export default function ChannelAnalysisTab({ isLoggedIn }: ChannelAnalysisTabPro
                       </p>
                     </div>
                   )}
-                </div>
-              )}
-
-              {/* 핵심 차이점 */}
-              {analysisResult.script_analysis.key_differences && (
-                <div className="bg-gradient-to-r from-yellow-50 to-orange-50 rounded-lg p-4 border-2 border-orange-200">
-                  <h4 className="font-bold text-orange-900 mb-3">💡 상위 vs 하위 영상 핵심 차이</h4>
-                  <div className="space-y-2">
-                    {analysisResult.script_analysis.key_differences.map((diff: string, i: number) => (
-                      <div key={i} className="flex gap-3 items-start">
-                        <span className="flex-shrink-0 w-5 h-5 bg-orange-500 text-white rounded-full flex items-center justify-center text-xs font-bold">
-                          {i + 1}
-                        </span>
-                        <p className="text-gray-800 flex-1 text-xs md:text-sm">{diff}</p>
-                      </div>
-                    ))}
-                  </div>
                 </div>
               )}
             </div>

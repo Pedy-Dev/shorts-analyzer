@@ -187,7 +187,6 @@ ${v.script}
 
 다음 JSON만 출력하세요:
 {
-  "channel_summary": "이 채널의 핵심 특징 1-2문장",
   "topic_characteristics": {
     "main_categories": [
       {
@@ -484,6 +483,64 @@ ${JSON.stringify(scriptResult)}
   }
 }`;
 
+// 채널 특성 요약 (5축 고정)
+const getChannelIdentityPrompt = (
+  topVideos: any[],
+  bottomVideos: any[],
+  fullAnalysis: any
+) => `너는 유튜브 쇼츠 채널 분석을 요약하는 전문가다.
+
+아래는 한 채널에 대한 상세 분석 결과다.
+이 내용을 보고 채널 운영자가 바로 참고할 수 있는
+5개의 핵심 요약을 한 줄씩 작성하라.
+
+[채널 기본 정보]
+- 상위 ${topVideos.length}개 영상 (평균 조회수: ${Math.round(
+  topVideos.reduce((sum, v) => sum + v.views, 0) / topVideos.length
+).toLocaleString()})
+- 하위 ${bottomVideos.length}개 영상 (평균 조회수: ${Math.round(
+  bottomVideos.reduce((sum, v) => sum + v.views, 0) / bottomVideos.length
+).toLocaleString()})
+
+[채널 상세 분석 결과]
+${JSON.stringify(fullAnalysis, null, 2)}
+
+[작성해야 할 5개 항목]
+
+1) 주제 특성(topic_feature)
+- 이 채널이 성과 기준으로 주로 다루는 소재와 상황을 한 줄로 정리한다.
+
+2) 제목 전략(title_strategy)
+- 상위 영상의 공통 제목 패턴을 한 줄로 정리한다
+  (자주 쓰는 키워드, 대략적 글자 수, 형식 등).
+
+3) 영상 구조 & 문장 리듬(structure_rhythm)
+- 영상 전개 구조(예: 위기 → 대응 → 결말)와
+  나레이션 문장 길이·호흡을 한 줄로 정리한다.
+
+4) 초반 3초 후킹 전략(hook_3sec)
+- 시작 3초 안에 주로 어떤 장면·문장으로 후킹하는지 한 줄로 정리한다.
+
+5) 영상을 끝까지 보게 만드는 요소(retention_elements)
+- 시청자가 끝까지 보게 되는 궁금증·반전·감정 포인트를 한 줄로 정리한다.
+
+[공통 작성 규칙]
+- 각 항목은 한글 한 문장, 30~60자 정도로 작성한다.
+- 채널 운영자가 그대로 따라 쓸 수 있는 실전 표현으로 쓴다.
+- 너 자신의 설명이나 메타 코멘트는 쓰지 않는다.
+- "이 채널은 ~합니다" 또는 "~하는 방식" 같은 톤으로 일관성 있게 쓴다.
+
+[출력 형식]
+아래 JSON 형식으로만 출력한다.
+
+{
+  "topic_feature": "...",
+  "title_strategy": "...",
+  "structure_rhythm": "...",
+  "hook_3sec": "...",
+  "retention_elements": "..."
+}`;
+
 // ---------- 전체 분석 실행 함수 (모델 세트별) ----------
 
 async function runFullAnalysis(
@@ -546,6 +603,20 @@ async function runFullAnalysis(
   if (summaryJson?.summary_differences) {
     finalAnalysis.summary_differences = summaryJson.summary_differences;
   }
+
+  // 채널 특성 요약 (5축)
+  console.log('📊 Channel Identity: 채널 특성 5축 요약 중...');
+  const identityPrompt = getChannelIdentityPrompt(topVideos, bottomVideos, finalAnalysis);
+  const identityResponse = await callGemini(identityPrompt, {
+    model: summaryModel,
+    temperature: 0.3,
+    stepName: 'Channel-Identity',
+  });
+  const identityJson = await parseGeminiResponse(identityResponse, 'ChannelIdentity');
+  if (identityJson) {
+    finalAnalysis.channel_identity = identityJson;
+  }
+  console.log('✅ 채널 특성 요약 완료');
 
   console.log('✅ 전체 분석 세트 완료');
 
@@ -706,8 +777,8 @@ ${analysisResult}
 당신은 이 채널의 YouTube 쇼츠 콘텐츠 제작 전문가입니다.
 
 ## 📌 채널 핵심 정체성
-- 이 채널의 핵심 컨셉을 1~2문장으로 요약하세요.
-- 어떤 유형의 주제를 할 때 이 채널 스타일이 특히 잘 맞는지 설명하세요.
+- 분석 결과의 channel_identity 5축(주제 특성, 제목 전략, 영상 구조 & 문장 리듬, 초반 3초 후킹, 끝까지 보게 만드는 요소)을 참고하여 이 채널의 핵심 특성을 간결하게 요약하세요.
+- 이 채널 스타일이 어떤 유형의 주제/소재와 특히 잘 맞는지, 5축 요약을 기반으로 설명하세요.
 
 ### 1. 3초 후킹 가이드 (최우선 섹션)
 - 이 채널에서 성과가 좋았던 도입부(첫 3초) 패턴 2~3가지를 정리하세요.
