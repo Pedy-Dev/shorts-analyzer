@@ -29,6 +29,7 @@ export async function GET(request: NextRequest) {
         channel_id,
         channel_title,
         channel_thumbnail,
+        subscriber_count,
         is_own_channel,
         yt_category,
         creator_category,

@@ -15,6 +15,7 @@ interface HistoryItem {
   channel_id: string;
   channel_title: string;
   channel_thumbnail: string;
+  subscriber_count: number;
   is_own_channel: boolean;
   yt_category: string;
   creator_category: string;
@@ -386,25 +387,6 @@ export default function AnalysisHistoryTab({ isLoggedIn }: AnalysisHistoryTabPro
             const isLoading = loadingRecords[item.id];
             const recordDetail = expandedRecords[item.id];
 
-            // 🔧 안전한 가이드 체크 로직 (analysis_summary가 문자열/객체 둘 다 대응)
-            const hasGuideline = (() => {
-              if (!recordDetail?.analysis_summary) return false;
-              const raw = recordDetail.analysis_summary;
-              let parsed: any;
-              if (typeof raw === 'string') {
-                try {
-                  parsed = JSON.parse(raw);
-                } catch {
-                  return false;
-                }
-              } else if (raw && typeof raw === 'object') {
-                parsed = raw;
-              } else {
-                return false;
-              }
-              return !!parsed?.contentGuideline;
-            })();
-
             return (
               <div key={item.id} className="bg-white border rounded-lg overflow-hidden">
                 {/* 헤더 - 클릭하면 상세 내용 토글 */}
@@ -436,16 +418,12 @@ export default function AnalysisHistoryTab({ isLoggedIn }: AnalysisHistoryTabPro
                         <span className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded text-xs font-medium">
                           분석 완료
                         </span>
-                        {hasGuideline ? (
-                          <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded text-xs font-medium">
-                            가이드 있음
+                        {item.subscriber_count > 0 && (
+                          <span className="px-2 py-0.5 bg-orange-100 text-orange-700 rounded text-xs font-medium">
+                            구독자 {item.subscriber_count >= 10000
+                              ? `${(item.subscriber_count / 10000).toFixed(1)}만`
+                              : item.subscriber_count.toLocaleString()}명
                           </span>
-                        ) : (
-                          !isLoading && (
-                            <span className="px-2 py-0.5 bg-gray-100 text-gray-600 rounded text-xs font-medium">
-                              가이드 없음
-                            </span>
-                          )
                         )}
                         {item.is_own_channel && (
                           <span className="px-2 py-0.5 bg-purple-100 text-purple-700 rounded text-xs font-medium">

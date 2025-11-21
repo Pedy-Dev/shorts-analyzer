@@ -52,7 +52,7 @@ async function fetchShortsWithKey(channelId: string, apiKey: string, maxResults:
   try {
     // 1단계: 채널의 업로드 재생목록 ID와 채널 정보 가져오기
     const channelResponse = await fetch(
-      `${BASE_URL}/channels?part=contentDetails,snippet&id=${channelId}&key=${apiKey}`
+      `${BASE_URL}/channels?part=contentDetails,snippet,statistics&id=${channelId}&key=${apiKey}`
     );
 
     if (!channelResponse.ok) {
@@ -79,7 +79,8 @@ async function fetchShortsWithKey(channelId: string, apiKey: string, maxResults:
     const uploadsPlaylistId = channelInfo.contentDetails.relatedPlaylists.uploads;
     const channelTitle = channelInfo.snippet.title;
     const channelThumbnail = channelInfo.snippet.thumbnails.default?.url || channelInfo.snippet.thumbnails.medium?.url;
-    
+    const subscriberCount = parseInt(channelInfo.statistics?.subscriberCount || '0');
+
     // 2단계: 페이지네이션으로 쇼츠 수집
     const collectedShorts: any[] = [];
     let nextPageToken: string | null = null;
@@ -167,8 +168,9 @@ async function fetchShortsWithKey(channelId: string, apiKey: string, maxResults:
             thumbnail: video.snippet.thumbnails.default.url,
             tags: video.snippet.tags ? video.snippet.tags.length : 0,
             tagList: video.snippet.tags || [],
-            channelTitle: channelTitle,  // 채널 이름 추가
-            channelThumbnail: channelThumbnail,  // 채널 썸네일 추가
+            channelTitle: channelTitle,  // 채널 이름
+            channelThumbnail: channelThumbnail,  // 채널 썸네일
+            subscriberCount: subscriberCount,  // 채널 구독자 수
           });
         }
       });

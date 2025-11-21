@@ -170,6 +170,9 @@ export default function ChannelAnalysisTab({ isLoggedIn }: ChannelAnalysisTabPro
             duration: video.duration,
             publishedAt: video.publishedAt,
             thumbnail: video.thumbnail,
+            channelTitle: video.channelTitle,
+            channelThumbnail: video.channelThumbnail,
+            subscriberCount: video.subscriberCount,  // 구독자 수
             script: subtitle || '자막이 없습니다',
           });
           console.log(`✅ [${i + 1}/${shortsList.length}] 자막 수집 완료`);
@@ -186,6 +189,9 @@ export default function ChannelAnalysisTab({ isLoggedIn }: ChannelAnalysisTabPro
             duration: video.duration,
             publishedAt: video.publishedAt,
             thumbnail: video.thumbnail,
+            channelTitle: video.channelTitle,
+            channelThumbnail: video.channelThumbnail,
+            subscriberCount: video.subscriberCount,  // 구독자 수
             script: '자막 추출 실패',
           });
         }
@@ -357,8 +363,9 @@ export default function ChannelAnalysisTab({ isLoggedIn }: ChannelAnalysisTabPro
           body: JSON.stringify({
             // userId는 서버에서 쿠키로부터 가져오므로 제거
             channelId: channelUrl.split('@')[1]?.split('/')[0] || channelUrl, // URL에서 채널 ID 추출
-            channelTitle: videos[0]?.channelTitle || '알 수 없는 채널', // API에서 받은 채널명 사용
+            channelTitle: videos[0]?.channelTitle || null, // API에서 받은 채널명 사용
             channelThumbnail: videos[0]?.channelThumbnail || null, // 채널 썸네일도 추가
+            subscriberCount: videos[0]?.subscriberCount || 0, // 구독자 수
             isOwnChannel: false,
             videoCount: data.analyzedCount,
             analysisResult: parsedResult,  // 파싱된 결과

@@ -97,10 +97,12 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
+
     const {
       channelId,
       channelTitle,
       channelThumbnail,
+      subscriberCount,
       isOwnChannel,
       videoCount,
       analysisResult, // parsedResult (전체 분석 객체)
@@ -108,21 +110,31 @@ export async function POST(request: NextRequest) {
       topVideosSummary, // 상위 30% 영상 스냅샷
       bottomVideosSummary, // 하위 30% 영상 스냅샷
       videoTitles, // 영상 제목 배열
-    } = body;
+    } = body ?? {};
 
-    // 필수 필드 검증
-    if (!channelId || !channelTitle) {
+
+    // ✅ 필수 필드 검증: 이제 channelId만 필수
+    if (!channelId) {
       return NextResponse.json(
-        { error: '필수 정보가 누락되었습니다.' },
+        { error: '채널 ID가 없습니다.' },
         { status: 400 }
       );
     }
 
+    // ✅ channelTitle 안전 처리
+    const safeChannelTitle =
+      typeof channelTitle === 'string' && channelTitle.trim().length > 0
+        ? channelTitle.trim()
+        : '알 수 없는 채널';
+
+    // 영상 제목 배열 방어코드
+    const safeVideoTitles = Array.isArray(videoTitles) ? videoTitles : [];
+
     // AI로 카테고리 분류
     console.log('📊 AI 카테고리 분류 시작...');
     const creatorCategory = await classifyChannelCategory(
-      channelTitle,
-      videoTitles || []
+      safeChannelTitle,
+      safeVideoTitles
     );
     console.log('✅ 분류 결과:', creatorCategory);
 
@@ -133,8 +145,6 @@ export async function POST(request: NextRequest) {
         : 'v1_external';
 
     // analysis_summary에 schemaVersion 추가
-    // 👉 분석 결과가 object면 그대로 + schemaVersion
-    // 👉 혹시 문자열/널이면 raw 필드로 보존
     let summaryWithVersion: any;
     if (analysisResult && typeof analysisResult === 'object') {
       summaryWithVersion = {
@@ -151,29 +161,31 @@ export async function POST(request: NextRequest) {
     console.log('💾 DB 저장 시작...');
     console.log('  - analysis_raw 포함 여부:', !!analysisRaw);
     console.log('  - schemaVersion:', schemaVersion);
+    console.log('  - safeChannelTitle:', safeChannelTitle);
 
-    // DB에 저장
     const { data, error } = await supabase
       .from('channel_analysis_history')
       .insert({
-        user_id: userIdFromCookie, // 쿠키에서 가져온 실제 사용자 ID 사용
+        user_id: userIdFromCookie,
         channel_id: channelId,
-        channel_title: channelTitle,
+        channel_title: safeChannelTitle,
         channel_thumbnail: channelThumbnail || null,
-        is_own_channel: isOwnChannel || false,
+        subscriber_count: subscriberCount || 0,
+        is_own_channel: !!isOwnChannel,
         creator_category: creatorCategory,
         video_count: videoCount || 0,
-        analysis_summary: summaryWithVersion, // schemaVersion 포함
-        analysis_raw: analysisRaw || null, // Gemini 원본 응답 저장
-        top_videos_summary: topVideosSummary || null, // 상위 30% 영상 스냅샷
-        bottom_videos_summary: bottomVideosSummary || null, // 하위 30% 영상 스냅샷
+        analysis_summary: summaryWithVersion,
+        analysis_raw: analysisRaw ?? null,
+        top_videos_summary: topVideosSummary ?? null,
+        bottom_videos_summary: bottomVideosSummary ?? null,
       })
-      .select();
+      .select()
+      .single(); // data[0] 대신 single() 사용
 
     if (error) {
       console.error('DB 저장 실패:', error);
       return NextResponse.json(
-        { error: 'DB 저장 실패: ' + error.message },
+        { error: 'DB 저장 실패', details: error },
         { status: 500 }
       );
     }
@@ -182,13 +194,16 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      data: data[0],
+      data,
       category: creatorCategory,
     });
   } catch (error: any) {
     console.error('❌ 저장 중 오류:', error);
     return NextResponse.json(
-      { error: '저장 실패: ' + error.message },
+      {
+        error: '저장 실패',
+        details: error?.message ?? String(error),
+      },
       { status: 500 }
     );
   }
