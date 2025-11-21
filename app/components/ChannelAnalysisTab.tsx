@@ -575,14 +575,23 @@ export default function ChannelAnalysisTab({ isLoggedIn }: ChannelAnalysisTabPro
 
   return (
     <>
-      {/* 채널 URL 입력 섹션 */}
-      <div className="bg-white rounded-lg shadow-lg p-4 md:p-6 mb-6 md:mb-8">
-        <h2 className="text-lg md:text-xl font-bold text-gray-900 mb-3 md:mb-4">🔍 채널 검색</h2>
-        <div className="flex flex-col md:flex-row gap-3 md:gap-4">
-          <div className="flex-1 flex flex-col gap-1">
-            <label className="text-xs text-gray-600 font-medium px-1 opacity-0 pointer-events-none">
-              ㅤ
-            </label>
+      {/* 채널 검색 섹션 */}
+      <div className="mt-6 rounded-2xl border border-gray-300 bg-white p-4 shadow-md mb-6 md:mb-8">
+        {/* 헤더 영역 */}
+        <div className="flex items-center gap-2 text-sm">
+          <div className="flex h-7 w-7 items-center justify-center rounded-full bg-red-50">
+            <Search className="h-4 w-4 text-red-500" />
+          </div>
+          <span className="text-sm font-bold text-gray-900">채널 검색</span>
+          <span className="ml-1 font-semibold text-xs text-gray-400">
+            쇼츠 성과를 분석해요
+          </span>
+        </div>
+
+        {/* 검색 툴바 영역 */}
+        <div className="mt-3 flex flex-col gap-3 md:flex-row md:items-center">
+          {/* 인풋 */}
+          <div className="relative flex-1">
             <input
               type="text"
               value={channelUrl}
@@ -593,47 +602,57 @@ export default function ChannelAnalysisTab({ isLoggedIn }: ChannelAnalysisTabPro
                 }
               }}
               placeholder="채널명 또는 채널 URL 입력"
-              className="w-full px-3 md:px-4 py-2 md:py-3 border border-gray-300 rounded-lg text-gray-700 text-sm md:text-base font-medium"
+              className="h-11 w-full rounded-xl border border-gray-300 bg-gray-50 px-3 pr-9 text-sm text-gray-900
+                         placeholder:text-gray-400
+                         focus:border-red-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-100
+                         disabled:opacity-50 disabled:cursor-not-allowed"
               disabled={loading || searching}
             />
+            <Search className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
           </div>
-          <div className="flex items-end gap-2">
-            <div className="flex flex-col gap-1">
-              <label className="text-xs text-gray-600 font-medium px-1">
-                영상 개수
-              </label>
-              <select
-                value={selectedCount}
-                onChange={(e) => setSelectedCount(Number(e.target.value))}
-                className="px-3 md:px-4 py-2 md:py-3 border border-gray-300 rounded-lg text-gray-900 text-sm md:text-base font-medium"
-                disabled={loading || searching}
-              >
-                <option value={10}>10개</option>
-                <option value={20}>20개</option>
-                <option value={30}>30개</option>
-                <option value={40}>40개</option>
-                <option value={50}>50개</option>
-              </select>
-            </div>
+
+          {/* 영상 개수 + 버튼 */}
+          <div className="flex items-center gap-2">
+            <label className="whitespace-nowrap text-xs text-gray-700 font-medium">
+              영상 개수
+            </label>
+            <select
+              value={selectedCount}
+              onChange={(e) => setSelectedCount(Number(e.target.value))}
+              className="h-11 rounded-xl border border-gray-300 bg-white px-3 text-sm text-gray-900
+                         focus:border-red-400 focus:outline-none focus:ring-2 focus:ring-red-100
+                         disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={loading || searching}
+            >
+              <option value={10}>10개</option>
+              <option value={20}>20개</option>
+              <option value={30}>30개</option>
+              <option value={40}>40개</option>
+              <option value={50}>50개</option>
+            </select>
+
             <button
+              type="button"
               onClick={handleSearchChannels}
               disabled={loading || searching}
-              className="px-4 md:px-6 py-2 md:py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center gap-2 transition-colors text-sm md:text-base whitespace-nowrap"
+              className="flex h-11 items-center gap-1 rounded-xl bg-red-500 px-4 text-sm font-semibold text-white
+                         shadow-sm hover:bg-red-600 active:bg-red-700
+                         disabled:bg-gray-400 disabled:cursor-not-allowed whitespace-nowrap"
             >
               {searching ? (
                 <>
-                  <Loader2 className="w-4 md:w-5 h-4 md:h-5 animate-spin" />
-                  검색 중...
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span>검색 중...</span>
                 </>
               ) : loading ? (
                 <>
-                  <Loader2 className="w-4 md:w-5 h-4 md:h-5 animate-spin" />
-                  분석 중...
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span>분석 중...</span>
                 </>
               ) : (
                 <>
-                  <Search className="w-4 md:w-5 h-4 md:h-5" />
-                  검색/분석
+                  <Search className="h-4 w-4" />
+                  <span>검색/분석</span>
                 </>
               )}
             </button>
