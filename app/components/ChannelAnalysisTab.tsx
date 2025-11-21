@@ -31,11 +31,76 @@ export default function ChannelAnalysisTab({ isLoggedIn }: ChannelAnalysisTabPro
   // 영상 리스트 정렬 기준
   const [sortBy, setSortBy] = useState<'latest' | 'views' | 'likes' | 'comments'>('latest');
 
+  // 채널 검색 관련 상태
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [searching, setSearching] = useState(false);
+
   const toggleTags = (videoId: string) => {
     setExpandedTags(prev => ({
       ...prev,
       [videoId]: !prev[videoId]
     }));
+  };
+
+  // 채널 검색 함수
+  const handleSearchChannels = async () => {
+    const query = channelUrl.trim();
+    if (!query) {
+      alert('채널 URL 또는 채널명을 입력해주세요!');
+      return;
+    }
+
+    const youtubeApiKey = localStorage.getItem('youtube_api_key');
+    if (!youtubeApiKey) {
+      alert('⚠️ YouTube API 키가 필요합니다!\n\n오른쪽 상단의 "⚙️ API 키 설정" 버튼을 눌러 YouTube API 키를 입력해주세요.');
+      return;
+    }
+
+    // URL 형식이면 바로 분석, 아니면 검색
+    if (query.includes('youtube.com') || query.includes('youtu.be') || query.startsWith('@')) {
+      handleAnalyze();
+      return;
+    }
+
+    // 채널명으로 검색
+    setSearching(true);
+    setSearchResults([]);
+
+    try {
+      console.log('🔍 채널 검색 중:', query);
+      const response = await fetch('/api/search-channels', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query, apiKey: youtubeApiKey })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || '채널 검색 실패');
+      }
+
+      if (data.channels && data.channels.length > 0) {
+        setSearchResults(data.channels);
+        console.log(`✅ ${data.channels.length}개 채널 검색 완료`);
+      } else {
+        alert('검색 결과가 없습니다. 다른 검색어를 입력해주세요.');
+      }
+    } catch (error: any) {
+      console.error('❌ 채널 검색 오류:', error);
+      alert('채널 검색 중 오류가 발생했습니다:\n' + error.message);
+    } finally {
+      setSearching(false);
+    }
+  };
+
+  // 검색 결과에서 채널 선택
+  const handleSelectChannel = (channelId: string) => {
+    const newUrl = `https://www.youtube.com/channel/${channelId}`;
+    setChannelUrl(newUrl);
+    setSearchResults([]);
+    // URL을 직접 전달하여 분석 시작
+    handleAnalyze(newUrl);
   };
 
   // 영상 리스트 정렬 함수
@@ -129,14 +194,16 @@ export default function ChannelAnalysisTab({ isLoggedIn }: ChannelAnalysisTabPro
     };
   };
 
-  const handleAnalyze = async () => {
+  const handleAnalyze = async (urlOverride?: string) => {
     // 로그인 체크
     if (!isLoggedIn) {
       alert('⚠️ 로그인이 필요한 기능입니다.\n\n상단의 로그인 버튼을 눌러 먼저 로그인해주세요.');
       return;
     }
 
-    if (!channelUrl.trim()) {
+    const targetUrl = urlOverride || channelUrl;
+
+    if (!targetUrl.trim()) {
       alert('채널 URL을 입력해주세요!');
       return;
     }
@@ -158,7 +225,7 @@ export default function ChannelAnalysisTab({ isLoggedIn }: ChannelAnalysisTabPro
 
       let channelId;
       try {
-        channelId = await getChannelId(channelUrl, youtubeApiKey);
+        channelId = await getChannelId(targetUrl, youtubeApiKey);
       } catch (error: any) {
         throw error;
       }
@@ -510,22 +577,27 @@ export default function ChannelAnalysisTab({ isLoggedIn }: ChannelAnalysisTabPro
     <>
       {/* 채널 URL 입력 섹션 */}
       <div className="bg-white rounded-lg shadow-lg p-4 md:p-6 mb-6 md:mb-8">
-        <h2 className="text-lg md:text-xl font-bold text-gray-900 mb-3 md:mb-4">채널 URL 입력</h2>
+        <h2 className="text-lg md:text-xl font-bold text-gray-900 mb-3 md:mb-4">🔍 채널 검색</h2>
         <div className="flex flex-col md:flex-row gap-3 md:gap-4">
           <input
             type="text"
             value={channelUrl}
             onChange={(e) => setChannelUrl(e.target.value)}
-            placeholder="(예: https://www.youtube.com/@channelname)"
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !loading && !searching) {
+                handleSearchChannels();
+              }
+            }}
+            placeholder="채널명 또는 채널 URL 입력"
             className="flex-1 px-3 md:px-4 py-2 md:py-3 border border-gray-300 rounded-lg text-gray-900 text-sm md:text-base font-medium"
-            disabled={loading}
+            disabled={loading || searching}
           />
           <div className="flex items-center gap-2">
             <select
               value={selectedCount}
               onChange={(e) => setSelectedCount(Number(e.target.value))}
               className="px-3 md:px-4 py-2 md:py-3 border border-gray-300 rounded-lg text-gray-900 text-sm md:text-base font-medium"
-              disabled={loading}
+              disabled={loading || searching}
             >
               <option value={10}>10개</option>
               <option value={20}>20개</option>
@@ -534,11 +606,16 @@ export default function ChannelAnalysisTab({ isLoggedIn }: ChannelAnalysisTabPro
               <option value={50}>50개</option>
             </select>
             <button
-              onClick={handleAnalyze}
-              disabled={loading}
-              className="px-4 md:px-6 py-2 md:py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center gap-2 transition-colors text-sm md:text-base"
+              onClick={handleSearchChannels}
+              disabled={loading || searching}
+              className="px-4 md:px-6 py-2 md:py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center gap-2 transition-colors text-sm md:text-base whitespace-nowrap"
             >
-              {loading ? (
+              {searching ? (
+                <>
+                  <Loader2 className="w-4 md:w-5 h-4 md:h-5 animate-spin" />
+                  검색 중...
+                </>
+              ) : loading ? (
                 <>
                   <Loader2 className="w-4 md:w-5 h-4 md:h-5 animate-spin" />
                   분석 중...
@@ -546,12 +623,47 @@ export default function ChannelAnalysisTab({ isLoggedIn }: ChannelAnalysisTabPro
               ) : (
                 <>
                   <Search className="w-4 md:w-5 h-4 md:h-5" />
-                  분석하기
+                  검색/분석
                 </>
               )}
             </button>
           </div>
         </div>
+
+        {/* 검색 결과 */}
+        {searchResults.length > 0 && (
+          <div className="mt-4 border-t pt-4">
+            <h3 className="text-sm font-semibold text-gray-700 mb-3"> 검색 결과 ({searchResults.length}개)</h3>
+            <div className="space-y-2">
+              {searchResults.map((channel: any) => (
+                <div
+                  key={channel.channelId}
+                  onClick={() => handleSelectChannel(channel.channelId)}
+                  className="flex items-center gap-3 p-3 border border-gray-200 rounded-lg hover:bg-blue-50 hover:border-blue-300 cursor-pointer transition-all"
+                >
+                  <img
+                    src={channel.thumbnail}
+                    alt={channel.title}
+                    className="w-16 h-16 rounded-full object-cover flex-shrink-0"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <h4 className="font-semibold text-gray-900 text-sm md:text-base truncate">
+                      {channel.title}
+                    </h4>
+                    <p className="text-xs md:text-sm text-gray-600">
+                      구독자 {channel.subscriberCount >= 10000
+                        ? `${(channel.subscriberCount / 10000).toFixed(1)}만`
+                        : channel.subscriberCount.toLocaleString()}명
+                    </p>
+                  </div>
+                  <div className="text-blue-600 flex-shrink-0">
+                    <Search className="w-5 h-5" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {progress.total > 0 && (
           <div className="mt-3 md:mt-4">
