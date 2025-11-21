@@ -2,7 +2,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Loader2, Trash2, Calendar, Film, ChevronDown, ExternalLink } from 'lucide-react';
+import { Loader2, Trash2, Calendar, Film, ChevronDown } from 'lucide-react';
+import ChannelAnalysisView from './ChannelAnalysisView';
+import type { VideoSummary } from '../types/analysis';
 
 interface AnalysisHistoryTabProps {
   isLoggedIn: boolean;
@@ -33,30 +35,8 @@ interface DetailedRecord {
   // 🔧 백엔드에서 뭐가 오든(문자열/객체) 다 받기 위해 any로 둔다
   analysis_summary: any;
 
-  top_videos_summary: Array<{
-    videoId: string;
-    title: string;
-    views: number;
-    likes: number;
-    comments: number;
-    likeRate: number;
-    publishedAt: string;
-    thumbnail: string;
-    duration: number;
-    performanceScore: number;
-  }>;
-  bottom_videos_summary: Array<{
-    videoId: string;
-    title: string;
-    views: number;
-    likes: number;
-    comments: number;
-    likeRate: number;
-    publishedAt: string;
-    thumbnail: string;
-    duration: number;
-    performanceScore: number;
-  }>;
+  top_videos_summary: VideoSummary[];
+  bottom_videos_summary: VideoSummary[];
   analysis_date: string;
 }
 
@@ -131,240 +111,11 @@ function AnalysisDetails({ record }: { record: DetailedRecord }) {
           <div className="overflow-y-auto max-h-[600px] pr-2">
             {/* 타 채널 분석 데이터 (topic_characteristics 존재) */}
             {isExternalChannel ? (
-              <div className="space-y-4">
-                {/* ✨ 채널 특성 5축 요약 박스 (최상단) */}
-                {analysisData.channel_identity && (
-                  <div className="bg-gradient-to-r from-indigo-500 to-blue-500 text-white rounded-xl p-4 md:p-6 shadow-lg mb-6">
-                    <h3 className="text-xl md:text-2xl font-bold mb-4">
-                      🎯 채널 특성 요약
-                    </h3>
-                    <div className="grid grid-cols-1 gap-3">
-                      {/* 1. 주제 특성 */}
-                      <div className="bg-white/90 backdrop-blur rounded-lg p-3 text-gray-800">
-                        <h4 className="font-bold text-indigo-600 mb-1 flex items-center gap-2">
-                          <span>📍</span> 주제 특성
-                        </h4>
-                        <p className="text-sm">{analysisData.channel_identity.topic_feature}</p>
-                      </div>
-
-                      {/* 2. 제목 전략 */}
-                      <div className="bg-white/90 backdrop-blur rounded-lg p-3 text-gray-800">
-                        <h4 className="font-bold text-indigo-600 mb-1 flex items-center gap-2">
-                          <span>✍️</span> 제목 전략
-                        </h4>
-                        <p className="text-sm">{analysisData.channel_identity.title_strategy}</p>
-                      </div>
-
-                      {/* 3. 영상 구조 & 문장 리듬 */}
-                      <div className="bg-white/90 backdrop-blur rounded-lg p-3 text-gray-800">
-                        <h4 className="font-bold text-indigo-600 mb-1 flex items-center gap-2">
-                          <span>🎬</span> 영상 구조 & 문장 리듬
-                        </h4>
-                        <p className="text-sm">{analysisData.channel_identity.structure_rhythm}</p>
-                      </div>
-
-                      {/* 4. 초반 3초 후킹 */}
-                      <div className="bg-white/90 backdrop-blur rounded-lg p-3 text-gray-800">
-                        <h4 className="font-bold text-indigo-600 mb-1 flex items-center gap-2">
-                          <span>⚡</span> 초반 3초 후킹
-                        </h4>
-                        <p className="text-sm">{analysisData.channel_identity.hook_3sec}</p>
-                      </div>
-
-                      {/* 5. 끝까지 보게 만드는 요소 */}
-                      <div className="bg-white/90 backdrop-blur rounded-lg p-3 text-gray-800">
-                        <h4 className="font-bold text-indigo-600 mb-1 flex items-center gap-2">
-                          <span>🎯</span> 끝까지 보게 만드는 요소
-                        </h4>
-                        <p className="text-sm">{analysisData.channel_identity.retention_elements}</p>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Step 1: 주제/각도 특성 분석 */}
-                {analysisData.topic_characteristics && (
-                  <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-4 border border-blue-200">
-                    <h3 className="text-lg font-bold text-blue-900 mb-4">🎯 주제/각도 특성 분석</h3>
-
-                    {/* 성공적인 주제들 */}
-                    {analysisData.topic_characteristics.successful_topics?.length > 0 && (
-                      <div className="mb-4">
-                        <h4 className="font-semibold text-base mb-3 text-green-700">🏆 성공적인 주제/각도</h4>
-                        <div className="space-y-2">
-                          {analysisData.topic_characteristics.successful_topics.map((topic: any, idx: number) => (
-                            <div key={idx} className="bg-green-50 border border-green-200 rounded-lg p-3">
-                              <div className="flex justify-between items-start mb-2">
-                                <h5 className="font-semibold text-gray-900 text-sm">{topic.topic}</h5>
-                                {topic.avg_views && (
-                                  <span className="bg-green-500 text-white px-2 py-1 rounded text-xs">
-                                    평균 {topic.avg_views.toLocaleString()}회
-                                  </span>
-                                )}
-                              </div>
-                              {topic.why_works && (
-                                <p className="text-sm text-gray-700">
-                                  <span className="font-medium">✅ 효과적인 이유:</span> {topic.why_works}
-                                </p>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* 실패한 주제들 */}
-                    {analysisData.topic_characteristics.unsuccessful_topics?.length > 0 && (
-                      <div className="mb-4">
-                        <h4 className="font-semibold text-base mb-3 text-red-700">📉 개선이 필요한 주제/각도</h4>
-                        <div className="space-y-2">
-                          {analysisData.topic_characteristics.unsuccessful_topics.map((topic: any, idx: number) => (
-                            <div key={idx} className="bg-red-50 border border-red-200 rounded-lg p-3">
-                              <div className="flex justify-between items-start mb-2">
-                                <h5 className="font-semibold text-gray-900 text-sm">{topic.topic}</h5>
-                                {topic.avg_views && (
-                                  <span className="bg-red-500 text-white px-2 py-1 rounded text-xs">
-                                    평균 {topic.avg_views.toLocaleString()}회
-                                  </span>
-                                )}
-                              </div>
-                              {topic.why_fails && (
-                                <p className="text-sm text-gray-700">
-                                  <span className="font-medium">❌ 문제점:</span> {topic.why_fails}
-                                </p>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* 효과적인 각도 */}
-                    {analysisData.topic_characteristics.angle_analysis?.effective_angles?.length > 0 && (
-                      <div>
-                        <h4 className="font-semibold text-base mb-3 text-blue-700">💡 효과적인 접근 각도</h4>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                          {analysisData.topic_characteristics.angle_analysis.effective_angles.map(
-                            (angle: any, idx: number) => (
-                              <div key={idx} className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                                <div className="flex justify-between items-center mb-2">
-                                  <h5 className="font-medium text-gray-900 text-sm">{angle.angle_type}</h5>
-                                  {angle.success_rate && (
-                                    <span className="bg-blue-500 text-white px-2 py-0.5 rounded text-xs">
-                                      성공률 {(angle.success_rate * 100).toFixed(0)}%
-                                    </span>
-                                  )}
-                                </div>
-                                <p className="text-xs text-gray-700">{angle.characteristics}</p>
-                              </div>
-                            )
-                          )}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* Step 2: 제목 전략 분석 */}
-                {analysisData.title_analysis && (
-                  <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg p-4 border border-purple-200">
-                    <h3 className="text-lg font-bold text-purple-900 mb-4">✍️ 제목 전략 분석</h3>
-
-                    {analysisData.title_analysis.summary && (
-                      <div className="mb-4 bg-white rounded-lg p-3">
-                        <p className="text-sm text-gray-700">{analysisData.title_analysis.summary}</p>
-                      </div>
-                    )}
-
-                    {analysisData.title_analysis.top_patterns?.common_structures?.length > 0 && (
-                      <div className="mb-4">
-                        <h4 className="font-semibold text-base mb-2 text-green-700">🏆 효과적인 제목 패턴</h4>
-                        <div className="bg-green-50 rounded-lg p-3">
-                          <ul className="space-y-1">
-                            {analysisData.title_analysis.top_patterns.common_structures.map(
-                              (pattern: any, idx: number) => (
-                                <li key={idx} className="text-sm text-gray-700">
-                                  •{' '}
-                                  {typeof pattern === 'string'
-                                    ? pattern
-                                    : pattern.structure || pattern.structure_type || ''}
-                                </li>
-                              )
-                            )}
-                          </ul>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* 🔧 bottom_patterns.common_problems로 키 맞추기 */}
-                    {analysisData.title_analysis.bottom_patterns?.common_problems?.length > 0 && (
-                      <div>
-                        <h4 className="font-semibold text-base mb-2 text-red-700">📉 피해야 할 제목 실수</h4>
-                        <div className="bg-red-50 rounded-lg p-3">
-                          <ul className="space-y-1">
-                            {analysisData.title_analysis.bottom_patterns.common_problems.map(
-                              (pattern: any, idx: number) => (
-                                <li key={idx} className="text-sm text-gray-700">
-                                  • {pattern.why_fails || pattern.problem_type || ''}
-                                </li>
-                              )
-                            )}
-                          </ul>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* Step 3: 스크립트 구조 분석 */}
-                {analysisData.script_analysis && (
-                  <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg p-4 border border-green-200">
-                    <h3 className="text-lg font-bold text-green-900 mb-4">📝 스크립트 구조 분석</h3>
-
-                    {/* 첫 3초 후크 분석 */}
-                    {analysisData.script_analysis.hook_analysis && (
-                      <div className="mb-4">
-                        <h4 className="font-semibold text-base mb-3 text-purple-700">🎣 첫 3초 후크 전략</h4>
-                        <div className="bg-purple-50 border border-purple-200 rounded-lg p-3">
-                          {analysisData.script_analysis.hook_analysis.first_3_seconds?.summary && (
-                            <p className="text-sm text-gray-700 mb-2">
-                              {analysisData.script_analysis.hook_analysis.first_3_seconds.summary}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* 핵심 차이점 */}
-                    {analysisData.script_analysis.key_differences?.length > 0 && (
-                      <div className="mb-4">
-                        <h4 className="font-semibold text-base mb-3 text-blue-700">🔑 상위 vs 하위 스크립트 차이</h4>
-                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                          <ul className="space-y-1">
-                            {analysisData.script_analysis.key_differences.map((diff: string, idx: number) => (
-                              <li key={idx} className="text-sm text-gray-700">
-                                {idx + 1}. {diff}
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* 스크립트 구조 */}
-                    {analysisData.script_analysis.script_structure && (
-                      <div>
-                        <h4 className="font-semibold text-base mb-3 text-green-700">📊 스크립트 구조</h4>
-                        <div className="bg-white rounded-lg p-3 border border-green-200">
-                          <p className="text-sm text-gray-700">
-                            {analysisData.script_analysis.script_structure.description}
-                          </p>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
+              <ChannelAnalysisView
+                analysisResult={analysisData || {}}
+                topVideosSummary={record.top_videos_summary || []}
+                bottomVideosSummary={record.bottom_videos_summary || []}
+              />
             ) : isOwnChannel ? (
               /* 내 채널 분석 데이터 (keyInsights 존재) */
               <div className="space-y-4">
@@ -423,79 +174,6 @@ function AnalysisDetails({ record }: { record: DetailedRecord }) {
               /* 데이터 없음 (v0 또는 알 수 없는 형태) */
               <div className="text-center py-8 text-gray-500">
                 <p>분석 데이터를 표시할 수 없습니다.</p>
-              </div>
-            )}
-
-            {/* 구분선 */}
-            <div className="border-t-2 border-gray-200 mt-6 pt-4">
-              <h3 className="text-lg font-bold text-gray-800 mb-4">📊 분석 대상 영상</h3>
-            </div>
-
-            {/* 상위 30% 영상 */}
-            {record.top_videos_summary?.length > 0 && (
-              <div className="mb-4">
-                <h4 className="font-semibold text-base mb-3 text-gray-900">
-                  🏆 상위 30% 영상 ({record.top_videos_summary.length}개)
-                </h4>
-                <div className="space-y-2 bg-gray-50 rounded-lg p-3">
-                  {record.top_videos_summary.map((video, idx) => (
-                    <div
-                      key={idx}
-                      className="flex items-center gap-3 p-2 bg-white rounded border border-gray-200 hover:shadow-sm transition-shadow"
-                    >
-                      <span className="text-green-600 font-semibold text-sm">#{idx + 1}</span>
-                      <div className="flex-1">
-                        <a
-                          href={`https://youtube.com/shorts/${video.videoId}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-blue-600 hover:underline flex items-center gap-1 text-sm"
-                        >
-                          {video.title}
-                          <ExternalLink className="w-3 h-3" />
-                        </a>
-                        <p className="text-xs text-gray-600 mt-1">
-                          조회수 {video.views?.toLocaleString() || 0} • 좋아요율{' '}
-                          {video.likeRate != null ? video.likeRate.toFixed(1) : 0}%
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* 하위 30% 영상 */}
-            {record.bottom_videos_summary?.length > 0 && (
-              <div>
-                <h4 className="font-semibold text-base mb-3 text-gray-900">
-                  📉 하위 30% 영상 ({record.bottom_videos_summary.length}개)
-                </h4>
-                <div className="space-y-2 bg-gray-50 rounded-lg p-3">
-                  {record.bottom_videos_summary.map((video, idx) => (
-                    <div
-                      key={idx}
-                      className="flex items-center gap-3 p-2 bg-white rounded border border-gray-200 hover:shadow-sm transition-shadow"
-                    >
-                      <span className="text-red-600 font-semibold text-sm">#{idx + 1}</span>
-                      <div className="flex-1">
-                        <a
-                          href={`https://youtube.com/shorts/${video.videoId}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-blue-600 hover:underline flex items-center gap-1 text-sm"
-                        >
-                          {video.title}
-                          <ExternalLink className="w-3 h-3" />
-                        </a>
-                        <p className="text-xs text-gray-600 mt-1">
-                          조회수 {video.views?.toLocaleString() || 0} • 좋아요율{' '}
-                          {video.likeRate != null ? video.likeRate.toFixed(1) : 0}%
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
               </div>
             )}
           </div>
@@ -708,6 +386,25 @@ export default function AnalysisHistoryTab({ isLoggedIn }: AnalysisHistoryTabPro
             const isLoading = loadingRecords[item.id];
             const recordDetail = expandedRecords[item.id];
 
+            // 🔧 안전한 가이드 체크 로직 (analysis_summary가 문자열/객체 둘 다 대응)
+            const hasGuideline = (() => {
+              if (!recordDetail?.analysis_summary) return false;
+              const raw = recordDetail.analysis_summary;
+              let parsed: any;
+              if (typeof raw === 'string') {
+                try {
+                  parsed = JSON.parse(raw);
+                } catch {
+                  return false;
+                }
+              } else if (raw && typeof raw === 'object') {
+                parsed = raw;
+              } else {
+                return false;
+              }
+              return !!parsed?.contentGuideline;
+            })();
+
             return (
               <div key={item.id} className="bg-white border rounded-lg overflow-hidden">
                 {/* 헤더 - 클릭하면 상세 내용 토글 */}
@@ -739,7 +436,7 @@ export default function AnalysisHistoryTab({ isLoggedIn }: AnalysisHistoryTabPro
                         <span className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded text-xs font-medium">
                           분석 완료
                         </span>
-                        {recordDetail?.analysis_summary?.contentGuideline ? (
+                        {hasGuideline ? (
                           <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded text-xs font-medium">
                             가이드 있음
                           </span>

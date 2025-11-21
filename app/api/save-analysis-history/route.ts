@@ -1,7 +1,7 @@
 // app/api/save-analysis-history/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { GoogleGenerativeAI } from '@google-generative-ai/google-generative-ai';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import { cookies } from 'next/headers';
 
 // 서버용 Supabase 클라이언트 생성
