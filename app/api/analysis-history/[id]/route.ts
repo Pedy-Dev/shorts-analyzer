@@ -7,7 +7,46 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
-// GET: 특정 분석 기록 조회
+// 하이브리드 저장 방식: analysis_raw에서 analysis_summary 재생성
+function parseRawToSummary(raw: any, isOwnChannel: boolean): any {
+  console.log('🔄 analysis_raw에서 summary 재생성 시작...');
+
+  // 1. 문자열이면 JSON 파싱
+  let parsed;
+  if (typeof raw === 'string') {
+    try {
+      // JSON 문자열에서 코드 블록 제거
+      let cleaned = raw.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
+
+      // JSON 객체만 추출
+      const jsonStart = cleaned.indexOf('{');
+      const jsonEnd = cleaned.lastIndexOf('}');
+      if (jsonStart !== -1 && jsonEnd !== -1 && jsonEnd > jsonStart) {
+        cleaned = cleaned.substring(jsonStart, jsonEnd + 1);
+      }
+
+      parsed = JSON.parse(cleaned);
+    } catch (e) {
+      console.error('❌ raw 파싱 실패:', e);
+      // 파싱 실패 시 raw 그대로 반환
+      return raw;
+    }
+  } else {
+    parsed = raw;
+  }
+
+  // 2. schemaVersion 추가
+  const schemaVersion = isOwnChannel ? 'v1_own' : 'v1_external';
+
+  console.log('✅ summary 재생성 완료, schemaVersion:', schemaVersion);
+
+  return {
+    ...parsed,
+    schemaVersion
+  };
+}
+
+// GET: 특정 분석 기록 조회 (하이브리드 로직 포함)
 export async function GET(
   request: NextRequest,
   context: { params: Promise<{ id: string }> }
@@ -47,9 +86,58 @@ export async function GET(
 
     console.log('✅ 분석 기록 조회 성공:', id);
 
+    // 3. 하이브리드 로직: schemaVersion 체크
+    let finalSummary = record.analysis_summary;
+    const currentVersion = finalSummary?.schemaVersion;
+    const isOwnChannel = record.is_own_channel || false;
+
+    console.log('📊 schemaVersion:', currentVersion);
+
+    // v1 스키마가 아니면 재생성 시도
+    if (currentVersion !== 'v1_external' && currentVersion !== 'v1_own') {
+      console.log('⚙️ 구버전 또는 schemaVersion 없음 → 재생성 시도');
+
+      // analysis_raw가 있으면 재생성
+      if (record.analysis_raw) {
+        console.log('✅ analysis_raw 발견 → 재생성 시작');
+
+        try {
+          // raw에서 summary 재생성
+          const regenerated = parseRawToSummary(record.analysis_raw, isOwnChannel);
+
+          finalSummary = regenerated;
+
+          // DB 업데이트
+          const { error: updateError } = await supabase
+            .from('channel_analysis_history')
+            .update({ analysis_summary: finalSummary })
+            .eq('id', id);
+
+          if (updateError) {
+            console.error('⚠️ analysis_summary 업데이트 실패:', updateError);
+            // 실패해도 재생성된 데이터는 응답으로 사용
+          } else {
+            console.log('✅ analysis_summary 업데이트 완료 (schemaVersion 추가됨)');
+          }
+        } catch (parseError) {
+          console.error('❌ raw 파싱 실패:', parseError);
+          // 파싱 실패 시 기존 summary 사용 (v0 취급)
+          console.log('→ 기존 analysis_summary 사용 (v0)');
+        }
+      } else {
+        // analysis_raw도 없으면 기존 summary 사용 (v0 취급)
+        console.log('⚠️ analysis_raw 없음 → 기존 analysis_summary 사용 (v0 취급)');
+      }
+    } else {
+      console.log('✅ 최신 스키마 (v1) → 그대로 사용');
+    }
+
     return NextResponse.json({
       success: true,
-      record
+      record: {
+        ...record,
+        analysis_summary: finalSummary
+      }
     });
 
   } catch (error: any) {

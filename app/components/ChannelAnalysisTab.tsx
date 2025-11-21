@@ -291,7 +291,8 @@ export default function ChannelAnalysisTab({ isLoggedIn }: ChannelAnalysisTabPro
             channelThumbnail: videos[0]?.channelThumbnail || null, // 채널 썸네일도 추가
             isOwnChannel: false,
             videoCount: data.analyzedCount,
-            analysisResult: parsedResult,
+            analysisResult: parsedResult,  // 파싱된 결과
+            analysisRaw: data.result,      // Gemini 원본 응답 (하이브리드 저장)
             videoTitles: videos.map((v: any) => v.title), // 영상 제목 배열
           }),
         });

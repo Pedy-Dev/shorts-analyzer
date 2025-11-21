@@ -30,6 +30,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // 4. analysis_summary에 schemaVersion 추가 (내 채널 분석)
+    const summaryWithVersion = data.analysisSummary
+      ? {
+          ...data.analysisSummary,
+          schemaVersion: 'v1_own'  // 내 채널 분석
+        }
+      : null;
+
     // 4. 하루 제한 없이 모든 분석 저장 (시간별로 구분)
     const now = new Date();
     const analysisDateTime = now.toISOString(); // 전체 날짜+시간
@@ -40,6 +48,9 @@ export async function POST(request: NextRequest) {
       dateTime: analysisDateTime,
       time: now.toLocaleTimeString()
     });
+
+    console.log('💾 DB 저장 시작 (내 채널 분석)...');
+    console.log('  - analysis_raw 포함 여부:', !!data.analysisRaw);
 
     // 5. 새 분석 기록 저장 (항상 새로운 기록으로)
     const { data: saved, error: saveError } = await supabase
@@ -53,7 +64,8 @@ export async function POST(request: NextRequest) {
         yt_category: data.ytCategory || null,
         creator_category: data.creatorCategory || null,
         video_count: data.videoCount || 0,
-        analysis_summary: data.analysisSummary || null,
+        analysis_summary: summaryWithVersion,  // schemaVersion 포함
+        analysis_raw: data.analysisRaw || null,  // 원본 응답 (optional)
         top_videos_summary: data.topVideosSummary || null,
         bottom_videos_summary: data.bottomVideosSummary || null,
         analysis_date: analysisDateTime

@@ -27,13 +27,25 @@ interface DetailedRecord {
   channel_title: string;
   channel_thumbnail: string;
   is_own_channel: boolean;
+  // ⭐ 수정: analysis_summary는 두 가지 형태를 모두 지원
   analysis_summary: {
-    fullAnalysis?: any;  // 전체 AI 분석 결과
-    contentGuideline?: string;  // 컨텐츠 제작 가이드
-    keyInsights: string[];
-    topCharacteristics: string[];
-    bottomCharacteristics: string[];
-    recommendations: string[];
+    // 공통 필드
+    schemaVersion?: string;
+    contentGuideline?: string;
+
+    // 타 채널 분석 필드 (v1_external)
+    topic_characteristics?: any;
+    title_analysis?: any;
+    script_analysis?: any;
+    channel_identity?: any;
+    summary_differences?: any;
+    _meta?: any;
+
+    // 내 채널 분석 필드 (v1_own)
+    keyInsights?: string[];
+    topCharacteristics?: string[];
+    bottomCharacteristics?: string[];
+    recommendations?: string[];
   };
   top_videos_summary: Array<{
     videoId: string;
@@ -55,7 +67,14 @@ interface DetailedRecord {
 // 분석 상세 내용 컴포넌트 - 탭 전환 레이아웃
 function AnalysisDetails({ record }: { record: DetailedRecord }) {
   const [selectedView, setSelectedView] = useState<'analysis' | 'guideline'>('analysis');
-  const analysisData = record.analysis_summary?.fullAnalysis;
+
+  // ⭐ 수정: fullAnalysis 제거 - analysis_summary가 곧 분석 데이터
+  const analysisData = record.analysis_summary;
+
+  // 타 채널 분석 vs 내 채널 분석 구분
+  const isExternalChannel = !!analysisData?.topic_characteristics;  // 타 채널 분석
+  const isOwnChannel = !!analysisData?.keyInsights;  // 내 채널 분석
+
   const hasGuideline = !!record.analysis_summary?.contentGuideline;
 
   // 채널 재분석 페이지로 이동
@@ -101,9 +120,59 @@ function AnalysisDetails({ record }: { record: DetailedRecord }) {
 
         {/* 스크롤 가능한 영역 */}
         <div className="overflow-y-auto max-h-[600px] pr-2">
-          {analysisData ? (
-            /* 전체 분석 데이터 표시 */
+          {/* 타 채널 분석 데이터 (topic_characteristics 존재) */}
+          {isExternalChannel ? (
             <div className="space-y-4">
+              {/* ✨ 채널 특성 5축 요약 박스 (최상단) */}
+              {analysisData.channel_identity && (
+                <div className="bg-gradient-to-r from-indigo-500 to-blue-500 text-white rounded-xl p-4 md:p-6 shadow-lg mb-6">
+                  <h3 className="text-xl md:text-2xl font-bold mb-4">
+                    🎯 채널 특성 요약
+                  </h3>
+                  <div className="grid grid-cols-1 gap-3">
+                    {/* 1. 주제 특성 */}
+                    <div className="bg-white/90 backdrop-blur rounded-lg p-3 text-gray-800">
+                      <h4 className="font-bold text-indigo-600 mb-1 flex items-center gap-2">
+                        <span>📍</span> 주제 특성
+                      </h4>
+                      <p className="text-sm">{analysisData.channel_identity.topic_feature}</p>
+                    </div>
+
+                    {/* 2. 제목 전략 */}
+                    <div className="bg-white/90 backdrop-blur rounded-lg p-3 text-gray-800">
+                      <h4 className="font-bold text-indigo-600 mb-1 flex items-center gap-2">
+                        <span>✍️</span> 제목 전략
+                      </h4>
+                      <p className="text-sm">{analysisData.channel_identity.title_strategy}</p>
+                    </div>
+
+                    {/* 3. 영상 구조 & 문장 리듬 */}
+                    <div className="bg-white/90 backdrop-blur rounded-lg p-3 text-gray-800">
+                      <h4 className="font-bold text-indigo-600 mb-1 flex items-center gap-2">
+                        <span>🎬</span> 영상 구조 & 문장 리듬
+                      </h4>
+                      <p className="text-sm">{analysisData.channel_identity.structure_rhythm}</p>
+                    </div>
+
+                    {/* 4. 초반 3초 후킹 */}
+                    <div className="bg-white/90 backdrop-blur rounded-lg p-3 text-gray-800">
+                      <h4 className="font-bold text-indigo-600 mb-1 flex items-center gap-2">
+                        <span>⚡</span> 초반 3초 후킹
+                      </h4>
+                      <p className="text-sm">{analysisData.channel_identity.hook_3sec}</p>
+                    </div>
+
+                    {/* 5. 끝까지 보게 만드는 요소 */}
+                    <div className="bg-white/90 backdrop-blur rounded-lg p-3 text-gray-800">
+                      <h4 className="font-bold text-indigo-600 mb-1 flex items-center gap-2">
+                        <span>🎯</span> 끝까지 보게 만드는 요소
+                      </h4>
+                      <p className="text-sm">{analysisData.channel_identity.retention_elements}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Step 1: 주제/각도 특성 분석 */}
               {analysisData.topic_characteristics && (
                 <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-4 border border-blue-200">
@@ -277,17 +346,16 @@ function AnalysisDetails({ record }: { record: DetailedRecord }) {
                 </div>
               )}
             </div>
-          ) : (
-            /* 요약 데이터만 있는 경우 (fallback) */
-            record.analysis_summary && (
+          ) : isOwnChannel ? (
+            /* 내 채널 분석 데이터 (keyInsights 존재) */
             <div className="space-y-4">
               {/* 핵심 인사이트 */}
-              {record.analysis_summary?.keyInsights?.length > 0 && (
+              {analysisData.keyInsights && analysisData.keyInsights.length > 0 && (
                 <div>
                   <h4 className="font-semibold text-base mb-2 text-purple-800">📌 핵심 인사이트</h4>
                   <div className="bg-purple-50 rounded-lg p-3">
                     <ul className="space-y-2">
-                      {record.analysis_summary.keyInsights.map((insight: string, idx: number) => (
+                      {analysisData.keyInsights.map((insight: string, idx: number) => (
                         <li key={idx} className="text-sm text-gray-700 flex items-start">
                           <span className="text-purple-500 mr-2">•</span>
                           <span>{insight}</span>
@@ -299,12 +367,12 @@ function AnalysisDetails({ record }: { record: DetailedRecord }) {
               )}
 
               {/* 성공 요인 */}
-              {record.analysis_summary?.topCharacteristics?.length > 0 && (
+              {analysisData.topCharacteristics && analysisData.topCharacteristics.length > 0 && (
                 <div>
                   <h4 className="font-semibold text-base mb-2 text-green-700">✅ 성공 요인</h4>
                   <div className="bg-green-50 rounded-lg p-3 border border-green-200">
                     <ul className="space-y-2">
-                      {record.analysis_summary.topCharacteristics.map((char: string, idx: number) => (
+                      {analysisData.topCharacteristics.map((char: string, idx: number) => (
                         <li key={idx} className="text-sm text-gray-700 flex items-start">
                           <span className="text-green-600 mr-2">✓</span>
                           <span>{char}</span>
@@ -316,12 +384,12 @@ function AnalysisDetails({ record }: { record: DetailedRecord }) {
               )}
 
               {/* 개선 필요 사항 */}
-              {record.analysis_summary?.bottomCharacteristics?.length > 0 && (
+              {analysisData.bottomCharacteristics && analysisData.bottomCharacteristics.length > 0 && (
                 <div>
                   <h4 className="font-semibold text-base mb-2 text-red-700">⚠️ 개선 필요 사항</h4>
                   <div className="bg-red-50 rounded-lg p-3 border border-red-200">
                     <ul className="space-y-2">
-                      {record.analysis_summary.bottomCharacteristics.map((char: string, idx: number) => (
+                      {analysisData.bottomCharacteristics.map((char: string, idx: number) => (
                         <li key={idx} className="text-sm text-gray-700 flex items-start">
                           <span className="text-red-600 mr-2">✗</span>
                           <span>{char}</span>
@@ -332,7 +400,11 @@ function AnalysisDetails({ record }: { record: DetailedRecord }) {
                 </div>
               )}
             </div>
-            )
+          ) : (
+            /* 데이터 없음 (v0 또는 알 수 없는 형태) */
+            <div className="text-center py-8 text-gray-500">
+              <p>분석 데이터를 표시할 수 없습니다.</p>
+            </div>
           )}
 
           {/* 구분선 */}

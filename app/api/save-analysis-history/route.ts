@@ -98,8 +98,9 @@ export async function POST(request: NextRequest) {
       channelThumbnail,
       isOwnChannel,
       videoCount,
-      analysisResult,
-      videoTitles, // 영상 제목 배열
+      analysisResult,  // parsedResult (전체 분석 객체)
+      analysisRaw,     // NEW: Gemini 원본 응답 (optional)
+      videoTitles,     // 영상 제목 배열
     } = await request.json();
 
     // 필수 필드 검증
@@ -118,6 +119,15 @@ export async function POST(request: NextRequest) {
     );
     console.log('✅ 분류 결과:', creatorCategory);
 
+    // analysis_summary에 schemaVersion 추가
+    const summaryWithVersion = {
+      ...analysisResult,
+      schemaVersion: 'v1_external'  // 타 채널 분석
+    };
+
+    console.log('💾 DB 저장 시작...');
+    console.log('  - analysis_raw 포함 여부:', !!analysisRaw);
+
     // DB에 저장
     const { data, error } = await supabase
       .from('channel_analysis_history')
@@ -129,7 +139,8 @@ export async function POST(request: NextRequest) {
         is_own_channel: isOwnChannel || false,
         creator_category: creatorCategory,
         video_count: videoCount || 0,
-        analysis_summary: analysisResult,
+        analysis_summary: summaryWithVersion,  // schemaVersion 포함
+        analysis_raw: analysisRaw || null,     // Gemini 원본 응답 저장
       })
       .select();
 
