@@ -34,6 +34,7 @@ export default function ChannelAnalysisTab({ isLoggedIn }: ChannelAnalysisTabPro
   // 채널 검색 관련 상태
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [searching, setSearching] = useState(false);
+  const [hasSearched, setHasSearched] = useState(false);
 
   const toggleTags = (videoId: string) => {
     setExpandedTags(prev => ({
@@ -65,6 +66,7 @@ export default function ChannelAnalysisTab({ isLoggedIn }: ChannelAnalysisTabPro
     // 채널명으로 검색
     setSearching(true);
     setSearchResults([]);
+    setHasSearched(false);
 
     try {
       console.log('🔍 채널 검색 중:', query);
@@ -81,14 +83,28 @@ export default function ChannelAnalysisTab({ isLoggedIn }: ChannelAnalysisTabPro
       }
 
       if (data.channels && data.channels.length > 0) {
-        setSearchResults(data.channels);
-        console.log(`✅ ${data.channels.length}개 채널 검색 완료`);
+        // 검색어와 정확히 일치하는 채널만 필터링
+        const normalizedQuery = query.toLowerCase().trim();
+        const exactMatches = data.channels.filter((channel: any) => {
+          const channelTitle = channel.title.toLowerCase().trim();
+          return channelTitle === normalizedQuery;
+        });
+
+        if (exactMatches.length > 0) {
+          setSearchResults(exactMatches);
+          console.log(`✅ ${exactMatches.length}개 정확히 일치하는 채널 발견`);
+        } else {
+          setSearchResults([]);
+          console.log('⚠️ 정확히 일치하는 채널이 없습니다');
+        }
       } else {
-        alert('검색 결과가 없습니다. 다른 검색어를 입력해주세요.');
+        setSearchResults([]);
       }
+      setHasSearched(true);
     } catch (error: any) {
       console.error('❌ 채널 검색 오류:', error);
       alert('채널 검색 중 오류가 발생했습니다:\n' + error.message);
+      setHasSearched(true);
     } finally {
       setSearching(false);
     }
@@ -99,6 +115,7 @@ export default function ChannelAnalysisTab({ isLoggedIn }: ChannelAnalysisTabPro
     const newUrl = `https://www.youtube.com/channel/${channelId}`;
     setChannelUrl(newUrl);
     setSearchResults([]);
+    setHasSearched(false);
     // URL을 직접 전달하여 분석 시작
     handleAnalyze(newUrl);
   };
@@ -595,7 +612,11 @@ export default function ChannelAnalysisTab({ isLoggedIn }: ChannelAnalysisTabPro
             <input
               type="text"
               value={channelUrl}
-              onChange={(e) => setChannelUrl(e.target.value)}
+              onChange={(e) => {
+                setChannelUrl(e.target.value);
+                setHasSearched(false);
+                setSearchResults([]);
+              }}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && !loading && !searching) {
                   handleSearchChannels();
@@ -660,37 +681,49 @@ export default function ChannelAnalysisTab({ isLoggedIn }: ChannelAnalysisTabPro
         </div>
 
         {/* 검색 결과 */}
-        {searchResults.length > 0 && (
+        {hasSearched && (
           <div className="mt-4 border-t pt-4">
-            <h3 className="text-sm font-semibold text-gray-700 mb-3"> 검색 결과 ({searchResults.length}개)</h3>
-            <div className="space-y-2">
-              {searchResults.map((channel: any) => (
-                <div
-                  key={channel.channelId}
-                  onClick={() => handleSelectChannel(channel.channelId)}
-                  className="flex items-center gap-3 p-3 border border-gray-200 rounded-lg hover:bg-blue-50 hover:border-blue-300 cursor-pointer transition-all"
-                >
-                  <img
-                    src={channel.thumbnail}
-                    alt={channel.title}
-                    className="w-16 h-16 rounded-full object-cover flex-shrink-0"
-                  />
-                  <div className="flex-1 min-w-0">
-                    <h4 className="font-semibold text-gray-900 text-sm md:text-base truncate">
-                      {channel.title}
-                    </h4>
-                    <p className="text-xs md:text-sm text-gray-600">
-                      구독자 {channel.subscriberCount >= 10000
-                        ? `${(channel.subscriberCount / 10000).toFixed(1)}만`
-                        : channel.subscriberCount.toLocaleString()}명
-                    </p>
-                  </div>
-                  <div className="text-blue-600 flex-shrink-0">
-                    <Search className="w-5 h-5" />
-                  </div>
+            {searchResults.length > 0 ? (
+              <>
+                <h3 className="text-sm font-semibold text-gray-700 mb-3">🔍 검색 결과 ({searchResults.length}개)</h3>
+                <div className="space-y-2">
+                  {searchResults.map((channel: any) => (
+                    <div
+                      key={channel.channelId}
+                      onClick={() => handleSelectChannel(channel.channelId)}
+                      className="flex items-center gap-3 p-3 border border-gray-200 rounded-lg hover:bg-blue-50 hover:border-blue-300 cursor-pointer transition-all"
+                    >
+                      <img
+                        src={channel.thumbnail}
+                        alt={channel.title}
+                        className="w-16 h-16 rounded-full object-cover flex-shrink-0"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-semibold text-gray-900 text-sm md:text-base truncate">
+                          {channel.title}
+                        </h4>
+                        <p className="text-xs md:text-sm text-gray-600">
+                          구독자 {channel.subscriberCount >= 10000
+                            ? `${(channel.subscriberCount / 10000).toFixed(1)}만`
+                            : channel.subscriberCount.toLocaleString()}명
+                        </p>
+                      </div>
+                      <div className="text-blue-600 flex-shrink-0">
+                        <Search className="w-5 h-5" />
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
+              </>
+            ) : (
+              <div className="text-center py-8">
+                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 mb-3">
+                  <Search className="w-8 h-8 text-gray-400" />
+                </div>
+                <p className="text-gray-600 font-medium mb-1">검색 결과가 없습니다</p>
+                <p className="text-sm text-gray-500">정확한 채널명을 입력했는지 확인해주세요</p>
+              </div>
+            )}
           </div>
         )}
 
