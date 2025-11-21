@@ -19,6 +19,7 @@ export default function ChannelAnalysisTab({ isLoggedIn }: ChannelAnalysisTabPro
   const [analysisResult, setAnalysisResult] = useState<any>(null);
   const [generatedGuideline, setGeneratedGuideline] = useState('');
   const [scriptLoading, setScriptLoading] = useState(false);
+  const [analysisHistoryId, setAnalysisHistoryId] = useState<string | null>(null); // DB 저장된 record ID
 
   // 영상 스냅샷 (실시간 화면 = DB 저장 = 히스토리 화면 1:1 일치)
   const [topVideosSummary, setTopVideosSummary] = useState<VideoSummary[]>([]);
@@ -372,6 +373,12 @@ export default function ChannelAnalysisTab({ isLoggedIn }: ChannelAnalysisTabPro
         if (saveResponse.ok) {
           const saveData = await saveResponse.json();
           console.log('✅ DB 저장 완료! 카테고리:', saveData.category);
+
+          // 👉 DB record ID 저장 (나중에 가이드 업데이트할 때 사용)
+          if (saveData.data?.id) {
+            setAnalysisHistoryId(saveData.data.id);
+            console.log('💾 분석 기록 ID 저장:', saveData.data.id);
+          }
         } else {
           console.error('⚠️ DB 저장 실패 (분석 결과는 정상 표시됨)');
         }
@@ -418,7 +425,42 @@ export default function ChannelAnalysisTab({ isLoggedIn }: ChannelAnalysisTabPro
 
       const data = await response.json();
       console.log('✅ 가이드 생성 완료!');
+
+      // 1) 완성된 summary 만들기 (프론트 상태 + DB 공용)
+      const updatedSummary = {
+        ...(analysisResult || {}),
+        contentGuideline: data.result,
+        // schemaVersion 없으면 v1_external로 기본 세팅
+        schemaVersion: analysisResult?.schemaVersion || 'v1_external',
+      };
+
+      // 화면 상태 업데이트
       setGeneratedGuideline(data.result);
+      setAnalysisResult(updatedSummary);
+
+      // 2) DB에 summary 전체 + guideline_length 저장 (analysisHistoryId가 있을 때만)
+      if (analysisHistoryId) {
+        try {
+          const updateResponse = await fetch(`/api/analysis-history/${analysisHistoryId}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              analysis_summary: updatedSummary,
+              guideline_length: data.result.length,
+            }),
+          });
+
+          if (updateResponse.ok) {
+            console.log('✅ 가이드 DB 업데이트 완료!');
+          } else {
+            console.error('⚠️ 가이드 DB 업데이트 실패 (화면 표시는 정상)');
+          }
+        } catch (updateError) {
+          console.error('⚠️ 가이드 DB 업데이트 중 오류:', updateError);
+        }
+      } else {
+        console.warn('⚠️ 분석 기록 ID가 없어 가이드를 DB에 저장하지 못했습니다.');
+      }
 
     } catch (error: any) {
       console.error('❌ 가이드 생성 실패:', error);

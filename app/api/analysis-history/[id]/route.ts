@@ -42,7 +42,7 @@ function parseRawToSummary(raw: any, isOwnChannel: boolean): any {
 
   return {
     ...parsed,
-    schemaVersion
+    schemaVersion,
   };
 }
 
@@ -70,7 +70,7 @@ export async function GET(
       .from('channel_analysis_history')
       .select('*')
       .eq('id', id)
-      .eq('user_id', userId)  // ⭐ 보안: 본인 것만
+      .eq('user_id', userId) // ⭐ 보안: 본인 것만
       .single();
 
     if (error || !record) {
@@ -78,7 +78,7 @@ export async function GET(
       return NextResponse.json(
         {
           success: false,
-          error: '분석 기록을 찾을 수 없습니다'
+          error: '분석 기록을 찾을 수 없습니다',
         },
         { status: 404 }
       );
@@ -103,7 +103,10 @@ export async function GET(
 
         try {
           // raw에서 summary 재생성
-          const regenerated = parseRawToSummary(record.analysis_raw, isOwnChannel);
+          const regenerated = parseRawToSummary(
+            record.analysis_raw,
+            isOwnChannel
+          );
 
           finalSummary = regenerated;
 
@@ -114,10 +117,15 @@ export async function GET(
             .eq('id', id);
 
           if (updateError) {
-            console.error('⚠️ analysis_summary 업데이트 실패:', updateError);
+            console.error(
+              '⚠️ analysis_summary 업데이트 실패:',
+              updateError
+            );
             // 실패해도 재생성된 데이터는 응답으로 사용
           } else {
-            console.log('✅ analysis_summary 업데이트 완료 (schemaVersion 추가됨)');
+            console.log(
+              '✅ analysis_summary 업데이트 완료 (schemaVersion 추가됨)'
+            );
           }
         } catch (parseError) {
           console.error('❌ raw 파싱 실패:', parseError);
@@ -136,17 +144,16 @@ export async function GET(
       success: true,
       record: {
         ...record,
-        analysis_summary: finalSummary
-      }
+        analysis_summary: finalSummary,
+      },
     });
-
   } catch (error: any) {
     console.error('❌ 분석 기록 조회 오류:', error);
     return NextResponse.json(
       {
         success: false,
         error: '서버 오류가 발생했습니다',
-        details: error.message
+        details: error.message,
       },
       { status: 500 }
     );
@@ -159,7 +166,7 @@ export async function PATCH(
   context: { params: Promise<{ id: string }> }
 ) {
   try {
-    // params를 await로 풀어내기 (Next.js 15+)
+    // Next.js 15 스타일: params를 await로 풀어냄
     const { id } = await context.params;
 
     // 1. 로그인 체크
@@ -172,20 +179,69 @@ export async function PATCH(
       );
     }
 
-    const updates = await request.json();
+    // 2. 요청 body 파싱
+    const body = await request.json();
+    const { contentGuideline, ...otherUpdates } = body;
 
-    console.log('📝 분석 기록 업데이트:', {
+    console.log('📝 분석 기록 업데이트 요청:', {
       id,
       userId,
-      updates: Object.keys(updates)
+      hasContentGuideline: typeof contentGuideline === 'string',
+      otherKeys: Object.keys(otherUpdates),
     });
 
-    // 2. 본인 기록만 업데이트 (보안)
+    // 최종 업데이트 payload
+    const updates: any = { ...otherUpdates };
+
+    // 3. contentGuideline이 들어온 경우: 서버에서 기존 summary에 merge
+    if (typeof contentGuideline === 'string') {
+      // 3-1. 기존 레코드 조회
+      const { data: record, error: fetchError } = await supabase
+        .from('channel_analysis_history')
+        .select('analysis_summary, is_own_channel')
+        .eq('id', id)
+        .eq('user_id', userId)
+        .single();
+
+      if (fetchError || !record) {
+        console.error('❌ 기존 분석 기록 조회 실패:', fetchError);
+        return NextResponse.json(
+          { success: false, error: '분석 기록을 찾을 수 없습니다' },
+          { status: 404 }
+        );
+      }
+
+      const existingSummary = record.analysis_summary || {};
+      const isOwnChannel = record.is_own_channel || false;
+
+      // schemaVersion 유지/부여
+      const schemaVersion =
+        existingSummary.schemaVersion ||
+        (isOwnChannel ? 'v1_own' : 'v1_external');
+
+      const mergedSummary = {
+        ...existingSummary,
+        contentGuideline,
+        schemaVersion,
+      };
+
+      updates.analysis_summary = mergedSummary;
+
+      // 👇 guideline_length 컬럼도 함께 갱신
+      updates.guideline_length = contentGuideline.length;
+
+      console.log(
+        '✅ contentGuideline merge 완료, schemaVersion:',
+        schemaVersion
+      );
+    }
+
+    // 4. 실제 업데이트 수행
     const { data: updatedData, error } = await supabase
       .from('channel_analysis_history')
       .update(updates)
       .eq('id', id)
-      .eq('user_id', userId)  // ⭐ 보안: 본인 것만
+      .eq('user_id', userId) // ⭐ 보안: 본인 것만
       .select()
       .single();
 
@@ -194,7 +250,7 @@ export async function PATCH(
         return NextResponse.json(
           {
             success: false,
-            error: '업데이트할 분석 기록을 찾을 수 없습니다'
+            error: '업데이트할 분석 기록을 찾을 수 없습니다',
           },
           { status: 404 }
         );
@@ -208,7 +264,7 @@ export async function PATCH(
       return NextResponse.json(
         {
           success: false,
-          error: '업데이트할 분석 기록을 찾을 수 없습니다'
+          error: '업데이트할 분석 기록을 찾을 수 없습니다',
         },
         { status: 404 }
       );
@@ -219,16 +275,15 @@ export async function PATCH(
     return NextResponse.json({
       success: true,
       message: '분석 기록이 업데이트되었습니다',
-      data: updatedData
+      data: updatedData,
     });
-
   } catch (error: any) {
     console.error('❌ 분석 기록 업데이트 오류:', error);
     return NextResponse.json(
       {
         success: false,
         error: '서버 오류가 발생했습니다',
-        details: error.message
+        details: error.message,
       },
       { status: 500 }
     );
@@ -256,7 +311,7 @@ export async function DELETE(
 
     console.log('🗑️ 분석 기록 삭제 시도:', {
       id,
-      userId
+      userId,
     });
 
     // 2. 본인 기록만 삭제 (보안 핵심)
@@ -264,7 +319,7 @@ export async function DELETE(
       .from('channel_analysis_history')
       .delete()
       .eq('id', id)
-      .eq('user_id', userId)  // ⭐ WHERE id = :id AND user_id = :user_id
+      .eq('user_id', userId) // ⭐ WHERE id = :id AND user_id = :user_id
       .select()
       .single();
 
@@ -274,7 +329,7 @@ export async function DELETE(
         return NextResponse.json(
           {
             success: false,
-            error: '삭제할 분석 기록을 찾을 수 없습니다'
+            error: '삭제할 분석 기록을 찾을 수 없습니다',
           },
           { status: 404 }
         );
@@ -288,7 +343,7 @@ export async function DELETE(
       return NextResponse.json(
         {
           success: false,
-          error: '삭제할 분석 기록을 찾을 수 없습니다'
+          error: '삭제할 분석 기록을 찾을 수 없습니다',
         },
         { status: 404 }
       );
@@ -296,22 +351,21 @@ export async function DELETE(
 
     console.log('✅ 분석 기록 삭제 완료:', {
       id: id,
-      channel: deletedData.channel_title
+      channel: deletedData.channel_title,
     });
 
     return NextResponse.json({
       success: true,
       message: '분석 기록이 삭제되었습니다',
-      deletedId: id
+      deletedId: id,
     });
-
   } catch (error: any) {
     console.error('❌ 분석 기록 삭제 오류:', error);
     return NextResponse.json(
       {
         success: false,
         error: '서버 오류가 발생했습니다',
-        details: error.message
+        details: error.message,
       },
       { status: 500 }
     );
