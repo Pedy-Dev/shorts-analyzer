@@ -27,6 +27,9 @@ export default function MyChannelTab({ isLoggedIn }: MyChannelTabProps) {
 
   const [showLoginWarning, setShowLoginWarning] = useState(false);
 
+  // 영상 리스트 정렬 기준
+  const [sortBy, setSortBy] = useState<'latest' | 'views' | 'likes' | 'comments'>('latest');
+
   // 👇 Phase 3: 여러 채널 관리
   const [connectedChannels, setConnectedChannels] = useState<any[]>([]);
   const [selectedChannelId, setSelectedChannelId] = useState<string | null>(null);
@@ -157,6 +160,30 @@ export default function MyChannelTab({ isLoggedIn }: MyChannelTabProps) {
   const openScriptModal = (title: string, script: string) => {
     setSelectedScript({ title, script });
     setIsScriptModalOpen(true);
+  };
+
+  // 영상 리스트 정렬 함수
+  const getSortedVideos = () => {
+    if (!myChannelData || !myChannelData.videos) return [];
+
+    const videosCopy = [...myChannelData.videos];
+
+    switch (sortBy) {
+      case 'latest':
+        // 최신순 (days_since_upload 기준 오름차순 - 작은 값이 최신)
+        return videosCopy.sort((a, b) => a.days_since_upload - b.days_since_upload);
+      case 'views':
+        // 조회수 기준 내림차순
+        return videosCopy.sort((a, b) => (b.views || 0) - (a.views || 0));
+      case 'likes':
+        // 좋아요 기준 내림차순
+        return videosCopy.sort((a, b) => (b.likes || 0) - (a.likes || 0));
+      case 'comments':
+        // 댓글 기준 내림차순
+        return videosCopy.sort((a, b) => (b.comments || 0) - (a.comments || 0));
+      default:
+        return videosCopy;
+    }
   };
 
   const closeScriptModal = () => {
@@ -519,7 +546,7 @@ export default function MyChannelTab({ isLoggedIn }: MyChannelTabProps) {
             {subtitleProgress.total > 0 && (
               <div className="mt-3 md:mt-4">
                 <div className="flex justify-between text-xs md:text-sm text-gray-600 mb-2">
-                  <span>자막 수집 중...</span>
+                  <span>데이터 수집 중...</span>
                   <span>{subtitleProgress.current} / {subtitleProgress.total}</span>
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-2">
@@ -1112,9 +1139,29 @@ export default function MyChannelTab({ isLoggedIn }: MyChannelTabProps) {
           {/* 영상 테이블 */}
           {myChannelData && myChannelData.videos && (
             <div className="bg-white rounded-lg shadow-lg p-4 md:p-6">
-              <h3 className="text-xl md:text-2xl font-bold text-gray-900 mb-3 md:mb-4">
-                📊 영상 데이터 ({myChannelData.videos.length}개)
-              </h3>
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-3 md:mb-4 gap-3">
+                <h3 className="text-xl md:text-2xl font-bold text-gray-900">
+                  📊 영상 데이터 ({myChannelData.videos.length}개)
+                </h3>
+
+                {/* 정렬 드롭다운 */}
+                <div className="flex items-center gap-2">
+                  <label htmlFor="my-channel-sort-select" className="text-sm text-gray-600 whitespace-nowrap">
+                    정렬:
+                  </label>
+                  <select
+                    id="my-channel-sort-select"
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value as 'latest' | 'views' | 'likes' | 'comments')}
+                    className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                  >
+                    <option value="latest">📅 최신순</option>
+                    <option value="views">👁️ 조회수 순</option>
+                    <option value="likes">👍 좋아요 순</option>
+                    <option value="comments">💬 댓글 순</option>
+                  </select>
+                </div>
+              </div>
 
               {/* 데스크탑 테이블 */}
               <div className="hidden md:block overflow-x-auto">
@@ -1134,16 +1181,30 @@ export default function MyChannelTab({ isLoggedIn }: MyChannelTabProps) {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200">
-                    {myChannelData.videos.map((video: any, index: number) => (
+                    {getSortedVideos().map((video: any, index: number) => (
                       <Fragment key={index}>
                         <tr className="hover:bg-gray-50">
                           <td className="px-4 py-3">
                             <div className="flex items-start gap-3">
-                              <img
-                                src={video.thumbnail}
-                                alt={video.title}
-                                className="w-20 h-14 object-cover rounded flex-shrink-0"
-                              />
+                              {/* 썸네일 - 클릭 시 유튜브 쇼츠로 이동 */}
+                              <a
+                                href={`https://www.youtube.com/shorts/${video.video_id}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="relative w-20 h-14 flex-shrink-0 rounded overflow-hidden group cursor-pointer"
+                              >
+                                <img
+                                  src={video.thumbnail}
+                                  alt={video.title}
+                                  className="w-full h-full object-cover"
+                                />
+                                {/* Hover 오버레이 */}
+                                <div className="absolute inset-0 opacity-0 group-hover:opacity-100 bg-black/60 transition-opacity duration-300 flex items-center justify-center pointer-events-none">
+                                  <span className="text-white font-semibold text-xs">
+                                    ▶
+                                  </span>
+                                </div>
+                              </a>
                               <div className="min-w-0">
                                 <p className="font-medium text-gray-900 text-xs line-clamp-2">
                                   {video.title}
@@ -1222,14 +1283,28 @@ export default function MyChannelTab({ isLoggedIn }: MyChannelTabProps) {
 
               {/* 모바일 카드 */}
               <div className="md:hidden space-y-3">
-                {myChannelData.videos.map((video: any, index: number) => (
+                {getSortedVideos().map((video: any, index: number) => (
                   <div key={index} className="border border-gray-200 rounded-lg p-3 hover:shadow-md transition-shadow">
                     <div className="flex gap-3 mb-3">
-                      <img
-                        src={video.thumbnail}
-                        alt={video.title}
-                        className="w-28 h-20 object-cover rounded flex-shrink-0"
-                      />
+                      {/* 썸네일 - 클릭 시 유튜브 쇼츠로 이동 */}
+                      <a
+                        href={`https://www.youtube.com/shorts/${video.video_id}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="relative w-28 h-20 flex-shrink-0 rounded overflow-hidden group cursor-pointer"
+                      >
+                        <img
+                          src={video.thumbnail}
+                          alt={video.title}
+                          className="w-full h-full object-cover"
+                        />
+                        {/* Hover 오버레이 */}
+                        <div className="absolute inset-0 opacity-0 group-hover:opacity-100 bg-black/60 transition-opacity duration-300 flex items-center justify-center pointer-events-none">
+                          <span className="text-white font-semibold text-sm">
+                            ▶ 영상보기
+                          </span>
+                        </div>
+                      </a>
                       <div className="flex-1 min-w-0">
                         <p className="font-medium text-gray-900 text-sm line-clamp-2 mb-1">
                           {video.title}

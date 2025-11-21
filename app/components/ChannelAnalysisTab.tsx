@@ -556,7 +556,7 @@ export default function ChannelAnalysisTab({ isLoggedIn }: ChannelAnalysisTabPro
         {progress.total > 0 && (
           <div className="mt-3 md:mt-4">
             <div className="flex justify_between text-xs md:text-sm text-gray-600 mb-2">
-              <span>영상 수집 중...</span>
+              <span>데이터 수집 중...</span>
               <span>{progress.current} / {progress.total}</span>
             </div>
             <div className="w-full bg-gray-200 rounded-full h-2">
