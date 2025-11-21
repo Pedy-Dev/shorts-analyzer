@@ -579,32 +579,42 @@ export default function ChannelAnalysisTab({ isLoggedIn }: ChannelAnalysisTabPro
       <div className="bg-white rounded-lg shadow-lg p-4 md:p-6 mb-6 md:mb-8">
         <h2 className="text-lg md:text-xl font-bold text-gray-900 mb-3 md:mb-4">🔍 채널 검색</h2>
         <div className="flex flex-col md:flex-row gap-3 md:gap-4">
-          <input
-            type="text"
-            value={channelUrl}
-            onChange={(e) => setChannelUrl(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && !loading && !searching) {
-                handleSearchChannels();
-              }
-            }}
-            placeholder="채널명 또는 채널 URL 입력"
-            className="flex-1 px-3 md:px-4 py-2 md:py-3 border border-gray-300 rounded-lg text-gray-900 text-sm md:text-base font-medium"
-            disabled={loading || searching}
-          />
-          <div className="flex items-center gap-2">
-            <select
-              value={selectedCount}
-              onChange={(e) => setSelectedCount(Number(e.target.value))}
-              className="px-3 md:px-4 py-2 md:py-3 border border-gray-300 rounded-lg text-gray-900 text-sm md:text-base font-medium"
+          <div className="flex-1 flex flex-col gap-1">
+            <label className="text-xs text-gray-600 font-medium px-1 opacity-0 pointer-events-none">
+              ㅤ
+            </label>
+            <input
+              type="text"
+              value={channelUrl}
+              onChange={(e) => setChannelUrl(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !loading && !searching) {
+                  handleSearchChannels();
+                }
+              }}
+              placeholder="채널명 또는 채널 URL 입력"
+              className="w-full px-3 md:px-4 py-2 md:py-3 border border-gray-300 rounded-lg text-gray-700 text-sm md:text-base font-medium"
               disabled={loading || searching}
-            >
-              <option value={10}>10개</option>
-              <option value={20}>20개</option>
-              <option value={30}>30개</option>
-              <option value={40}>40개</option>
-              <option value={50}>50개</option>
-            </select>
+            />
+          </div>
+          <div className="flex items-end gap-2">
+            <div className="flex flex-col gap-1">
+              <label className="text-xs text-gray-600 font-medium px-1">
+                영상 개수
+              </label>
+              <select
+                value={selectedCount}
+                onChange={(e) => setSelectedCount(Number(e.target.value))}
+                className="px-3 md:px-4 py-2 md:py-3 border border-gray-300 rounded-lg text-gray-900 text-sm md:text-base font-medium"
+                disabled={loading || searching}
+              >
+                <option value={10}>10개</option>
+                <option value={20}>20개</option>
+                <option value={30}>30개</option>
+                <option value={40}>40개</option>
+                <option value={50}>50개</option>
+              </select>
+            </div>
             <button
               onClick={handleSearchChannels}
               disabled={loading || searching}
