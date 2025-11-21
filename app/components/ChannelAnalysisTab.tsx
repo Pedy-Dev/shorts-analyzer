@@ -18,6 +18,10 @@ export default function ChannelAnalysisTab({ isLoggedIn }: ChannelAnalysisTabPro
   const [generatedGuideline, setGeneratedGuideline] = useState('');
   const [scriptLoading, setScriptLoading] = useState(false);
 
+  // 영상 스냅샷 (실시간 화면 = DB 저장 = 히스토리 화면 1:1 일치)
+  const [topVideosSummary, setTopVideosSummary] = useState<any[]>([]);
+  const [bottomVideosSummary, setBottomVideosSummary] = useState<any[]>([]);
+
   const [selectedCount, setSelectedCount] = useState(20);
   const [expandedTags, setExpandedTags] = useState<{ [key: string]: boolean }>({});
 
@@ -280,6 +284,68 @@ export default function ChannelAnalysisTab({ isLoggedIn }: ChannelAnalysisTabPro
 
       setAnalysisResult(parsedResult);
 
+      // ⭐ 상위/하위 영상 요약 데이터 생성 (실시간 화면과 히스토리 화면 1:1 일치를 위해)
+      console.log('📊 상위/하위 영상 스냅샷 생성 중...');
+      const now = new Date();
+      const threeDaysAgo = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000);
+
+      const matureVideos = videos.filter((v: any) => {
+        const publishedDate = new Date(v.publishedAt);
+        return publishedDate <= threeDaysAgo;
+      });
+
+      // 성과 점수로 정렬
+      const videosWithScore = matureVideos.map((v: any) => {
+        const views = v.views || 0;
+        const likes = v.likes || 0;
+        const comments = v.comments || 0;
+        const likeRate = views > 0 ? likes / views : 0;
+        const commentRate = views > 0 ? comments / views : 0;
+        const score = (views / 10000) * 0.5 + (likeRate * 100) * 0.3 + (commentRate * 100) * 0.2;
+        return { ...v, performanceScore: score };
+      });
+
+      const sorted = videosWithScore.sort((a, b) => b.performanceScore - a.performanceScore);
+
+      // 상위 30%, 하위 30%
+      const topCount = Math.ceil(sorted.length * 0.3);
+      const bottomCount = Math.ceil(sorted.length * 0.3);
+      const topVideos = sorted.slice(0, topCount);
+      const bottomVideos = sorted.slice(-bottomCount);
+
+      // DB 저장용 요약 데이터 (히스토리 화면에서 그대로 사용)
+      const topVideosSummary = topVideos.map((v: any) => ({
+        videoId: v.id,
+        title: v.title,
+        views: v.views,
+        likes: v.likes,
+        comments: v.comments,
+        likeRate: v.views > 0 ? (v.likes / v.views) * 100 : 0,
+        publishedAt: v.publishedAt,
+        thumbnail: v.thumbnail,
+        duration: v.duration,
+        performanceScore: v.performanceScore,
+      }));
+
+      const bottomVideosSummary = bottomVideos.map((v: any) => ({
+        videoId: v.id,
+        title: v.title,
+        views: v.views,
+        likes: v.likes,
+        comments: v.comments,
+        likeRate: v.views > 0 ? (v.likes / v.views) * 100 : 0,
+        publishedAt: v.publishedAt,
+        thumbnail: v.thumbnail,
+        duration: v.duration,
+        performanceScore: v.performanceScore,
+      }));
+
+      console.log(`✅ 상위 ${topVideosSummary.length}개, 하위 ${bottomVideosSummary.length}개 영상 스냅샷 생성 완료`);
+
+      // ⭐ State에 저장 (화면 표시용)
+      setTopVideosSummary(topVideosSummary);
+      setBottomVideosSummary(bottomVideosSummary);
+
       try {
         const saveResponse = await fetch('/api/save-analysis-history', {
           method: 'POST',
@@ -294,6 +360,9 @@ export default function ChannelAnalysisTab({ isLoggedIn }: ChannelAnalysisTabPro
             analysisResult: parsedResult,  // 파싱된 결과
             analysisRaw: data.result,      // Gemini 원본 응답 (하이브리드 저장)
             videoTitles: videos.map((v: any) => v.title), // 영상 제목 배열
+            // ⭐ 추가: 상위/하위 영상 스냅샷 (실시간 화면과 히스토리 화면 1:1 일치)
+            topVideosSummary,
+            bottomVideosSummary,
           }),
         });
 
@@ -1114,6 +1183,86 @@ export default function ChannelAnalysisTab({ isLoggedIn }: ChannelAnalysisTabPro
                       </p>
                     </div>
                   )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* 분석 대상 영상 리스트
+              ⭐ 주의: analyzeStructure 함수(287-347줄)에서 이미 아래 작업을 완료했습니다:
+                1. 3일 이상 경과한 영상만 필터링
+                2. 퍼포먼스 스코어 계산
+                3. 정렬 및 상위/하위 30% 선택
+                4. State에 저장
+
+              → 여기서는 저장된 State를 그대로 표시만 합니다 (재계산 X)
+              → 이렇게 해야 "실시간 화면 = DB 저장 데이터 = 히스토리 화면" 1:1 일치!
+          */}
+          {(topVideosSummary.length > 0 || bottomVideosSummary.length > 0) && (
+            <div className="mt-6 border-t-2 border-gray-200 pt-6">
+              <h3 className="text-xl md:text-2xl font-bold text-gray-800 mb-4">📊 분석 대상 영상</h3>
+
+              {/* 상위 30% 영상 */}
+              {topVideosSummary.length > 0 && (
+                <div className="mb-6">
+                  <h4 className="font-semibold text-lg mb-3 text-gray-900">
+                    🏆 상위 30% 영상 ({topVideosSummary.length}개)
+                  </h4>
+                  <div className="space-y-2 bg-gray-50 rounded-lg p-3">
+                    {topVideosSummary.map((video: any, idx: number) => (
+                      <div key={video.videoId} className="flex items-center gap-3 p-2 bg-white rounded border border-gray-200 hover:shadow-sm transition-shadow">
+                        <span className="text-green-600 font-semibold text-sm">#{idx + 1}</span>
+                        <div className="flex-1">
+                          <a
+                            href={`https://youtube.com/shorts/${video.videoId}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-600 hover:underline flex items-center gap-1 text-sm font-medium"
+                          >
+                            {video.title}
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                            </svg>
+                          </a>
+                          <p className="text-xs text-gray-600 mt-1">
+                            조회수 {video.views?.toLocaleString() || 0} • 좋아요율 {video.likeRate.toFixed(1)}% • 퍼포먼스 스코어 {video.performanceScore.toFixed(2)}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* 하위 30% 영상 */}
+              {bottomVideosSummary.length > 0 && (
+                <div>
+                  <h4 className="font-semibold text-lg mb-3 text-gray-900">
+                    📉 하위 30% 영상 ({bottomVideosSummary.length}개)
+                  </h4>
+                  <div className="space-y-2 bg-gray-50 rounded-lg p-3">
+                    {bottomVideosSummary.map((video: any, idx: number) => (
+                      <div key={video.videoId} className="flex items-center gap-3 p-2 bg-white rounded border border-gray-200 hover:shadow-sm transition-shadow">
+                        <span className="text-red-600 font-semibold text-sm">#{idx + 1}</span>
+                        <div className="flex-1">
+                          <a
+                            href={`https://youtube.com/shorts/${video.videoId}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-600 hover:underline flex items-center gap-1 text-sm font-medium"
+                          >
+                            {video.title}
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                            </svg>
+                          </a>
+                          <p className="text-xs text-gray-600 mt-1">
+                            조회수 {video.views?.toLocaleString() || 0} • 좋아요율 {video.likeRate.toFixed(1)}% • 퍼포먼스 스코어 {video.performanceScore.toFixed(2)}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>

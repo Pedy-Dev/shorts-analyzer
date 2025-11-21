@@ -1,6 +1,7 @@
+// app/api/save-analysis-history/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenerativeAI } from '@google-generative-ai/google-generative-ai';
 import { cookies } from 'next/headers';
 
 // 서버용 Supabase 클라이언트 생성
@@ -30,7 +31,7 @@ async function classifyChannelCategory(
     '교육/정보',
     '코미디/밈',
     '브이로그/일상',
-    '기타'
+    '기타',
   ];
 
   const prompt = `당신은 YouTube 쇼츠 채널 분류 전문가입니다.
@@ -40,7 +41,10 @@ async function classifyChannelCategory(
 채널명: ${channelTitle}
 
 영상 제목 리스트 (최근 ${videoTitles.length}개):
-${videoTitles.slice(0, 20).map((title, i) => `${i + 1}. ${title}`).join('\n')}
+${videoTitles
+  .slice(0, 20)
+  .map((title, i) => `${i + 1}. ${title}`)
+  .join('\n')}
 
 아래 카테고리 중 **정확히 하나만** 선택하세요:
 ${categoryList.map((cat, i) => `${i + 1}. ${cat}`).join('\n')}
@@ -92,16 +96,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const body = await request.json();
     const {
       channelId,
       channelTitle,
       channelThumbnail,
       isOwnChannel,
       videoCount,
-      analysisResult,  // parsedResult (전체 분석 객체)
-      analysisRaw,     // NEW: Gemini 원본 응답 (optional)
-      videoTitles,     // 영상 제목 배열
-    } = await request.json();
+      analysisResult, // parsedResult (전체 분석 객체)
+      analysisRaw, // Gemini 원본 응답 (문자열/JSON)
+      topVideosSummary, // 상위 30% 영상 스냅샷
+      bottomVideosSummary, // 하위 30% 영상 스냅샷
+      videoTitles, // 영상 제목 배열
+    } = body;
 
     // 필수 필드 검증
     if (!channelId || !channelTitle) {
@@ -119,14 +126,31 @@ export async function POST(request: NextRequest) {
     );
     console.log('✅ 분류 결과:', creatorCategory);
 
+    // schemaVersion 결정 (내 채널 vs 타 채널)
+    const schemaVersion =
+      typeof isOwnChannel === 'boolean' && isOwnChannel
+        ? 'v1_own'
+        : 'v1_external';
+
     // analysis_summary에 schemaVersion 추가
-    const summaryWithVersion = {
-      ...analysisResult,
-      schemaVersion: 'v1_external'  // 타 채널 분석
-    };
+    // 👉 분석 결과가 object면 그대로 + schemaVersion
+    // 👉 혹시 문자열/널이면 raw 필드로 보존
+    let summaryWithVersion: any;
+    if (analysisResult && typeof analysisResult === 'object') {
+      summaryWithVersion = {
+        ...analysisResult,
+        schemaVersion,
+      };
+    } else {
+      summaryWithVersion = {
+        schemaVersion,
+        raw: analysisResult ?? null,
+      };
+    }
 
     console.log('💾 DB 저장 시작...');
     console.log('  - analysis_raw 포함 여부:', !!analysisRaw);
+    console.log('  - schemaVersion:', schemaVersion);
 
     // DB에 저장
     const { data, error } = await supabase
@@ -139,8 +163,10 @@ export async function POST(request: NextRequest) {
         is_own_channel: isOwnChannel || false,
         creator_category: creatorCategory,
         video_count: videoCount || 0,
-        analysis_summary: summaryWithVersion,  // schemaVersion 포함
-        analysis_raw: analysisRaw || null,     // Gemini 원본 응답 저장
+        analysis_summary: summaryWithVersion, // schemaVersion 포함
+        analysis_raw: analysisRaw || null, // Gemini 원본 응답 저장
+        top_videos_summary: topVideosSummary || null, // 상위 30% 영상 스냅샷
+        bottom_videos_summary: bottomVideosSummary || null, // 하위 30% 영상 스냅샷
       })
       .select();
 
