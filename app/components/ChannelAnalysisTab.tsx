@@ -28,11 +28,38 @@ export default function ChannelAnalysisTab({ isLoggedIn }: ChannelAnalysisTabPro
   const [selectedCount, setSelectedCount] = useState(20);
   const [expandedTags, setExpandedTags] = useState<{ [key: string]: boolean }>({});
 
+  // 영상 리스트 정렬 기준
+  const [sortBy, setSortBy] = useState<'latest' | 'views' | 'likes' | 'comments'>('latest');
+
   const toggleTags = (videoId: string) => {
     setExpandedTags(prev => ({
       ...prev,
       [videoId]: !prev[videoId]
     }));
+  };
+
+  // 영상 리스트 정렬 함수
+  const getSortedVideos = () => {
+    const videosCopy = [...videos];
+
+    switch (sortBy) {
+      case 'latest':
+        // 최신순 (날짜 기준 내림차순)
+        return videosCopy.sort((a, b) =>
+          new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime()
+        );
+      case 'views':
+        // 조회수 기준 내림차순
+        return videosCopy.sort((a, b) => (b.views || 0) - (a.views || 0));
+      case 'likes':
+        // 좋아요 기준 내림차순
+        return videosCopy.sort((a, b) => (b.likes || 0) - (a.likes || 0));
+      case 'comments':
+        // 댓글 기준 내림차순
+        return videosCopy.sort((a, b) => (b.comments || 0) - (a.comments || 0));
+      default:
+        return videosCopy;
+    }
   };
 
   const calculateTitleStats = (videoList: any[]) => {
@@ -692,21 +719,56 @@ export default function ChannelAnalysisTab({ isLoggedIn }: ChannelAnalysisTabPro
       {/* 수집된 영상 리스트 */}
       {videos.length > 0 && (
         <div className="bg-white rounded-lg shadow-lg p-4 md:p-6">
-          <h2 className="text-lg md:text-xl font-bold text-gray-900 mb-3 md:mb-4">
-            📹 수집된 영상 ({videos.length}개)
-          </h2>
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-3 md:mb-4 gap-3">
+            <h2 className="text-lg md:text-xl font-bold text-gray-900">
+              📹 수집된 영상 ({videos.length}개)
+            </h2>
+
+            {/* 정렬 드롭다운 */}
+            <div className="flex items-center gap-2">
+              <label htmlFor="sort-select" className="text-sm text-gray-600 whitespace-nowrap">
+                정렬:
+              </label>
+              <select
+                id="sort-select"
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as 'latest' | 'views' | 'likes' | 'comments')}
+                className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+              >
+                <option value="latest">📅 최신순</option>
+                <option value="views">👁️ 조회수 순</option>
+                <option value="likes">👍 좋아요 순</option>
+                <option value="comments">💬 댓글 순</option>
+              </select>
+            </div>
+          </div>
+
           <div className="space-y-3 md:space-y-4">
-            {videos.map((video, index) => (
+            {getSortedVideos().map((video, index) => (
               <div
                 key={index}
                 className="border border-gray-200 rounded-lg p-3 md:p-4 hover:shadow-md transition-shadow"
               >
                 <div className="flex flex-col md:flex-row items-start gap-3 md:gap-4">
-                  <img
-                    src={video.thumbnail || '/default-thumbnail.jpg'}
-                    alt={video.title}
-                    className="w-full md:w-40 h-40 md:h-28 object-cover rounded flex-shrink-0"
-                  />
+                  {/* 썸네일 - 클릭 시 유튜브 쇼츠로 이동 */}
+                  <a
+                    href={`https://www.youtube.com/shorts/${video.id}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="relative w-full md:w-40 h-40 md:h-28 flex-shrink-0 rounded overflow-hidden group cursor-pointer"
+                  >
+                    <img
+                      src={video.thumbnail || '/default-thumbnail.jpg'}
+                      alt={video.title}
+                      className="w-full h-full object-cover"
+                    />
+                    {/* Hover 오버레이 */}
+                    <div className="absolute inset-0 opacity-0 group-hover:opacity-100 bg-black/60 transition-opacity duration-300 flex items-center justify-center pointer-events-none">
+                      <span className="text-white font-semibold text-sm md:text-base">
+                        ▶ 영상보기
+                      </span>
+                    </div>
+                  </a>
                   <div className="flex-1 min-w-0 w-full">
                     <h3 className="font-semibold text-gray-900 mb-2 md:mb-3 line-clamp-2 text-sm md:text-base">
                       {video.title}
