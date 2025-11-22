@@ -35,7 +35,7 @@ export default function PrivacyPolicyPage() {
 
             <div className="space-y-6 text-gray-700">
               <div>
-                <p className="text-sm text-gray-500 mb-4">최종 업데이트: 2024년 11월</p>
+                <p className="text-sm text-gray-500 mb-4">최종 업데이트: 2025년 11월</p>
                 <p className="mb-4">
                   유튜브 쇼츠 해커(이하 "서비스")는 사용자의 개인정보를 소중히 여기며,
                   관련 법령을 준수합니다. 본 개인정보처리방침은 서비스가 수집하는 정보와
@@ -225,7 +225,7 @@ export default function PrivacyPolicyPage() {
 
             <div className="space-y-6 text-gray-700">
               <div>
-                <p className="text-sm text-gray-500 mb-4">Last Updated: November 2024</p>
+                <p className="text-sm text-gray-500 mb-4">Last Updated: November 2025</p>
                 <p className="mb-4">
                   YouTube Shorts Analyzer ("Service") values your privacy and complies with applicable laws.
                   This Privacy Policy explains what information we collect and how we use it.

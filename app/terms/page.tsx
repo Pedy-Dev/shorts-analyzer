@@ -35,7 +35,7 @@ export default function TermsOfServicePage() {
 
             <div className="space-y-6 text-gray-700">
               <div>
-                <p className="text-sm text-gray-500 mb-4">최종 업데이트: 2024년 11월</p>
+                <p className="text-sm text-gray-500 mb-4">최종 업데이트: 2025년 11월</p>
                 <p className="mb-4">
                   본 약관은 유튜브 쇼츠 해커(이하 "서비스") 이용에 관한 조건을 규정합니다.
                   서비스를 이용함으로써 귀하는 본 약관에 동의하는 것으로 간주됩니다.
@@ -265,7 +265,7 @@ export default function TermsOfServicePage() {
 
             <div className="space-y-6 text-gray-700">
               <div>
-                <p className="text-sm text-gray-500 mb-4">Last Updated: November 2024</p>
+                <p className="text-sm text-gray-500 mb-4">Last Updated: November 2025</p>
                 <p className="mb-4">
                   These Terms of Service ("Terms") govern your use of YouTube Shorts Analyzer ("Service").
                   By using the Service, you agree to these Terms.
