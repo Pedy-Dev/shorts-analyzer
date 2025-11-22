@@ -55,7 +55,7 @@ export default function TermsOfServicePage() {
                 <ul className="list-disc ml-6 space-y-2">
                   <li>만 14세 이상의 개인</li>
                   <li>Google 계정 보유자 (내 채널 분석 기능 이용 시)</li>
-                  <li>YouTube Data API 키 보유자 (타 채널 분석 기능 이용 시)</li>
+                  <li>YouTube Data API 키 보유자 (타 채널 분석 기능 이용 시, 선택사항 - 서버 API 할당량 초과 시에만 필요)</li>
                   <li>본 약관에 동의한 자</li>
                 </ul>
               </div>
@@ -116,6 +116,20 @@ export default function TermsOfServicePage() {
                       </a>
                     </li>
                   </ul>
+
+                  <p className="mt-4"><strong>API 키 사용 방식:</strong></p>
+                  <ul className="list-disc ml-6 space-y-2">
+                    <li>
+                      타 채널 분석 시 서버가 보유한 YouTube Data API 키를 우선적으로 사용합니다.
+                    </li>
+                    <li>
+                      서버 API 할당량 초과 시, 사용자가 제공한 API 키를 사용합니다 (선택사항).
+                    </li>
+                    <li>
+                      YouTube API 할당량 증가 승인 시, 사용자 API 키 입력이 불필요해집니다.
+                    </li>
+                  </ul>
+
                   <p className="mt-4">
                     귀하는 언제든지 Google 계정 설정에서
                     <a
@@ -271,7 +285,7 @@ export default function TermsOfServicePage() {
                 <ul className="list-disc ml-6 space-y-2">
                   <li>Individuals aged 14 or older</li>
                   <li>Google account holders (for My Channel analysis)</li>
-                  <li>YouTube Data API key holders (for external channel analysis)</li>
+                  <li>YouTube Data API key holders (for external channel analysis, optional - only required when server API quota is exceeded)</li>
                   <li>Those who agree to these Terms</li>
                 </ul>
               </div>
@@ -332,6 +346,20 @@ export default function TermsOfServicePage() {
                       </a>
                     </li>
                   </ul>
+
+                  <p className="mt-4"><strong>API Key Usage:</strong></p>
+                  <ul className="list-disc ml-6 space-y-2">
+                    <li>
+                      For external channel analysis, we primarily use our server's YouTube Data API key.
+                    </li>
+                    <li>
+                      When our server API quota is exceeded, user-provided API keys are used (optional).
+                    </li>
+                    <li>
+                      Once our YouTube API quota increase request is approved, user-provided API keys will no longer be necessary.
+                    </li>
+                  </ul>
+
                   <p className="mt-4">
                     You can revoke this Service's access to your YouTube data anytime via
                     <a

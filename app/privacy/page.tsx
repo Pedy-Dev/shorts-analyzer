@@ -93,6 +93,21 @@ export default function PrivacyPolicyPage() {
                   <p>
                     본 서비스는 <strong>YouTube API Services</strong>를 사용합니다.
                   </p>
+
+                  <p className="mt-3"><strong>API 키 사용 방식:</strong></p>
+                  <ul className="list-disc ml-6 space-y-2">
+                    <li>
+                      <strong>서버 API 키 우선 사용:</strong> 타 채널 분석 시 서버가 보유한 YouTube Data API 키를 먼저 사용합니다.
+                    </li>
+                    <li>
+                      <strong>사용자 API 키 폴백:</strong> 서버 API 할당량이 초과된 경우, 사용자가 제공한 API 키를 사용합니다 (선택사항).
+                    </li>
+                    <li>
+                      <strong>향후 변경 사항:</strong> YouTube API 할당량 증가 승인 시, 사용자 API 키 입력이 불필요해집니다.
+                    </li>
+                  </ul>
+
+                  <p className="mt-3"><strong>데이터 처리:</strong></p>
                   <ul className="list-disc ml-6 space-y-2 mt-2">
                     <li>
                       YouTube API를 통해 수집된 데이터는 <strong>분석 목적으로만 일시적으로 사용</strong>되며,
@@ -267,6 +282,21 @@ export default function PrivacyPolicyPage() {
                   <p>
                     This Service uses <strong>YouTube API Services</strong>.
                   </p>
+
+                  <p className="mt-3"><strong>API Key Usage:</strong></p>
+                  <ul className="list-disc ml-6 space-y-2">
+                    <li>
+                      <strong>Server API Key (Primary):</strong> For external channel analysis, we primarily use our server's YouTube Data API key.
+                    </li>
+                    <li>
+                      <strong>User API Key (Fallback):</strong> When our server API quota is exceeded, the user-provided API key is used (optional).
+                    </li>
+                    <li>
+                      <strong>Future Changes:</strong> Once our YouTube API quota increase request is approved, user-provided API keys will no longer be necessary.
+                    </li>
+                  </ul>
+
+                  <p className="mt-3"><strong>Data Processing:</strong></p>
                   <ul className="list-disc ml-6 space-y-2 mt-2">
                     <li>
                       Data collected via YouTube API is <strong>used temporarily for analysis purposes only</strong>.
