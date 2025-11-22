@@ -321,14 +321,16 @@ export default function ExternalChannelHistoryTab({ isLoggedIn }: ExternalChanne
                           </span>
                         )}
                       </div>
-                      <div className="flex items-center gap-2 mt-1 text-xs text-gray-600">
+                      <div className="flex items-center gap-2 mt-1 text-xs text-gray-600 flex-wrap">
                         <span>{item.formattedDate}</span>
                         {item.creator_category && item.creator_category !== 'Unknown' && (
                           <>
                             <span>•</span>
-                            <span className="px-1.5 py-0.5 bg-blue-50 text-blue-700 rounded text-xs">
-                              {item.creator_category}
-                            </span>
+                            {item.creator_category.split(',').map((cat, idx) => (
+                              <span key={idx} className="px-1.5 py-0.5 bg-blue-50 text-blue-700 rounded text-xs">
+                                {cat.trim()}
+                              </span>
+                            ))}
                           </>
                         )}
                       </div>
