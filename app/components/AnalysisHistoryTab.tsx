@@ -2,7 +2,7 @@
 // 분석 기록 탭 - 타 채널 / 내 채널 서브탭 wrapper
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import ExternalChannelHistoryTab from './ExternalChannelHistoryTab';
 import OwnChannelHistoryTab from './OwnChannelHistoryTab';
 
@@ -11,7 +11,28 @@ interface AnalysisHistoryTabProps {
 }
 
 export default function AnalysisHistoryTab({ isLoggedIn }: AnalysisHistoryTabProps) {
-  const [currentSubTab, setCurrentSubTab] = useState<'external' | 'own'>('external');
+  const [currentSubTab, setCurrentSubTab] = useState<'external' | 'own' | null>(null);
+  const [isSubTabInitialized, setIsSubTabInitialized] = useState(false);
+
+  // 서브탭 변경 시 localStorage에 저장하는 핸들러
+  const handleSubTabChange = (tab: 'external' | 'own') => {
+    setCurrentSubTab(tab);
+    localStorage.setItem('history_subtab', tab);
+  };
+
+  useEffect(() => {
+    // localStorage에서 저장된 서브탭 복원
+    const savedSubTab = localStorage.getItem('history_subtab');
+    if (savedSubTab === 'external' || savedSubTab === 'own') {
+      setCurrentSubTab(savedSubTab);
+    } else {
+      // 저장된 게 없으면 기본값은 'external' (타 채널 기록)
+      setCurrentSubTab('external');
+    }
+
+    // 서브탭 초기화 완료 표시
+    setIsSubTabInitialized(true);
+  }, []);
 
   // 로그인하지 않은 경우
   if (!isLoggedIn) {
@@ -20,7 +41,7 @@ export default function AnalysisHistoryTab({ isLoggedIn }: AnalysisHistoryTabPro
         <p className="text-gray-600 mb-4">분석 기록을 보려면 로그인이 필요합니다</p>
         <button
           className="px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700"
-          onClick={() => window.location.reload()}
+          onClick={() => window.location.href = '/login'}
         >
           로그인하기
         </button>
@@ -36,35 +57,46 @@ export default function AnalysisHistoryTab({ isLoggedIn }: AnalysisHistoryTabPro
         <p className="text-gray-600">과거에 분석한 채널들의 기록을 확인할 수 있습니다</p>
       </div>
 
-      {/* 서브탭 메뉴 */}
-      <div className="flex gap-3 mb-6 border-b">
-        <button
-          onClick={() => setCurrentSubTab('external')}
-          className={`px-4 py-2 text-sm font-medium transition-colors ${
-            currentSubTab === 'external'
-              ? 'text-blue-600 border-b-2 border-blue-600'
-              : 'text-gray-600 hover:text-gray-900'
-          }`}
-        >
-          🔍 타 채널 기록
-        </button>
-        <button
-          onClick={() => setCurrentSubTab('own')}
-          className={`px-4 py-2 text-sm font-medium transition-colors ${
-            currentSubTab === 'own'
-              ? 'text-purple-600 border-b-2 border-purple-600'
-              : 'text-gray-600 hover:text-gray-900'
-          }`}
-        >
-          📊 내 채널 기록
-        </button>
-      </div>
+      {/* 서브탭 초기화 전 로딩 */}
+      {(!isSubTabInitialized || currentSubTab === null) && (
+        <div className="text-sm text-gray-400 py-4">
+          기록 불러오는 중...
+        </div>
+      )}
 
-      {/* 서브탭 컨텐츠 */}
-      {currentSubTab === 'external' ? (
-        <ExternalChannelHistoryTab isLoggedIn={isLoggedIn} />
-      ) : (
-        <OwnChannelHistoryTab isLoggedIn={isLoggedIn} />
+      {/* 서브탭 메뉴 */}
+      {isSubTabInitialized && currentSubTab !== null && (
+        <>
+          <div className="flex gap-3 mb-6 border-b">
+            <button
+              onClick={() => handleSubTabChange('external')}
+              className={`px-4 py-2 text-sm font-medium transition-colors ${
+                currentSubTab === 'external'
+                  ? 'text-blue-600 border-b-2 border-blue-600'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              🔍 타 채널 기록
+            </button>
+            <button
+              onClick={() => handleSubTabChange('own')}
+              className={`px-4 py-2 text-sm font-medium transition-colors ${
+                currentSubTab === 'own'
+                  ? 'text-purple-600 border-b-2 border-purple-600'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              📊 내 채널 기록
+            </button>
+          </div>
+
+          {/* 서브탭 컨텐츠 */}
+          {currentSubTab === 'external' ? (
+            <ExternalChannelHistoryTab isLoggedIn={isLoggedIn} />
+          ) : (
+            <OwnChannelHistoryTab isLoggedIn={isLoggedIn} />
+          )}
+        </>
       )}
     </div>
   );

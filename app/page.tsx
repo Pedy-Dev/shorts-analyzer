@@ -11,13 +11,32 @@ import AnalysisHistoryTab from './components/AnalysisHistoryTab';
 import UserMenu from './components/UserMenu'; 
 
 export default function ChannelAnalyzer() {
-  const [currentTab, setCurrentTab] = useState<'analyze' | 'myChannel' | 'history'>('analyze');
+  const [currentTab, setCurrentTab] = useState<'analyze' | 'myChannel' | 'history' | null>(null);
+  const [isTabInitialized, setIsTabInitialized] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isServiceGuideOpen, setIsServiceGuideOpen] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
 
+  // 탭 변경 시 localStorage에 저장하는 핸들러
+  const handleTabChange = (tab: 'analyze' | 'myChannel' | 'history') => {
+    setCurrentTab(tab);
+    localStorage.setItem('currentTab', tab);
+  };
+
   useEffect(() => {
+    // localStorage에서 저장된 탭 먼저 복원
+    const savedTab = localStorage.getItem('currentTab');
+    if (savedTab === 'analyze' || savedTab === 'myChannel' || savedTab === 'history') {
+      setCurrentTab(savedTab);
+    } else {
+      // 저장된 게 없으면 기본값은 'analyze'
+      setCurrentTab('analyze');
+    }
+
+    // 탭 초기화 완료 표시
+    setIsTabInitialized(true);
+
     // 로그인 상태 체크 (리다이렉트 없이)
     fetch('/api/user/me')
       .then(res => res.json())
@@ -34,7 +53,7 @@ export default function ChannelAnalyzer() {
 
         // YouTube 채널 연동 완료 시
         if (youtubeConnected === 'true') {
-          setCurrentTab('myChannel');
+          handleTabChange('myChannel');
           // URL 파라미터 제거 (깔끔하게)
           window.history.replaceState({}, '', window.location.pathname);
         }
@@ -43,7 +62,7 @@ export default function ChannelAnalyzer() {
           // localStorage에서 돌아갈 탭 확인
           const returnTab = localStorage.getItem('return_tab');
           if (returnTab === 'myChannel') {
-            setCurrentTab('myChannel');
+            handleTabChange('myChannel');
             localStorage.removeItem('return_tab'); // 사용 후 삭제
           }
           // URL 파라미터 제거
@@ -103,48 +122,56 @@ export default function ChannelAnalyzer() {
           </div>
 
           {/* 탭 메뉴 */}
-          <div className="flex gap-3 md:gap-4 mt-3 md:mt-4 border-b">
-            <button
-              onClick={() => setCurrentTab('analyze')}
-              className={`px-3 md:px-4 py-2 text-sm md:text-base font-medium transition-colors ${currentTab === 'analyze'
-                  ? 'text-red-600 border-b-2 border-red-600'
-                  : 'text-gray-600 hover:text-gray-900'
-                }`}
-            >
-              타 채널 분석
-            </button>
-            <button
-              onClick={() => setCurrentTab('myChannel')}
-              className={`px-3 md:px-4 py-2 text-sm md:text-base font-medium transition-colors ${currentTab === 'myChannel'
-                  ? 'text-red-600 border-b-2 border-red-600'
-                  : 'text-gray-600 hover:text-gray-900'
-                }`}
-            >
-              내 채널 분석
-            </button>
-            <button
-              onClick={() => setCurrentTab('history')}
-              className={`px-3 md:px-4 py-2 text-sm md:text-base font-medium transition-colors ${currentTab === 'history'
-                  ? 'text-red-600 border-b-2 border-red-600'
-                  : 'text-gray-600 hover:text-gray-900'
-                }`}
-            >
-              📚 분석 기록
-            </button>
-          </div>
+          {isTabInitialized && currentTab !== null && (
+            <div className="flex gap-3 md:gap-4 mt-3 md:mt-4 border-b">
+              <button
+                onClick={() => handleTabChange('analyze')}
+                className={`px-3 md:px-4 py-2 text-sm md:text-base font-medium transition-colors ${currentTab === 'analyze'
+                    ? 'text-red-600 border-b-2 border-red-600'
+                    : 'text-gray-600 hover:text-gray-900'
+                  }`}
+              >
+                타 채널 분석
+              </button>
+              <button
+                onClick={() => handleTabChange('myChannel')}
+                className={`px-3 md:px-4 py-2 text-sm md:text-base font-medium transition-colors ${currentTab === 'myChannel'
+                    ? 'text-red-600 border-b-2 border-red-600'
+                    : 'text-gray-600 hover:text-gray-900'
+                  }`}
+              >
+                내 채널 분석
+              </button>
+              <button
+                onClick={() => handleTabChange('history')}
+                className={`px-3 md:px-4 py-2 text-sm md:text-base font-medium transition-colors ${currentTab === 'history'
+                    ? 'text-red-600 border-b-2 border-red-600'
+                    : 'text-gray-600 hover:text-gray-900'
+                  }`}
+              >
+                📚 분석 기록
+              </button>
+            </div>
+          )}
         </div>
       </header>
 
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 py-4 md:py-8">
-        {currentTab === 'analyze' ? (
-          <ChannelAnalysisTab isLoggedIn={!!user} />
-        ) : currentTab === 'myChannel' ? (
-          <MyChannelTab isLoggedIn={!!user} />
-        ) : (
-          <AnalysisHistoryTab isLoggedIn={!!user} />
-        )}
-      </div>
+      {isTabInitialized && currentTab !== null ? (
+        <div className="max-w-7xl mx-auto px-4 py-4 md:py-8">
+          {currentTab === 'analyze' ? (
+            <ChannelAnalysisTab isLoggedIn={!!user} />
+          ) : currentTab === 'myChannel' ? (
+            <MyChannelTab isLoggedIn={!!user} />
+          ) : (
+            <AnalysisHistoryTab isLoggedIn={!!user} />
+          )}
+        </div>
+      ) : (
+        <div className="max-w-7xl mx-auto px-4 py-6 text-center text-sm text-gray-500">
+          로딩 중...
+        </div>
+      )}
 
       {/* 서비스 안내 모달 */}
       <ServiceGuideModal
