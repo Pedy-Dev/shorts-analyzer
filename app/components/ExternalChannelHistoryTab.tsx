@@ -3,7 +3,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Loader2, Trash2, Calendar, Film, ChevronDown } from 'lucide-react';
+import { Loader2, Trash2, Film, ChevronDown } from 'lucide-react';
 import ChannelAnalysisView from './ChannelAnalysisView';
 import type { VideoSummary } from '../types/analysis';
 
@@ -290,70 +290,66 @@ export default function ExternalChannelHistoryTab({ isLoggedIn }: ExternalChanne
             return (
               <div key={item.id} className="bg-white border rounded-lg overflow-hidden">
                 <div
-                  className="p-4 hover:bg-gray-50 transition-colors cursor-pointer"
+                  className="p-3 hover:bg-gray-50 transition-colors cursor-pointer"
                   onClick={() => toggleDetail(item)}
                 >
-                  <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-3">
+                    {/* 프로필 이미지 - 모바일 최적화 */}
                     {item.channel_thumbnail ? (
                       <img
                         src={item.channel_thumbnail}
                         alt={item.channel_title}
-                        className="w-16 h-16 rounded-full object-cover"
+                        className="w-10 h-10 md:w-12 md:h-12 rounded-full object-cover flex-shrink-0"
                       />
                     ) : (
-                      <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center">
-                        <Film className="w-6 h-6 text-gray-400" />
+                      <div className="w-10 h-10 md:w-12 md:h-12 bg-gray-200 rounded-full flex items-center justify-center flex-shrink-0">
+                        <Film className="w-5 h-5 text-gray-400" />
                       </div>
                     )}
 
-                    <div className="flex-1">
-                      <h3 className="font-semibold text-lg text-gray-900">
-                        {item.channel_title}
-                      </h3>
-                      <div className="flex items-center gap-3 mt-1 text-sm">
-                        <span className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded text-xs font-medium">
-                          타 채널 분석
-                        </span>
+                    {/* 채널 정보 */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-semibold text-base text-gray-900 truncate">
+                          {item.channel_title}
+                        </h3>
                         {item.subscriber_count > 0 && (
-                          <span className="px-2 py-0.5 bg-orange-100 text-orange-700 rounded text-xs font-medium">
-                            구독자 {item.subscriber_count >= 10000
+                          <span className="px-1.5 py-0.5 bg-orange-100 text-orange-700 rounded text-xs font-medium flex-shrink-0">
+                            {item.subscriber_count >= 10000
                               ? `${(item.subscriber_count / 10000).toFixed(1)}만`
                               : item.subscriber_count.toLocaleString()}명
                           </span>
                         )}
-                        {item.creator_category && item.creator_category !== 'Unknown' && (
-                          <span className="px-2 py-0.5 bg-gray-100 text-gray-700 rounded text-xs">
-                            {item.creator_category}
-                          </span>
-                        )}
                       </div>
-                      <div className="flex items-center gap-4 mt-2 text-sm text-gray-600">
-                        <span className="flex items-center gap-1">
-                          <Film className="w-4 h-4" />
-                          {item.video_count}개 영상 분석
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <Calendar className="w-4 h-4" />
-                          {item.formattedDate} {item.formattedTime}
-                        </span>
+                      <div className="flex items-center gap-2 mt-1 text-xs text-gray-600">
+                        <span>{item.formattedDate}</span>
+                        {item.creator_category && item.creator_category !== 'Unknown' && (
+                          <>
+                            <span>•</span>
+                            <span className="px-1.5 py-0.5 bg-blue-50 text-blue-700 rounded text-xs">
+                              {item.creator_category}
+                            </span>
+                          </>
+                        )}
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2">
-                      <div className={`p-2 transition-transform ${isExpanded ? 'rotate-180' : ''}`}>
-                        <ChevronDown className="w-5 h-5 text-gray-600" />
+                    {/* 우측 액션 영역 */}
+                    <div className="flex items-center gap-1 flex-shrink-0">
+                      <div className={`p-1 transition-transform ${isExpanded ? 'rotate-180' : ''}`}>
+                        <ChevronDown className="w-5 h-5 text-gray-500" />
                       </div>
 
                       <button
                         onClick={(e) => handleDelete(item.id, e)}
                         disabled={deleteLoading === item.id}
-                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
+                        className="p-1.5 text-red-600 hover:bg-red-50 rounded transition-colors disabled:opacity-50"
                         title="삭제"
                       >
                         {deleteLoading === item.id ? (
-                          <Loader2 className="w-5 h-5 animate-spin" />
+                          <Loader2 className="w-4 h-4 animate-spin" />
                         ) : (
-                          <Trash2 className="w-5 h-5" />
+                          <Trash2 className="w-4 h-4" />
                         )}
                       </button>
                     </div>

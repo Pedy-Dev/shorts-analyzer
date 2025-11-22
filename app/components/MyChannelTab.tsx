@@ -360,6 +360,7 @@ export default function MyChannelTab({ isLoggedIn }: MyChannelTabProps) {
             channelId: currentChannel?.id || '',
             channelTitle: currentChannel?.title || '',
             channelThumbnail: currentChannel?.thumbnail || '',
+            subscriberCount: myChannelData.channel?.subscriberCount || 0,
             isOwnChannel: true,  // ⭐ 내 채널 분석
 
             // 메타데이터

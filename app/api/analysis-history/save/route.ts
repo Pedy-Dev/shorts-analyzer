@@ -60,6 +60,7 @@ export async function POST(request: NextRequest) {
         channel_id: data.channelId,
         channel_title: data.channelTitle,
         channel_thumbnail: data.channelThumbnail || null,
+        subscriber_count: data.subscriberCount || 0,
         is_own_channel: data.isOwnChannel || false,
         yt_category: data.ytCategory || null,
         creator_category: data.creatorCategory || null,
