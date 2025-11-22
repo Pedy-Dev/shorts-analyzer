@@ -8,7 +8,8 @@ import ServiceGuideModal from './components/ServiceGuideModal';
 import ChannelAnalysisTab from './components/ChannelAnalysisTab';
 import MyChannelTab from './components/MyChannelTab';
 import AnalysisHistoryTab from './components/AnalysisHistoryTab';
-import UserMenu from './components/UserMenu'; 
+import UserMenu from './components/UserMenu';
+import Footer from './components/Footer'; 
 
 export default function ChannelAnalyzer() {
   const [currentTab, setCurrentTab] = useState<'analyze' | 'myChannel' | 'history' | null>(null);
@@ -184,6 +185,9 @@ export default function ChannelAnalyzer() {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
       />
+
+      {/* Footer */}
+      <Footer />
     </div>
   );
 }
