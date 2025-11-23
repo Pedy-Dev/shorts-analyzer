@@ -60,9 +60,18 @@ export async function POST(request: NextRequest) {
   try {
     const { url, apiKey } = await request.json();
 
-    if (!url || !apiKey) {
+    if (!url) {
       return NextResponse.json(
-        { error: 'URL과 API Key가 필요합니다.' },
+        { error: 'URL이 필요합니다.' },
+        { status: 400 }
+      );
+    }
+
+    // API 키 체크: 서버 키도 없고 유저 키도 없으면 에러
+    const serverApiKey = process.env.YOUTUBE_API_KEY_SERVER;
+    if (!serverApiKey && !apiKey) {
+      return NextResponse.json(
+        { error: 'YouTube API 키가 필요합니다. API 키를 설정해주세요.' },
         { status: 400 }
       );
     }
@@ -88,7 +97,6 @@ export async function POST(request: NextRequest) {
     const handle = decodeURIComponent(handleMatch[1]);
 
     // 3. 서버 API 키로 먼저 시도
-    const serverApiKey = process.env.YOUTUBE_API_KEY_SERVER;
     if (serverApiKey) {
       try {
         console.log('🔑 서버 API 키로 채널 ID 추출 시도...');

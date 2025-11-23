@@ -45,7 +45,7 @@ export default function ChannelAnalysisView({
             <strong>📊 분석 기준:</strong> {analysisResult._meta.filterInfo}
             {(analysisResult._meta.excludedCount ?? 0) > 0 && (
               <span className="ml-2">
-                (최근 {analysisResult._meta.excludedCount}개 영상은 게시 후 3일 미만으로 제외됨)
+                (최근 {analysisResult._meta.excludedCount}개 영상은 게시 후 7일 미만으로 제외됨)
               </span>
             )}
           </p>

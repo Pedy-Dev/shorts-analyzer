@@ -647,21 +647,21 @@ export async function POST(request: NextRequest) {
     // ----------------- 분석 모드 -----------------
     if (mode === 'analyze') {
       const now = new Date();
-      const threeDaysAgo = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000);
+      const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 
       const matureVideos = validVideos.filter((v: any) => {
         const publishedDate = new Date(v.publishedAt);
-        return publishedDate <= threeDaysAgo;
+        return publishedDate <= sevenDaysAgo;
       });
 
       console.log(`📊 전체 영상: ${validVideos.length}개`);
-      console.log(`📊 3일 이상 경과: ${matureVideos.length}개`);
+      console.log(`📊 7일 이상 경과: ${matureVideos.length}개`);
       console.log(`⏰ 제외된 최근 영상: ${validVideos.length - matureVideos.length}개`);
 
       if (matureVideos.length < 5) {
         return NextResponse.json(
           {
-            error: `분석하기에 영상이 부족합니다. (3일 이상 경과한 영상: ${matureVideos.length}개, 최소 5개 필요)`,
+            error: `분석하기에 영상이 부족합니다. (7일 이상 경과한 영상: ${matureVideos.length}개, 최소 5개 필요)`,
             details: `${validVideos.length - matureVideos.length}개의 최근 영상은 게시 후 시간이 부족하여 제외되었습니다.`,
           },
           { status: 400 },
@@ -748,7 +748,7 @@ export async function POST(request: NextRequest) {
           avgViews: Math.round(avgViews),
           avgLikes: Math.round(avgLikes),
           avgDuration: Math.round(avgDuration),
-          filterInfo: `게시 3일 이상 경과한 ${matureVideos.length}개 영상 중 상위 ${topCount}개, 하위 ${bottomCount}개 분석`,
+          filterInfo: `게시 7일 이상 경과한 ${matureVideos.length}개 영상 중 상위 ${topCount}개, 하위 ${bottomCount}개 분석`,
         },
       });
     }

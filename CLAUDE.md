@@ -261,7 +261,7 @@ Used to rank videos for analysis:
 score = (views / 10000) * 0.5 + (likeRate * 100) * 0.3 + (commentRate * 100) * 0.2
 ```
 
-Videos <3 days old are filtered out (performance needs time to stabilize).
+Videos <7 days old are filtered out (performance needs time to stabilize).
 
 ## AI Analysis System
 
@@ -430,8 +430,8 @@ return JSON.parse(cleaned)
 - Uses `youtubei.js` scraping (no quota cost)
 
 ### Performance Data Timing
-- Filters out videos <3 days old
-- Shorts performance stabilizes after 48-72 hours
+- Filters out videos <7 days old
+- Shorts performance stabilizes after 7 days for more accurate analysis
 - Top/bottom 30% comparison ignores middle 40%
 
 ### Gemini Prompt Engineering

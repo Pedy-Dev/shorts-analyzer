@@ -208,15 +208,23 @@ export async function POST(request: NextRequest) {
   try {
     const { channelId, apiKey, maxResults = 50 } = await request.json();
 
-    if (!channelId || !apiKey) {
+    if (!channelId) {
       return NextResponse.json(
-        { error: '채널 ID와 API Key가 필요합니다.' },
+        { error: '채널 ID가 필요합니다.' },
+        { status: 400 }
+      );
+    }
+
+    // API 키 체크: 서버 키도 없고 유저 키도 없으면 에러
+    const serverApiKey = process.env.YOUTUBE_API_KEY_SERVER;
+    if (!serverApiKey && !apiKey) {
+      return NextResponse.json(
+        { error: 'YouTube API 키가 필요합니다. API 키를 설정해주세요.' },
         { status: 400 }
       );
     }
 
     // 1. 서버 API 키로 먼저 시도
-    const serverApiKey = process.env.YOUTUBE_API_KEY_SERVER;
     if (serverApiKey) {
       try {
         console.log('🔑 서버 API 키로 쇼츠 목록 가져오기 시도...');

@@ -8,9 +8,18 @@ export async function POST(request: NextRequest) {
   try {
     const { query, apiKey } = await request.json();
 
-    if (!query || !apiKey) {
+    if (!query) {
       return NextResponse.json(
-        { error: '검색어와 API Key가 필요합니다.' },
+        { error: '검색어가 필요합니다.' },
+        { status: 400 }
+      );
+    }
+
+    // API 키 체크: 서버 키도 없고 유저 키도 없으면 에러
+    const serverApiKey = process.env.YOUTUBE_API_KEY_SERVER;
+    if (!serverApiKey && !apiKey) {
+      return NextResponse.json(
+        { error: 'YouTube API 키가 필요합니다. API 키를 설정해주세요.' },
         { status: 400 }
       );
     }
@@ -18,7 +27,6 @@ export async function POST(request: NextRequest) {
     console.log('🔍 채널 검색:', query);
 
     // 1. 서버 API 키로 먼저 시도
-    const serverApiKey = process.env.YOUTUBE_API_KEY_SERVER;
     let searchResults = null;
 
     if (serverApiKey) {

@@ -51,17 +51,13 @@ export default function ChannelAnalysisTab({ isLoggedIn }: ChannelAnalysisTabPro
       return;
     }
 
-    const youtubeApiKey = localStorage.getItem('youtube_api_key');
-    if (!youtubeApiKey) {
-      alert('⚠️ YouTube API 키가 필요합니다!\n\n오른쪽 상단의 "⚙️ API 키 설정" 버튼을 눌러 YouTube API 키를 입력해주세요.');
-      return;
-    }
-
     // URL 형식이면 바로 분석, 아니면 검색
     if (query.includes('youtube.com') || query.includes('youtu.be') || query.startsWith('@')) {
       handleAnalyze();
       return;
     }
+
+    const youtubeApiKey = localStorage.getItem('youtube_api_key');
 
     // 채널명으로 검색
     setSearching(true);
@@ -145,13 +141,13 @@ export default function ChannelAnalysisTab({ isLoggedIn }: ChannelAnalysisTabPro
   };
 
   const calculateTitleStats = (videoList: any[]) => {
-    // 3일 이상 경과한 영상만 필터링 (분석할 때와 동일한 조건)
+    // 7일 이상 경과한 영상만 필터링 (분석할 때와 동일한 조건)
     const now = new Date();
-    const threeDaysAgo = new Date(now.getTime() - (3 * 24 * 60 * 60 * 1000));
+    const sevenDaysAgo = new Date(now.getTime() - (7 * 24 * 60 * 60 * 1000));
 
     const matureVideos = videoList.filter((v: any) => {
       const publishedDate = new Date(v.publishedAt);
-      return publishedDate <= threeDaysAgo;
+      return publishedDate <= sevenDaysAgo;
     });
 
     // 성과 점수로 정렬
@@ -225,11 +221,7 @@ export default function ChannelAnalysisTab({ isLoggedIn }: ChannelAnalysisTabPro
       return;
     }
 
-    const youtubeApiKey = localStorage.getItem('youtube_api_key');
-    if (!youtubeApiKey) {
-      alert('⚠️ YouTube API 키가 필요합니다!\n\n오른쪽 상단의 "⚙️ API 키 설정" 버튼을 눌러 YouTube API 키를 입력해주세요.');
-      return;
-    }
+    const youtubeApiKey = localStorage.getItem('youtube_api_key') || '';
 
     setLoading(true);
     setVideos([]);
@@ -408,11 +400,11 @@ export default function ChannelAnalysisTab({ isLoggedIn }: ChannelAnalysisTabPro
       // ⭐ 상위/하위 영상 요약 데이터 생성 (실시간 화면과 히스토리 화면 1:1 일치를 위해)
       console.log('📊 상위/하위 영상 스냅샷 생성 중...');
       const now = new Date();
-      const threeDaysAgo = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000);
+      const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 
       const matureVideos = videos.filter((v: any) => {
         const publishedDate = new Date(v.publishedAt);
-        return publishedDate <= threeDaysAgo;
+        return publishedDate <= sevenDaysAgo;
       });
 
       // 성과 점수로 정렬
