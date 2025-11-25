@@ -30,6 +30,9 @@ export default function MyChannelTab({ isLoggedIn }: MyChannelTabProps) {
   // 영상 리스트 정렬 기준
   const [sortBy, setSortBy] = useState<'latest' | 'views' | 'likes' | 'comments'>('latest');
 
+  // v2: 시점별 데이터 (48h/7d) 기능 재도입 예정
+  // const [timepoint, setTimepoint] = useState<'current' | '48h' | '7d'>('current');
+
   // 👇 Phase 3: 여러 채널 관리
   const [connectedChannels, setConnectedChannels] = useState<any[]>([]);
   const [selectedChannelId, setSelectedChannelId] = useState<string | null>(null);
@@ -162,6 +165,18 @@ export default function MyChannelTab({ isLoggedIn }: MyChannelTabProps) {
     setIsScriptModalOpen(true);
   };
 
+  // v2: 시점별 메트릭 선택 기능 재도입 예정
+  // const getMetricsForTimepoint = (video: any) => {
+  //   if (timepoint === '48h') return video.metrics_48h;
+  //   else if (timepoint === '7d') return video.metrics_7d;
+  //   else return video.metrics_current;
+  // };
+
+  // v1: 현재는 metrics_current만 사용
+  const getMetricsForTimepoint = (video: any) => {
+    return video.metrics_current;
+  };
+
   // 영상 리스트 정렬 함수
   const getSortedVideos = () => {
     if (!myChannelData || !myChannelData.videos) return [];
@@ -173,14 +188,26 @@ export default function MyChannelTab({ isLoggedIn }: MyChannelTabProps) {
         // 최신순 (days_since_upload 기준 오름차순 - 작은 값이 최신)
         return videosCopy.sort((a, b) => a.days_since_upload - b.days_since_upload);
       case 'views':
-        // 조회수 기준 내림차순
-        return videosCopy.sort((a, b) => (b.views || 0) - (a.views || 0));
+        // 🆕 선택된 시점의 조회수 기준 내림차순
+        return videosCopy.sort((a, b) => {
+          const metricsA = getMetricsForTimepoint(a);
+          const metricsB = getMetricsForTimepoint(b);
+          return (metricsB?.views || 0) - (metricsA?.views || 0);
+        });
       case 'likes':
-        // 좋아요 기준 내림차순
-        return videosCopy.sort((a, b) => (b.likes || 0) - (a.likes || 0));
+        // 🆕 선택된 시점의 좋아요 기준 내림차순
+        return videosCopy.sort((a, b) => {
+          const metricsA = getMetricsForTimepoint(a);
+          const metricsB = getMetricsForTimepoint(b);
+          return (metricsB?.likes || 0) - (metricsA?.likes || 0);
+        });
       case 'comments':
-        // 댓글 기준 내림차순
-        return videosCopy.sort((a, b) => (b.comments || 0) - (a.comments || 0));
+        // 🆕 선택된 시점의 댓글 기준 내림차순
+        return videosCopy.sort((a, b) => {
+          const metricsA = getMetricsForTimepoint(a);
+          const metricsB = getMetricsForTimepoint(b);
+          return (metricsB?.comments || 0) - (metricsA?.comments || 0);
+        });
       default:
         return videosCopy;
     }
@@ -1145,22 +1172,43 @@ export default function MyChannelTab({ isLoggedIn }: MyChannelTabProps) {
                   📊 영상 데이터 ({myChannelData.videos.length}개)
                 </h3>
 
-                {/* 정렬 드롭다운 */}
-                <div className="flex items-center gap-2">
-                  <label htmlFor="my-channel-sort-select" className="text-sm text-gray-600 whitespace-nowrap">
-                    정렬:
-                  </label>
-                  <select
-                    id="my-channel-sort-select"
-                    value={sortBy}
-                    onChange={(e) => setSortBy(e.target.value as 'latest' | 'views' | 'likes' | 'comments')}
-                    className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-                  >
-                    <option value="latest">📅 최신순</option>
-                    <option value="views">👁️ 조회수 순</option>
-                    <option value="likes">👍 좋아요 순</option>
-                    <option value="comments">💬 댓글 순</option>
-                  </select>
+                {/* v2: 시점별 데이터 선택 드롭다운 재도입 예정 */}
+                {/* <div className="flex items-center gap-3 flex-wrap"> */}
+                  {/* 시점 선택 */}
+                  {/* <div className="flex items-center gap-2">
+                    <label htmlFor="timepoint-select" className="text-sm text-gray-600 whitespace-nowrap">
+                      시점:
+                    </label>
+                    <select
+                      id="timepoint-select"
+                      value={timepoint}
+                      onChange={(e) => setTimepoint(e.target.value as 'current' | '48h' | '7d')}
+                      className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white"
+                    >
+                      <option value="current">🔴 현재</option>
+                      <option value="48h">⏱️ 48시간 후</option>
+                      <option value="7d">📅 7일 후</option>
+                    </select>
+                  </div> */}
+
+                <div className="flex items-center gap-3 flex-wrap">
+                  {/* 정렬 선택 */}
+                  <div className="flex items-center gap-2">
+                    <label htmlFor="my-channel-sort-select" className="text-sm text-gray-600 whitespace-nowrap">
+                      정렬:
+                    </label>
+                    <select
+                      id="my-channel-sort-select"
+                      value={sortBy}
+                      onChange={(e) => setSortBy(e.target.value as 'latest' | 'views' | 'likes' | 'comments')}
+                      className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                    >
+                      <option value="latest">📅 최신순</option>
+                      <option value="views">👁️ 조회수 순</option>
+                      <option value="likes">👍 좋아요 순</option>
+                      <option value="comments">💬 댓글 순</option>
+                    </select>
+                  </div>
                 </div>
               </div>
 
@@ -1182,246 +1230,258 @@ export default function MyChannelTab({ isLoggedIn }: MyChannelTabProps) {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200">
-                    {getSortedVideos().map((video: any, index: number) => (
-                      <Fragment key={index}>
-                        <tr className="hover:bg-gray-50">
-                          <td className="px-4 py-3">
-                            <div className="flex items-start gap-3">
-                              {/* 썸네일 - 클릭 시 유튜브 쇼츠로 이동 */}
-                              <a
-                                href={`https://www.youtube.com/shorts/${video.video_id}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="relative w-20 h-14 flex-shrink-0 rounded overflow-hidden group cursor-pointer"
-                              >
-                                <img
-                                  src={video.thumbnail}
-                                  alt={video.title}
-                                  className="w-full h-full object-cover"
-                                />
-                                {/* Hover 오버레이 */}
-                                <div className="absolute inset-0 opacity-0 group-hover:opacity-100 bg-black/60 transition-opacity duration-300 flex items-center justify-center pointer-events-none">
-                                  <span className="text-white font-semibold text-xs">
-                                    ▶
-                                  </span>
-                                </div>
-                              </a>
-                              <div className="min-w-0">
-                                <p className="font-medium text-gray-900 text-xs line-clamp-2">
-                                  {video.title}
-                                </p>
-                                <div className="flex items-center gap-2 mt-1">
-                                  <p className="text-xs text-gray-500">
-                                    {video.days_since_upload}일 전
+                    {getSortedVideos().map((video: any, index: number) => {
+                      // 🆕 선택된 시점의 메트릭 가져오기
+                      const metrics = getMetricsForTimepoint(video);
+
+                      return (
+                        <Fragment key={index}>
+                          <tr className="hover:bg-gray-50">
+                            <td className="px-4 py-3">
+                              <div className="flex items-start gap-3">
+                                {/* 썸네일 - 클릭 시 유튜브 쇼츠로 이동 */}
+                                <a
+                                  href={`https://www.youtube.com/shorts/${video.video_id}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="relative w-20 h-14 flex-shrink-0 rounded overflow-hidden group cursor-pointer"
+                                >
+                                  <img
+                                    src={video.thumbnail}
+                                    alt={video.title}
+                                    className="w-full h-full object-cover"
+                                  />
+                                  {/* Hover 오버레이 */}
+                                  <div className="absolute inset-0 opacity-0 group-hover:opacity-100 bg-black/60 transition-opacity duration-300 flex items-center justify-center pointer-events-none">
+                                    <span className="text-white font-semibold text-xs">
+                                      ▶
+                                    </span>
+                                  </div>
+                                </a>
+                                <div className="min-w-0">
+                                  <p className="font-medium text-gray-900 text-xs line-clamp-2">
+                                    {video.title}
                                   </p>
-                                  {video.script && video.script !== '자막이 없습니다' && video.script !== '자막 추출 실패' && (
-                                    <>
-                                      <span className="text-gray-300">·</span>
-                                      <button
-                                        onClick={() => openScriptModal(video.title, video.script)}
-                                        className="text-xs text-blue-600 hover:text-blue-800 hover:underline"
-                                      >
-                                        📄 대본
-                                      </button>
-                                    </>
-                                  )}
+                                  <div className="flex items-center gap-2 mt-1">
+                                    <p className="text-xs text-gray-500">
+                                      {video.days_since_upload}일 전
+                                    </p>
+                                    {video.script && video.script !== '자막이 없습니다' && video.script !== '자막 추출 실패' && (
+                                      <>
+                                        <span className="text-gray-300">·</span>
+                                        <button
+                                          onClick={() => openScriptModal(video.title, video.script)}
+                                          className="text-xs text-blue-600 hover:text-blue-800 hover:underline"
+                                        >
+                                          📄 대본
+                                        </button>
+                                      </>
+                                    )}
+                                  </div>
                                 </div>
                               </div>
-                            </div>
-                          </td>
-                          <td className="px-4 py-3 text-center">
-                            <p className="text-gray-700">{video.duration}초</p>
-                          </td>
-                          <td className="px-4 py-3 text-center">
-                            <p className="font-semibold text-gray-900">
-                              {video.views?.toLocaleString() || '0'}
-                            </p>
-                          </td>
-                          <td className="px-4 py-3 text-center">
-                            <p className="font-semibold text-blue-600">
-                              {video.engagedViews?.toLocaleString() || '-'}
-                            </p>
-                          </td>
-                          <td className="px-4 py-3 text-center">
-                            <p className="text-gray-700">
-                              {video.likes.toLocaleString()}
-                            </p>
-                          </td>
-                          <td className="px-4 py-3 text-center">
-                            <p className="text-gray-700">
-                              {video.comments.toLocaleString()}
-                            </p>
-                          </td>
-                          <td className="px-4 py-3 text-center">
-                            <p className="text-gray-700">
-                              {video.shares?.toLocaleString() || '0'}
-                            </p>
-                          </td>
-                          <td className="px-4 py-3 text-center">
-                            <p className="text-gray-700">
-                              {video.averageViewDuration ? Math.round(video.averageViewDuration) + '초' : '-'}
-                            </p>
-                          </td>
-                          <td className="px-4 py-3 text-center">
-                            <p className="text-gray-700">
-                              {video.averageViewPercentage !== null
-                                ? video.averageViewPercentage.toFixed(1) + '%'
-                                : '-'}
-                            </p>
-                          </td>
-                          <td className="px-4 py-3 text-center">
-                            <p className="text-gray-700">
-                              {video.subscribersGained > 0 ? '+' : ''}
-                              {video.subscribersGained}
-                            </p>
-                          </td>
-                        </tr>
-                      </Fragment>
-                    ))}
+                            </td>
+                            <td className="px-4 py-3 text-center">
+                              <p className="text-gray-700">{video.duration}초</p>
+                            </td>
+                            <td className="px-4 py-3 text-center">
+                              <p className="font-semibold text-gray-900">
+                                {metrics?.views?.toLocaleString() || '-'}
+                              </p>
+                            </td>
+                            <td className="px-4 py-3 text-center">
+                              <p className="font-semibold text-blue-600">
+                                {metrics?.engagedViews?.toLocaleString() || '-'}
+                              </p>
+                            </td>
+                            <td className="px-4 py-3 text-center">
+                              <p className="text-gray-700">
+                                {metrics?.likes?.toLocaleString() || '-'}
+                              </p>
+                            </td>
+                            <td className="px-4 py-3 text-center">
+                              <p className="text-gray-700">
+                                {metrics?.comments?.toLocaleString() || '-'}
+                              </p>
+                            </td>
+                            <td className="px-4 py-3 text-center">
+                              <p className="text-gray-700">
+                                {metrics?.shares?.toLocaleString() || '-'}
+                              </p>
+                            </td>
+                            <td className="px-4 py-3 text-center">
+                              <p className="text-gray-700">
+                                {metrics?.averageViewDuration ? Math.round(metrics.averageViewDuration) + '초' : '-'}
+                              </p>
+                            </td>
+                            <td className="px-4 py-3 text-center">
+                              <p className="text-gray-700">
+                                {metrics?.averageViewPercentage !== null && metrics?.averageViewPercentage !== undefined
+                                  ? metrics.averageViewPercentage.toFixed(1) + '%'
+                                  : '-'}
+                              </p>
+                            </td>
+                            <td className="px-4 py-3 text-center">
+                              <p className="text-gray-700">
+                                {metrics?.subscribersGained !== null && metrics?.subscribersGained !== undefined
+                                  ? (metrics.subscribersGained > 0 ? '+' : '') + metrics.subscribersGained
+                                  : '-'}
+                              </p>
+                            </td>
+                          </tr>
+                        </Fragment>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
 
               {/* 모바일 카드 */}
               <div className="md:hidden space-y-3">
-                {getSortedVideos().map((video: any, index: number) => (
-                  <div key={index} className="border border-gray-200 rounded-lg p-3 hover:shadow-md transition-shadow">
-                    <div className="flex gap-3 mb-3">
-                      {/* 썸네일 - 클릭 시 유튜브 쇼츠로 이동 */}
-                      <a
-                        href={`https://www.youtube.com/shorts/${video.video_id}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="relative w-28 h-20 flex-shrink-0 rounded overflow-hidden group cursor-pointer"
-                      >
-                        <img
-                          src={video.thumbnail}
-                          alt={video.title}
-                          className="w-full h-full object-cover"
-                        />
-                        {/* Hover 오버레이 */}
-                        <div className="absolute inset-0 opacity-0 group-hover:opacity-100 bg-black/60 transition-opacity duration-300 flex items-center justify-center pointer-events-none">
-                          <span className="text-white font-semibold text-sm">
-                            ▶ 영상보기
-                          </span>
-                        </div>
-                      </a>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium text-gray-900 text-sm line-clamp-2 mb-1">
-                          {video.title}
-                        </p>
-                        <div className="flex items-center gap-2 text-xs text-gray-500">
-                          <span>{video.days_since_upload}일 전</span>
-                          <span>·</span>
-                          <span>{video.duration}초</span>
+                {getSortedVideos().map((video: any, index: number) => {
+                  // 🆕 선택된 시점의 메트릭 가져오기
+                  const metrics = getMetricsForTimepoint(video);
+
+                  return (
+                    <div key={index} className="border border-gray-200 rounded-lg p-3 hover:shadow-md transition-shadow">
+                      <div className="flex gap-3 mb-3">
+                        {/* 썸네일 - 클릭 시 유튜브 쇼츠로 이동 */}
+                        <a
+                          href={`https://www.youtube.com/shorts/${video.video_id}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="relative w-28 h-20 flex-shrink-0 rounded overflow-hidden group cursor-pointer"
+                        >
+                          <img
+                            src={video.thumbnail}
+                            alt={video.title}
+                            className="w-full h-full object-cover"
+                          />
+                          {/* Hover 오버레이 */}
+                          <div className="absolute inset-0 opacity-0 group-hover:opacity-100 bg-black/60 transition-opacity duration-300 flex items-center justify-center pointer-events-none">
+                            <span className="text-white font-semibold text-sm">
+                              ▶ 영상보기
+                            </span>
+                          </div>
+                        </a>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-gray-900 text-sm line-clamp-2 mb-1">
+                            {video.title}
+                          </p>
+                          <div className="flex items-center gap-2 text-xs text-gray-500">
+                            <span>{video.days_since_upload}일 전</span>
+                            <span>·</span>
+                            <span>{video.duration}초</span>
+                          </div>
                         </div>
                       </div>
+
+                      <div className="grid grid-cols-2 gap-2 mb-3">
+                        {/* 1. 조회수 - 회색 */}
+                        <div className="bg-white border border-gray-200 rounded p-2 text-center">
+                          <div className="flex items-center justify-center gap-1 text-xs text-gray-600 mb-0.5">
+                            <Eye className="w-3 h-3 text-gray-500" />
+                            <span>조회수</span>
+                          </div>
+                          <p className="text-sm font-bold text-gray-900">
+                            {metrics?.views?.toLocaleString() || '-'}
+                          </p>
+                        </div>
+
+                        {/* 2. 유효조회 - 파란색 */}
+                        <div className="bg-white border border-gray-200 rounded p-2 text-center">
+                          <div className="flex items-center justify-center gap-1 text-xs text-gray-600 mb-0.5">
+                            <Eye className="w-3 h-3 text-blue-500" />
+                            <span>유효조회</span>
+                          </div>
+                          <p className="text-sm font-bold text-gray-900">
+                            {metrics?.engagedViews?.toLocaleString() || '-'}
+                          </p>
+                        </div>
+
+                        {/* 3. 좋아요 - 핑크 */}
+                        <div className="bg-white border border-gray-200 rounded p-2 text-center">
+                          <div className="flex items-center justify-center gap-1 text-xs text-gray-600 mb-0.5">
+                            <ThumbsUp className="w-3 h-3 text-pink-500" />
+                            <span>좋아요</span>
+                          </div>
+                          <p className="text-sm font-bold text-gray-900">
+                            {metrics?.likes?.toLocaleString() || '-'}
+                          </p>
+                        </div>
+
+                        {/* 4. 댓글 - 주황 */}
+                        <div className="bg-white border border-gray-200 rounded p-2 text-center">
+                          <div className="flex items-center justify-center gap-1 text-xs text-gray-600 mb-0.5">
+                            <BookOpen className="w-3 h-3 text-orange-500" />
+                            <span>댓글</span>
+                          </div>
+                          <p className="text-sm font-bold text-gray-900">
+                            {metrics?.comments?.toLocaleString() || '-'}
+                          </p>
+                        </div>
+
+                        {/* 5. 공유수 - 청록 */}
+                        <div className="bg-white border border-gray-200 rounded p-2 text-center">
+                          <div className="flex items-center justify-center gap-1 text-xs text-gray-600 mb-0.5">
+                            <TrendingUp className="w-3 h-3 text-teal-500" />
+                            <span>공유수</span>
+                          </div>
+                          <p className="text-sm font-bold text-gray-900">
+                            {metrics?.shares?.toLocaleString() || '-'}
+                          </p>
+                        </div>
+
+                        {/* 6. 시청시간 - 남색 */}
+                        <div className="bg-white border border-gray-200 rounded p-2 text-center">
+                          <div className="flex items-center justify-center gap-1 text-xs text-gray-600 mb-0.5">
+                            <Clock className="w-3 h-3 text-indigo-500" />
+                            <span>시청시간</span>
+                          </div>
+                          <p className="text-sm font-bold text-gray-900">
+                            {metrics?.averageViewDuration ? Math.round(metrics.averageViewDuration) + '초' : '-'}
+                          </p>
+                        </div>
+
+                        {/* 7. 시청률 - 초록 */}
+                        <div className="bg-white border border-gray-200 rounded p-2 text-center">
+                          <div className="flex items-center justify-center gap-1 text-xs text-gray-600 mb-0.5">
+                            <BarChart3 className="w-3 h-3 text-green-500" />
+                            <span>시청률</span>
+                          </div>
+                          <p className="text-sm font-bold text-gray-900">
+                            {metrics?.averageViewPercentage !== null && metrics?.averageViewPercentage !== undefined
+                              ? metrics.averageViewPercentage.toFixed(1) + '%'
+                              : '-'}
+                          </p>
+                        </div>
+
+                        {/* 8. 구독증가 - 보라 */}
+                        <div className="bg-white border border-gray-200 rounded p-2 text-center">
+                          <div className="flex items-center justify-center gap-1 text-xs text-gray-600 mb-0.5">
+                            <Award className="w-3 h-3 text-purple-500" />
+                            <span>구독증가</span>
+                          </div>
+                          <p className="text-sm font-bold text-gray-900">
+                            {metrics?.subscribersGained !== null && metrics?.subscribersGained !== undefined
+                              ? (metrics.subscribersGained > 0 ? '+' : '') + metrics.subscribersGained
+                              : '-'}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* 대본 보기 버튼 */}
+                      {video.script && video.script !== '자막이 없습니다' && video.script !== '자막 추출 실패' && (
+                        <button
+                          onClick={() => openScriptModal(video.title, video.script)}
+                          className="w-full mt-3 py-2 bg-blue-50 text-blue-600 rounded-lg text-sm font-medium hover:bg-blue-100 transition-colors"
+                        >
+                          📄 대본 보기
+                        </button>
+                      )}
                     </div>
-
-                    <div className="grid grid-cols-2 gap-2 mb-3">
-                      {/* 1. 조회수 - 회색 */}
-                      <div className="bg-white border border-gray-200 rounded p-2 text-center">
-                        <div className="flex items-center justify-center gap-1 text-xs text-gray-600 mb-0.5">
-                          <Eye className="w-3 h-3 text-gray-500" />
-                          <span>조회수</span>
-                        </div>
-                        <p className="text-sm font-bold text-gray-900">
-                          {video.views?.toLocaleString() || '0'}
-                        </p>
-                      </div>
-
-                      {/* 2. 유효조회 - 파란색 */}
-                      <div className="bg-white border border-gray-200 rounded p-2 text-center">
-                        <div className="flex items-center justify-center gap-1 text-xs text-gray-600 mb-0.5">
-                          <Eye className="w-3 h-3 text-blue-500" />
-                          <span>유효조회</span>
-                        </div>
-                        <p className="text-sm font-bold text-gray-900">
-                          {video.engagedViews?.toLocaleString() || '-'}
-                        </p>
-                      </div>
-
-                      {/* 3. 좋아요 - 핑크 */}
-                      <div className="bg-white border border-gray-200 rounded p-2 text-center">
-                        <div className="flex items-center justify-center gap-1 text-xs text-gray-600 mb-0.5">
-                          <ThumbsUp className="w-3 h-3 text-pink-500" />
-                          <span>좋아요</span>
-                        </div>
-                        <p className="text-sm font-bold text-gray-900">
-                          {video.likes.toLocaleString()}
-                        </p>
-                      </div>
-
-                      {/* 4. 댓글 - 주황 */}
-                      <div className="bg-white border border-gray-200 rounded p-2 text-center">
-                        <div className="flex items-center justify-center gap-1 text-xs text-gray-600 mb-0.5">
-                          <BookOpen className="w-3 h-3 text-orange-500" />
-                          <span>댓글</span>
-                        </div>
-                        <p className="text-sm font-bold text-gray-900">
-                          {video.comments.toLocaleString()}
-                        </p>
-                      </div>
-
-                      {/* 5. 공유수 - 청록 */}
-                      <div className="bg-white border border-gray-200 rounded p-2 text-center">
-                        <div className="flex items-center justify-center gap-1 text-xs text-gray-600 mb-0.5">
-                          <TrendingUp className="w-3 h-3 text-teal-500" />
-                          <span>공유수</span>
-                        </div>
-                        <p className="text-sm font-bold text-gray-900">
-                          {video.shares?.toLocaleString() || '0'}
-                        </p>
-                      </div>
-
-                      {/* 6. 시청시간 - 남색 */}
-                      <div className="bg-white border border-gray-200 rounded p-2 text-center">
-                        <div className="flex items-center justify-center gap-1 text-xs text-gray-600 mb-0.5">
-                          <Clock className="w-3 h-3 text-indigo-500" />
-                          <span>시청시간</span>
-                        </div>
-                        <p className="text-sm font-bold text-gray-900">
-                          {video.averageViewDuration ? Math.round(video.averageViewDuration) + '초' : '-'}
-                        </p>
-                      </div>
-
-                      {/* 7. 시청률 - 초록 */}
-                      <div className="bg-white border border-gray-200 rounded p-2 text-center">
-                        <div className="flex items-center justify-center gap-1 text-xs text-gray-600 mb-0.5">
-                          <BarChart3 className="w-3 h-3 text-green-500" />
-                          <span>시청률</span>
-                        </div>
-                        <p className="text-sm font-bold text-gray-900">
-                          {video.averageViewPercentage !== null
-                            ? video.averageViewPercentage.toFixed(1) + '%'
-                            : '-'}
-                        </p>
-                      </div>
-
-                      {/* 8. 구독증가 - 보라 */}
-                      <div className="bg-white border border-gray-200 rounded p-2 text-center">
-                        <div className="flex items-center justify-center gap-1 text-xs text-gray-600 mb-0.5">
-                          <Award className="w-3 h-3 text-purple-500" />
-                          <span>구독증가</span>
-                        </div>
-                        <p className="text-sm font-bold text-gray-900">
-                          {video.subscribersGained > 0 ? '+' : ''}
-                          {video.subscribersGained}
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* 대본 보기 버튼 */}
-                    {video.script && video.script !== '자막이 없습니다' && video.script !== '자막 추출 실패' && (
-                      <button
-                        onClick={() => openScriptModal(video.title, video.script)}
-                        className="w-full mt-3 py-2 bg-blue-50 text-blue-600 rounded-lg text-sm font-medium hover:bg-blue-100 transition-colors"
-                      >
-                        📄 대본 보기
-                      </button>
-                    )}
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}

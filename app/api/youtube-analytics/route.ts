@@ -229,73 +229,109 @@ export async function POST(request: NextRequest) {
         // 영상 업로드 날짜 (PT 기준)
         const publishedAt = new Date(video.snippet?.publishedAt || '');
         const videoStartDate = getPTDate(publishedAt);
-
-        // 현재 날짜 (PT 기준)
-        const videoEndDate = getCurrentPTDate();
+        const now = new Date();
 
         console.log(`  📊 [${videoId}] ${videoTitle}`);
-        console.log(`     기간: ${videoStartDate} ~ ${videoEndDate} (PT)`);
+        console.log(`     업로드: ${videoStartDate} (PT)`);
 
-        // Analytics API 호출
-        const response = await youtubeAnalytics.reports.query({
-          ids: 'channel==MINE',
-          startDate: videoStartDate,
-          endDate: videoEndDate,
-          metrics: [
-            'views',                    // 조회수
-            'likes',                    // 좋아요
-            'comments',                 // 댓글
-            'shares',                   // 공유
-            'averageViewDuration',      // 평균 시청시간(초)
-            'averageViewPercentage',    // 평균 시청률(%)
-            'subscribersGained',        // 구독자 증가
-            'engagedViews'              // 유효조회수
-          ].join(','),
-          dimensions: 'video',          // ✅ 전체 기간 합산
-          filters: `video==${videoId}`,
-        });
+        // 🆕 3가지 시점 계산
+        const date48h = new Date(publishedAt);
+        date48h.setDate(date48h.getDate() + 2);
+        const endDate48h = getPTDate(date48h);
 
-        const rows = response.data.rows || [];
+        const date7d = new Date(publishedAt);
+        date7d.setDate(date7d.getDate() + 7);
+        const endDate7d = getPTDate(date7d);
 
-        if (rows.length === 0) {
-          console.log(`     ⚠️  데이터 없음`);
+        const endDateCurrent = getCurrentPTDate();
+
+        // 🆕 Analytics 데이터 조회 함수
+        const fetchAnalyticsData = async (startDate: string, endDate: string, label: string) => {
+          try {
+            const response = await youtubeAnalytics.reports.query({
+              ids: 'channel==MINE',
+              startDate,
+              endDate,
+              metrics: [
+                'views',                    // 조회수
+                'likes',                    // 좋아요
+                'comments',                 // 댓글
+                'shares',                   // 공유
+                'averageViewDuration',      // 평균 시청시간(초)
+                'averageViewPercentage',    // 평균 시청률(%)
+                'subscribersGained',        // 구독자 증가
+                'engagedViews'              // 유효조회수
+              ].join(','),
+              dimensions: 'video',
+              filters: `video==${videoId}`,
+            });
+
+            const rows = response.data.rows || [];
+            return rows.length > 0 ? rows[0] : null;
+          } catch (error) {
+            console.log(`     ⚠️  ${label} 데이터 조회 실패`);
+            return null;
+          }
+        };
+
+        // 🆕 3가지 시점 데이터 모두 조회
+        const [row48h, row7d, rowCurrent] = await Promise.all([
+          // 48시간: 업로드 후 2일 미만인 경우 null
+          now > date48h ? fetchAnalyticsData(videoStartDate, endDate48h, '48시간') : Promise.resolve(null),
+          // 7일: 업로드 후 7일 미만인 경우 null
+          now > date7d ? fetchAnalyticsData(videoStartDate, endDate7d, '7일') : Promise.resolve(null),
+          // 현재: 항상 조회
+          fetchAnalyticsData(videoStartDate, endDateCurrent, '현재'),
+        ]);
+
+        // 🆕 데이터 파싱 함수
+        const parseMetrics = (row: any) => {
+          if (!row) return null;
+
+          return {
+            views: safeNumber(row[1]),
+            likes: safeNumber(row[2]),
+            comments: safeNumber(row[3]),
+            shares: safeNumber(row[4]),
+            averageViewDuration: safeNumber(row[5]),
+            averageViewPercentage: safeNumber(row[6]),
+            subscribersGained: safeNumber(row[7]),
+            engagedViews: safeNumber(row[8]),
+          };
+        };
+
+        const metrics48h = parseMetrics(row48h);
+        const metrics7d = parseMetrics(row7d);
+        const metricsCurrent = parseMetrics(rowCurrent);
+
+        if (!metricsCurrent) {
+          console.log(`     ⚠️  현재 데이터 없음`);
           return {
             videoId,
             video,
             durationInSeconds,
             analytics: null,
+            metrics_48h: null,
+            metrics_7d: null,
+            metrics_current: null,
           };
         }
 
-        // row는 1개만 나옴 (전체 기간 합산)
-        const row = rows[0];
+        console.log(`     ✅ 현재 조회수: ${metricsCurrent.views.toLocaleString()}`);
+        if (metrics48h) console.log(`     ✅ 48시간 조회수: ${metrics48h.views.toLocaleString()}`);
+        if (metrics7d) console.log(`     ✅ 7일 조회수: ${metrics7d.views.toLocaleString()}`);
 
-        console.log(`\n📋 [${videoId}] 원본 Analytics 데이터 (전체 기간):`);
-        console.log(`   [0] video_id: ${row[0]}`);
-        console.log(`   [1] views (조회수): ${row[1]}`);
-        console.log(`   [2] likes (좋아요): ${row[2]}`);
-        console.log(`   [3] comments (댓글): ${row[3]}`);
-        console.log(`   [4] shares (공유): ${row[4]}`);
-        console.log(`   [5] averageViewDuration (평균 시청시간): ${row[5]}`);
-        console.log(`   [6] averageViewPercentage (평균 조회율): ${row[6]}`);
-        console.log(`   [7] subscribersGained (구독자): ${row[7]}`);
-        console.log(`   [8] engagedViews (유효조회): ${row[8]}`);
+        // 🔄 기존 변수들 (현재 데이터 기준으로 유지 - 하위 호환성)
+        const totalViews = metricsCurrent.views;
+        const totalLikes = metricsCurrent.likes;
+        const totalComments = metricsCurrent.comments;
+        const totalShares = metricsCurrent.shares;
+        const averageViewDuration = metricsCurrent.averageViewDuration;
+        const averageViewPercentage = metricsCurrent.averageViewPercentage;
+        const totalSubscribersGained = metricsCurrent.subscribersGained;
+        const apiEngagedViews = metricsCurrent.engagedViews;
 
-        // 데이터 추출 (이미 합산된 값)
-        const totalViews = safeNumber(row[1]);
-        const totalLikes = safeNumber(row[2]);
-        const totalComments = safeNumber(row[3]);
-        const totalShares = safeNumber(row[4]);
-        const averageViewDuration = safeNumber(row[5]);
-        const averageViewPercentage = safeNumber(row[6]);
-        const totalSubscribersGained = safeNumber(row[7]);
-        const apiEngagedViews = safeNumber(row[8]);
-
-        console.log(`     ✅ 조회수: ${totalViews.toLocaleString()}`);
-        console.log(`     ✅ 평균 시청: ${averageViewDuration.toFixed(1)}초 (${averageViewPercentage.toFixed(1)}%)`);
-        console.log(`     ✅ 유효조회수: ${apiEngagedViews.toLocaleString()}`);
-
-        // 참여율 계산
+        // 참여율 계산 (현재 데이터 기준)
         const engagementRate = totalViews > 0
           ? (totalLikes + totalComments + totalShares) / totalViews
           : 0;
@@ -320,6 +356,10 @@ export async function POST(request: NextRequest) {
             subscriberConversionRate,
             engagedViews: apiEngagedViews,  // API 제공 값 사용
           },
+          // 🆕 3시점 데이터 추가
+          metrics_48h: metrics48h,
+          metrics_7d: metrics7d,
+          metrics_current: metricsCurrent,
         };
 
       } catch (error: any) {
@@ -329,6 +369,9 @@ export async function POST(request: NextRequest) {
           video,
           durationInSeconds,
           analytics: null,
+          metrics_48h: null,
+          metrics_7d: null,
+          metrics_current: null,
         };
       }
     });
@@ -341,7 +384,7 @@ export async function POST(request: NextRequest) {
     console.log('📌 최종 데이터 정리 중...');
 
     const finalVideos = analyticsResults.map((result) => {
-      const { videoId, video, durationInSeconds, analytics } = result;
+      const { videoId, video, durationInSeconds, analytics, metrics_48h, metrics_7d, metrics_current } = result;
 
       // 업로드 후 경과 일수 (PT 기준)
       const publishedAt = new Date(video.snippet?.publishedAt || '');
@@ -381,6 +424,11 @@ export async function POST(request: NextRequest) {
           engagementRate: null,
           subscriberConversionRate: null,
           engagedViews: null,
+
+          // 🆕 3시점 메트릭
+          metrics_48h: null,
+          metrics_7d: null,
+          metrics_current: null,
         };
       }
 
@@ -409,6 +457,11 @@ export async function POST(request: NextRequest) {
 
         // YouTube API 제공 지표
         engagedViews: analytics.engagedViews,                         // 유효조회수
+
+        // 🆕 3시점 메트릭
+        metrics_48h,
+        metrics_7d,
+        metrics_current,
       };
     });
 
