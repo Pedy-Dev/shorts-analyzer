@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Search, Loader2, Calendar, Clock, Eye, ThumbsUp, MessageCircle, Tag } from 'lucide-react';
+import { Search, Loader2, Calendar, Clock, Eye, ThumbsUp, MessageCircle, Tag, Info } from 'lucide-react';
 import { getChannelId, getChannelShorts, formatDate, getSubtitle } from '../api/youtube';
 import ChannelAnalysisView from './ChannelAnalysisView';
 import type { VideoSummary } from '../types/analysis';
@@ -787,49 +787,90 @@ export default function ChannelAnalysisTab({ isLoggedIn }: ChannelAnalysisTabPro
       )}
 
       {/* 분석 버튼 / 가이드 버튼 섹션 */}
-      {videos.length > 0 && (
-        <div className="bg-white rounded-lg shadow-lg p-4 md:p-6 mb-6 md:mb-8">
-          <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-3 md:mb-4">📋 콘텐츠 제작 가이드 생성</h2>
+      {videos.length > 0 && (() => {
+        // 7일 이상 경과한 영상 수 계산
+        const now = new Date();
+        const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        const matureVideos = videos.filter((v: any) => {
+          const publishedDate = new Date(v.publishedAt);
+          return publishedDate <= sevenDaysAgo;
+        });
+        const matureCount = matureVideos.length;
+        const totalCount = videos.length;
+        const recentCount = totalCount - matureCount;
 
-          <p className="text-xs md:text-sm text-gray-600 mb-4 md:mb-6">
-            수집된 {videos.filter(v => v.script !== '자막이 없습니다' && v.script !== '자막 추출 실패').length}개 대본을 3단계로 분석하여 맞춤 가이드를 생성합니다.
-          </p>
+        return (
+          <>
+            {/* 분석 가능 영상 안내 */}
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 md:p-4 mb-4 md:mb-6">
+              <div className="flex items-start gap-2 md:gap-3">
+                <Info className="w-4 h-4 md:w-5 md:h-5 mt-0.5 flex-shrink-0 text-blue-600" />
+                <div className="flex-1">
+                  <p className="text-sm md:text-base font-medium text-blue-900">
+                    분석 대상: <span className="font-bold">{matureCount}개</span> / 전체 {totalCount}개
+                  </p>
+                  <p className="text-xs md:text-sm text-blue-700 mt-1">
+                    게시 7일 이상 경과한 영상만 분석하여 더 정확한 인사이트를 제공합니다
+                    {recentCount > 0 && ` (최근 ${recentCount}개 영상 제외)`}
+                  </p>
+                </div>
+              </div>
+            </div>
 
-          <button
-            onClick={analyzeStructure}
-            disabled={scriptLoading}
-            className="w-full py-2.5 md:py-3 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-lg text-sm md:text-base font-medium hover:from-blue-700 hover:to-cyan-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 mb-3 md:mb-4"
-          >
-            {scriptLoading && !analysisResult && !generatedGuideline ? (
-              <>
-                <Loader2 className="w-4 md:w-5 h-4 md:h-5 animate-spin" />
-                채널 컨텐츠를 분석하고 있습니다...
-              </>
-            ) : (
-              <>
-                📊 1단계: 채널 컨텐츠 분석하기
-              </>
-            )}
-          </button>
+            <div className="bg-white rounded-lg shadow-lg p-4 md:p-6 mb-6 md:mb-8">
+              <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-3 md:mb-4">📋 콘텐츠 제작 가이드 생성</h2>
 
-          <button
-            onClick={generateGuideline}
-            disabled={scriptLoading || !analysisResult || analysisResult.error}
-            className="w-full py-2.5 md:py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg text-sm md:text-base font-medium hover:from-purple-700 hover:to-pink-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-          >
-            {scriptLoading && analysisResult && !generatedGuideline ? (
-              <>
-                <Loader2 className="w-4 md:w-5 h-4 md:h-5 animate-spin" />
-                콘텐츠 제작 가이드를 생성하고 있습니다...
-              </>
-            ) : (
-              <>
-                ✨ 2단계: 콘텐츠 제작 가이드 생성하기
-              </>
-            )}
-          </button>
-        </div>
-      )}
+              <p className="text-xs md:text-sm text-gray-600 mb-4 md:mb-6">
+                수집된 {videos.filter(v => v.script !== '자막이 없습니다' && v.script !== '자막 추출 실패').length}개 대본을 3단계로 분석하여 맞춤 가이드를 생성합니다.
+              </p>
+
+              <button
+                onClick={analyzeStructure}
+                disabled={scriptLoading || matureCount < 10}
+                className="w-full py-2.5 md:py-3 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-lg text-sm md:text-base font-medium hover:from-blue-700 hover:to-cyan-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 mb-3 md:mb-4"
+              >
+                {scriptLoading && !analysisResult && !generatedGuideline ? (
+                  <>
+                    <Loader2 className="w-4 md:w-5 h-4 md:h-5 animate-spin" />
+                    채널 컨텐츠를 분석하고 있습니다...
+                  </>
+                ) : (
+                  <>
+                    📊 1단계: 채널 컨텐츠 분석하기
+                    {matureCount >= 10 && (
+                      <span className="text-xs md:text-sm opacity-90">
+                        ({matureCount}개 영상)
+                      </span>
+                    )}
+                  </>
+                )}
+              </button>
+              {matureCount < 10 && (
+                <p className="text-xs md:text-sm text-red-600 text-center mb-3 md:mb-4">
+                  ⚠️ 분석하려면 7일 이상 경과한 영상이 최소 10개 필요합니다 (현재: {matureCount}개)
+                </p>
+              )}
+
+              <button
+                onClick={generateGuideline}
+                disabled={scriptLoading || !analysisResult || analysisResult.error}
+                className="w-full py-2.5 md:py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg text-sm md:text-base font-medium hover:from-purple-700 hover:to-pink-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                {scriptLoading && analysisResult && !generatedGuideline ? (
+                  <>
+                    <Loader2 className="w-4 md:w-5 h-4 md:h-5 animate-spin" />
+                    콘텐츠 제작 가이드를 생성하고 있습니다...
+                  </>
+                ) : (
+                  <>
+                    ✨ 2단계: 콘텐츠 제작 가이드 생성하기
+                  </>
+                )}
+              </button>
+            </div>
+          </>
+        );
+      })()}
 
       {/* 외부 채널 분석 결과 뷰 (공용 컴포넌트) */}
       {analysisResult && !analysisResult.error && (

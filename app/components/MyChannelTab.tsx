@@ -3,7 +3,7 @@
 'use client';
 
 import { useState, useEffect, Fragment } from 'react';
-import { Youtube, Loader2, RefreshCw, Search, X, Eye, ThumbsUp, Clock, CheckCircle2, TrendingUp, AlertTriangle, Lightbulb, Target, BookOpen, Zap, Award, BarChart3 } from 'lucide-react';
+import { Youtube, Loader2, RefreshCw, Search, X, Eye, ThumbsUp, Clock, CheckCircle2, TrendingUp, AlertTriangle, Lightbulb, Target, BookOpen, Zap, Award, BarChart3, Info } from 'lucide-react';
 import { getSubtitle } from '../api/youtube';
 import GoogleLoginWarningModal from './GoogleLoginWarningModal';
 
@@ -303,18 +303,33 @@ export default function MyChannelTab({ isLoggedIn }: MyChannelTabProps) {
       return;
     }
 
+    // 🆕 7일 이상 경과한 영상만 필터링 (days_since_upload 기준)
+    const matureVideos = myChannelData.videos.filter((v: any) => {
+      const days = v.days_since_upload ?? 0;  // 값 없으면 0일 취급
+      return days >= 7;
+    });
+
+    console.log(`📊 전체 영상: ${myChannelData.videos.length}개`);
+    console.log(`📊 7일 이상 경과: ${matureVideos.length}개`);
+    console.log(`⏰ 제외된 최근 영상: ${myChannelData.videos.length - matureVideos.length}개`);
+
+    if (matureVideos.length < 10) {
+      alert(`⚠️ 분석 가능한 영상이 부족합니다.\n\n7일 이상 경과한 영상: ${matureVideos.length}개\n최소 필요: 10개\n\n최근 ${myChannelData.videos.length - matureVideos.length}개 영상은 성과 데이터가 안정화되지 않아 제외됩니다.`);
+      return;
+    }
+
     setDetailedAnalysisLoading(true);
     setMyChannelAnalysis(null);
 
     try {
-      console.log('🤖 채널 성과 분석 시작...');
+      console.log('�� 채널 성과 분석 시작...');
       const analysisResponse = await fetch('/api/analyze-performance', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          videos: myChannelData.videos,
+          videos: matureVideos,  // 🆕 7일 이상 경과한 영상만 전송
           channelInfo: myChannelData.channel,
           channelRecordId: selectedChannelId,  // ⭐ 채널 ID 추가
         }),
@@ -587,26 +602,65 @@ export default function MyChannelTab({ isLoggedIn }: MyChannelTabProps) {
             )}
           </div>
 
-          {myChannelData && myChannelData.videos && (
-            <div className="bg-white rounded-lg shadow-lg p-4 md:p-6">
-              <button
-                onClick={analyzeChannelPerformance}
-                disabled={detailedAnalysisLoading}
-                className="w-full px-5 py-3 md:px-6 md:py-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:from-purple-700 hover:to-pink-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-colors text-base md:text-lg font-bold"
-              >
-                {detailedAnalysisLoading ? (
-                  <>
-                    <Loader2 className="w-5 h-5 md:w-6 md:h-6 animate-spin" />
-                    채널 정밀 분석 중...
-                  </>
-                ) : (
-                  <>
-                    📊 채널 정밀 분석
-                  </>
-                )}
-              </button>
-            </div>
-          )}
+          {myChannelData && myChannelData.videos && (() => {
+            // 분석 가능한 영상 수 계산 (days_since_upload 기준)
+            const matureCount = myChannelData.videos.filter((v: any) => {
+              const days = v.days_since_upload ?? 0;
+              return days >= 7;
+            }).length;
+            const totalCount = myChannelData.videos.length;
+            const recentCount = totalCount - matureCount;
+
+            return (
+              <>
+                {/* 분석 가능 영상 안내 */}
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 md:p-4">
+                  <div className="flex items-start gap-2 md:gap-3">
+                    <Info className="w-4 h-4 md:w-5 md:h-5 mt-0.5 flex-shrink-0 text-blue-600" />
+                    <div className="flex-1">
+                      <p className="text-sm md:text-base font-medium text-blue-900">
+                        분석 대상: <span className="font-bold">{matureCount}개</span> / 전체 {totalCount}개
+                      </p>
+                      <p className="text-xs md:text-sm text-blue-700 mt-1">
+                        게시 7일 이상 경과한 영상만 분석하여 더 정확한 인사이트를 제공합니다
+                        {recentCount > 0 && ` (최근 ${recentCount}개 영상 제외)`}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 채널 정밀 분석 버튼 */}
+                <div className="bg-white rounded-lg shadow-lg p-4 md:p-6">
+                  <button
+                    onClick={analyzeChannelPerformance}
+                    disabled={detailedAnalysisLoading || matureCount < 10}
+                    className="w-full px-5 py-3 md:px-6 md:py-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:from-purple-700 hover:to-pink-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-colors text-base md:text-lg font-bold"
+                  >
+                    {detailedAnalysisLoading ? (
+                      <>
+                        <Loader2 className="w-5 h-5 md:w-6 md:h-6 animate-spin" />
+                        채널 정밀 분석 중...
+                      </>
+                    ) : (
+                      <>
+                        📊 채널 정밀 분석
+                        {matureCount >= 10 && (
+                          <span className="text-xs md:text-sm opacity-90">
+                            ({matureCount}개 영상)
+                          </span>
+                        )}
+                      </>
+                    )}
+                  </button>
+                  {matureCount < 10 && (
+                    <p className="text-xs md:text-sm text-red-600 text-center mt-2">
+                      ⚠️ 분석하려면 7일 이상 경과한 영상이 최소 10개 필요합니다 (현재: {matureCount}개)
+                    </p>
+                  )}
+                </div>
+              </>
+            );
+          })()}
 
           {/* ⭐ 새로운 분석 결과 UI ⭐ */}
 
