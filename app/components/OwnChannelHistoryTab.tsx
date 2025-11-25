@@ -4,6 +4,7 @@
 
 import { useState, useEffect } from 'react';
 import { Loader2, Trash2, Film, ChevronDown } from 'lucide-react';
+import MyChannelAnalysisView from './MyChannelAnalysisView';
 import type { VideoSummary } from '../types/analysis';
 
 interface OwnChannelHistoryTabProps {
@@ -40,8 +41,6 @@ interface DetailedRecord {
 
 // 내 채널 분석 상세 내용 컴포넌트
 function OwnChannelAnalysisDetails({ record }: { record: DetailedRecord }) {
-  const [selectedView, setSelectedView] = useState<'analysis' | 'guideline'>('analysis');
-
   // analysis_summary 안전 처리
   const rawSummary = record.analysis_summary as any;
   let analysisData: any = {};
@@ -57,147 +56,16 @@ function OwnChannelAnalysisDetails({ record }: { record: DetailedRecord }) {
     analysisData = rawSummary;
   }
 
-  const hasGuideline = !!analysisData?.contentGuideline;
-
   return (
-    <div className="space-y-4">
-      {/* 탭 버튼 */}
-      <div className="flex gap-3">
-        <button
-          onClick={() => setSelectedView('analysis')}
-          className={`flex-1 py-3 px-4 rounded-lg font-semibold transition-all ${
-            selectedView === 'analysis'
-              ? 'bg-blue-600 text-white shadow-lg'
-              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-          }`}
-        >
-          📊 분석 결과
-        </button>
-        <button
-          onClick={() => setSelectedView('guideline')}
-          className={`flex-1 py-3 px-4 rounded-lg font-semibold transition-all ${
-            selectedView === 'guideline'
-              ? 'bg-purple-600 text-white shadow-lg'
-              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-          }`}
-        >
-          📝 제작 가이드
-        </button>
+    <div className="bg-white rounded-lg shadow-lg p-6 overflow-hidden">
+      <h2 className="text-xl font-bold mb-4 text-gray-900 flex items-center gap-2">
+        📊 컨텐츠 분석 결과
+      </h2>
+
+      <div className="overflow-y-auto max-h-[600px] pr-2">
+        {/* ⭐ 전체 분석 결과 UI 표시 (MyChannelTab과 동일) */}
+        <MyChannelAnalysisView analysisData={analysisData} />
       </div>
-
-      {/* 분석 결과 뷰 */}
-      {selectedView === 'analysis' && (
-        <div className="bg-white rounded-lg shadow-lg p-6 overflow-hidden">
-          <h2 className="text-xl font-bold mb-4 text-gray-900 flex items-center gap-2">
-            📊 컨텐츠 분석 결과
-          </h2>
-
-          <div className="overflow-y-auto max-h-[600px] pr-2">
-            {/* 내 채널 분석 데이터 표시 */}
-            <div className="space-y-4">
-              {/* 핵심 인사이트 */}
-              {analysisData.keyInsights && analysisData.keyInsights.length > 0 && (
-                <div>
-                  <h4 className="font-semibold text-base mb-2 text-purple-800">📌 핵심 인사이트</h4>
-                  <div className="bg-purple-50 rounded-lg p-3">
-                    <ul className="space-y-2">
-                      {analysisData.keyInsights.map((insight: string, idx: number) => (
-                        <li key={idx} className="text-sm text-gray-700 flex items-start">
-                          <span className="text-purple-500 mr-2">•</span>
-                          <span>{insight}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                </div>
-              )}
-
-              {/* 성공 요인 */}
-              {analysisData.topCharacteristics && analysisData.topCharacteristics.length > 0 && (
-                <div>
-                  <h4 className="font-semibold text-base mb-2 text-green-700">✅ 성공 요인</h4>
-                  <div className="bg-green-50 rounded-lg p-3 border border-green-200">
-                    <ul className="space-y-2">
-                      {analysisData.topCharacteristics.map((char: string, idx: number) => (
-                        <li key={idx} className="text-sm text-gray-700 flex items-start">
-                          <span className="text-green-600 mr-2">✓</span>
-                          <span>{char}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                </div>
-              )}
-
-              {/* 개선 필요 사항 */}
-              {analysisData.bottomCharacteristics && analysisData.bottomCharacteristics.length > 0 && (
-                <div>
-                  <h4 className="font-semibold text-base mb-2 text-red-700">⚠️ 개선 필요 사항</h4>
-                  <div className="bg-red-50 rounded-lg p-3 border border-red-200">
-                    <ul className="space-y-2">
-                      {analysisData.bottomCharacteristics.map((char: string, idx: number) => (
-                        <li key={idx} className="text-sm text-gray-700 flex items-start">
-                          <span className="text-red-600 mr-2">✗</span>
-                          <span>{char}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                </div>
-              )}
-
-              {/* 데이터가 없는 경우 */}
-              {!analysisData.keyInsights && !analysisData.topCharacteristics && !analysisData.bottomCharacteristics && (
-                <div className="text-center py-8 text-gray-500">
-                  <p>분석 데이터를 표시할 수 없습니다.</p>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* 제작 가이드 뷰 */}
-      {selectedView === 'guideline' && (
-        hasGuideline ? (
-          <div className="bg-white rounded-lg shadow-lg p-6 overflow-hidden">
-            <h2 className="text-xl font-bold mb-4 text-gray-900 flex items-center justify-between">
-              <span className="flex items-center gap-2">
-                📝 컨텐츠 제작 가이드
-              </span>
-              <button
-                onClick={() => {
-                  navigator.clipboard.writeText(analysisData.contentGuideline || '');
-                  alert('가이드가 클립보드에 복사되었습니다!');
-                }}
-                className="px-3 py-1 bg-purple-600 text-white text-sm rounded hover:bg-purple-700 transition-colors"
-              >
-                복사
-              </button>
-            </h2>
-
-            <div className="overflow-y-auto max-h-[600px] pr-2">
-              <div className="bg-gradient-to-r from-yellow-50 to-orange-50 rounded-lg p-4">
-                <div className="whitespace-pre-wrap text-sm text-gray-700">
-                  {analysisData.contentGuideline}
-                </div>
-              </div>
-            </div>
-          </div>
-        ) : (
-          <div className="bg-gray-100 rounded-lg border-2 border-dashed border-gray-300 p-6 flex flex-col items-center justify-center min-h-[400px]">
-            <div className="text-center max-w-sm">
-              <span className="text-6xl mb-4 block opacity-50">📝</span>
-              <h3 className="text-lg font-semibold text-gray-700 mb-2">
-                제작 가이드가 생성되지 않았습니다
-              </h3>
-              <p className="text-sm text-gray-500">
-                이 분석에서는 컨텐츠 제작 가이드를 생성하지 않았습니다.
-              </p>
-            </div>
-          </div>
-        )
-      )}
     </div>
   );
 }
