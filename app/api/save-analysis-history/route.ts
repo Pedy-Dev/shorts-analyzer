@@ -259,6 +259,7 @@ export async function POST(request: NextRequest) {
       analysisRaw, // Gemini 원본 응답 (문자열/JSON)
       topVideosSummary, // 상위 30% 영상 스냅샷
       bottomVideosSummary, // 하위 30% 영상 스냅샷
+      channelStats, // 전체 영상 통계 (화면에 표시되는 수치)
     } = body ?? {};
 
 
@@ -339,6 +340,68 @@ export async function POST(request: NextRequest) {
     }
 
     console.log('✅ 분석 기록 저장 완료!');
+
+    // ⭐ 타 채널 분석인 경우 channel_catalog에도 저장 (서버 공용 자산)
+    if (!isOwnChannel) {
+      try {
+        console.log('📊 channel_catalog 업데이트 시작...');
+
+        // ✅ 전체 영상 통계 사용 (화면에 표시되는 수치와 동일)
+        const globalMetrics = channelStats ? {
+          avg_views: channelStats.avgViews || 0,
+          avg_likes: channelStats.avgLikes || 0,
+          avg_comments: channelStats.avgComments || 0,
+          avg_duration: channelStats.avgDuration || 0,
+          subscriber_count: subscriberCount || 0,
+        } : null;
+
+        if (globalMetrics) {
+
+          // 기존 채널 확인
+          const { data: existingChannel } = await supabase
+            .from('channel_catalog')
+            .select('total_analysis_count')
+            .eq('channel_id', channelId)
+            .single();
+
+          const newCount = existingChannel ? (existingChannel.total_analysis_count || 0) + 1 : 1;
+
+          // UPSERT: 채널이 없으면 INSERT, 있으면 UPDATE
+          const { error: catalogError } = await supabase
+            .from('channel_catalog')
+            .upsert(
+              {
+                channel_id: channelId,
+                channel_url: `https://youtube.com/@${channelId}`,
+                channel_title: safeChannelTitle,
+                category: creatorCategory,
+                last_analyzed_at: new Date().toISOString(),
+                total_analysis_count: newCount,
+                global_metrics: globalMetrics,
+              },
+              {
+                onConflict: 'channel_id',
+              }
+            );
+
+          if (catalogError) {
+            console.error('⚠️ channel_catalog 저장 실패 (무시):', catalogError);
+          } else {
+            console.log('✅ channel_catalog 업데이트 완료:', {
+              channel: safeChannelTitle,
+              category: creatorCategory,
+              analysis_count: newCount,
+              avg_views: globalMetrics.avg_views,
+            });
+          }
+        } else {
+          console.warn('⚠️ channelStats가 없어 channel_catalog 저장 생략');
+        }
+      } catch (catalogError) {
+        console.error('⚠️ channel_catalog 저장 중 오류 (무시):', catalogError);
+        // 실패해도 메인 저장은 성공했으므로 계속 진행
+      }
+    }
 
     return NextResponse.json({
       success: true,

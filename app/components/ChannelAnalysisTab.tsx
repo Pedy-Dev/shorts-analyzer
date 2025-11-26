@@ -460,6 +460,9 @@ export default function ChannelAnalysisTab({ isLoggedIn }: ChannelAnalysisTabPro
       setBottomVideosSummary(bottomSummary);
 
       try {
+        // 전체 영상 통계 계산 (화면에 표시되는 것과 동일)
+        const channelStats = calculateStats();
+
         const saveResponse = await fetch('/api/save-analysis-history', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -477,6 +480,8 @@ export default function ChannelAnalysisTab({ isLoggedIn }: ChannelAnalysisTabPro
             // ⭐ 추가: 상위/하위 영상 스냅샷 (실시간 화면과 히스토리 화면 1:1 일치)
             topVideosSummary: topSummary,
             bottomVideosSummary: bottomSummary,
+            // ⭐ 전체 영상 통계 (화면에 표시되는 수치)
+            channelStats: channelStats,
           }),
         });
 
