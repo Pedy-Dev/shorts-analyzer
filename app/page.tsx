@@ -124,33 +124,42 @@ export default function ChannelAnalyzer() {
 
           {/* 탭 메뉴 */}
           {isTabInitialized && currentTab !== null && (
-            <div className="flex gap-3 md:gap-4 mt-3 md:mt-4 border-b">
+            <div className="flex justify-between items-center mt-3 md:mt-4 border-b">
+              <div className="flex gap-3 md:gap-4">
+                <button
+                  onClick={() => handleTabChange('analyze')}
+                  className={`px-3 md:px-4 py-2 text-sm md:text-base font-medium transition-colors ${currentTab === 'analyze'
+                      ? 'text-red-600 border-b-2 border-red-600'
+                      : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                >
+                  타 채널 분석
+                </button>
+                <button
+                  onClick={() => handleTabChange('myChannel')}
+                  className={`px-3 md:px-4 py-2 text-sm md:text-base font-medium transition-colors ${currentTab === 'myChannel'
+                      ? 'text-red-600 border-b-2 border-red-600'
+                      : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                >
+                  내 채널 분석
+                </button>
+                <button
+                  onClick={() => handleTabChange('history')}
+                  className={`px-3 md:px-4 py-2 text-sm md:text-base font-medium transition-colors ${currentTab === 'history'
+                      ? 'text-red-600 border-b-2 border-red-600'
+                      : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                >
+                  📚 분석 기록
+                </button>
+              </div>
               <button
-                onClick={() => handleTabChange('analyze')}
-                className={`px-3 md:px-4 py-2 text-sm md:text-base font-medium transition-colors ${currentTab === 'analyze'
-                    ? 'text-red-600 border-b-2 border-red-600'
-                    : 'text-gray-600 hover:text-gray-900'
-                  }`}
+                onClick={() => window.open('/shorts-ranking', '_blank')}
+                className="px-3 md:px-4 py-1.5 md:py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center gap-1.5 md:gap-2 transition-colors text-sm md:text-base font-medium mb-[-1px]"
               >
-                타 채널 분석
-              </button>
-              <button
-                onClick={() => handleTabChange('myChannel')}
-                className={`px-3 md:px-4 py-2 text-sm md:text-base font-medium transition-colors ${currentTab === 'myChannel'
-                    ? 'text-red-600 border-b-2 border-red-600'
-                    : 'text-gray-600 hover:text-gray-900'
-                  }`}
-              >
-                내 채널 분석
-              </button>
-              <button
-                onClick={() => handleTabChange('history')}
-                className={`px-3 md:px-4 py-2 text-sm md:text-base font-medium transition-colors ${currentTab === 'history'
-                    ? 'text-red-600 border-b-2 border-red-600'
-                    : 'text-gray-600 hover:text-gray-900'
-                  }`}
-              >
-                📚 분석 기록
+                <span className="text-sm md:text-base">🏆</span>
+                <span className="whitespace-nowrap">유튜브 랭킹</span>
               </button>
             </div>
           )}

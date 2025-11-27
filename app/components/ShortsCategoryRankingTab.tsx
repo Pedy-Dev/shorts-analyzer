@@ -8,6 +8,8 @@
 import React, { useState, useEffect } from 'react';
 import { SHORTS_CATEGORIES, REGION_CODES, PeriodType, SortType } from '@/app/lib/constants/shorts-categories';
 
+type VideoType = 'shorts' | 'long' | 'all';
+
 interface RankingItem {
   rank: number;
   video_id: string;
@@ -19,6 +21,7 @@ interface RankingItem {
   published_at: string;
   thumbnail_url: string;
   youtube_url: string;
+  is_shorts: boolean;
 }
 
 interface KeywordItem {
@@ -35,6 +38,7 @@ export default function ShortsCategoryRankingTab() {
   const [selectedCategory, setSelectedCategory] = useState('23'); // 코미디 카테고리 (데이터 있음)
   const [selectedPeriod, setSelectedPeriod] = useState<PeriodType>('monthly'); // monthly 데이터가 가장 많음
   const [selectedSortType, setSelectedSortType] = useState<SortType>('views');
+  const [selectedVideoType, setSelectedVideoType] = useState<VideoType>('shorts'); // 쇼츠/롱폼/전체
   const [selectedRegion, setSelectedRegion] = useState('KR');
   const [activeTab, setActiveTab] = useState<'ranking' | 'keywords'>('ranking');
 
@@ -53,7 +57,7 @@ export default function ShortsCategoryRankingTab() {
     } else {
       loadKeywords();
     }
-  }, [selectedCategory, selectedPeriod, selectedSortType, selectedRegion, activeTab]);
+  }, [selectedCategory, selectedPeriod, selectedSortType, selectedVideoType, selectedRegion, activeTab]);
 
   const loadRankings = async () => {
     setLoading(true);
@@ -64,6 +68,7 @@ export default function ShortsCategoryRankingTab() {
       url.searchParams.set('category_id', selectedCategory);
       url.searchParams.set('period', selectedPeriod);
       url.searchParams.set('sort_type', selectedSortType);
+      url.searchParams.set('video_type', selectedVideoType);
       url.searchParams.set('region_code', selectedRegion);
       url.searchParams.set('date', 'latest');
 
@@ -136,10 +141,10 @@ export default function ShortsCategoryRankingTab() {
       <div className="bg-white border-b">
         <div className="max-w-7xl mx-auto px-4 py-4">
           <h1 className="text-2xl font-bold text-gray-900">
-            📊 카테고리별 쇼츠 차트 & 핫 키워드
+            카테고리별 인기 영상 차트 & 핫 키워드
           </h1>
           <p className="text-sm text-gray-600 mt-1">
-            지금 한국 쇼츠에서 진짜 먹히는 키워드와 인기 영상 TOP 100
+            한국에서 인기있는 쇼츠/롱폼 영상 TOP 100
           </p>
         </div>
       </div>
@@ -184,7 +189,7 @@ export default function ShortsCategoryRankingTab() {
                           : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                       }`}
                     >
-                      쇼츠 랭킹
+                      영상 랭킹
                     </button>
                     <button
                       onClick={() => setActiveTab('keywords')}
@@ -208,6 +213,42 @@ export default function ShortsCategoryRankingTab() {
                     <option value="weekly">주간</option>
                     <option value="monthly">월간</option>
                   </select>
+
+                  {/* 영상 타입 (랭킹 탭에서만) */}
+                  {activeTab === 'ranking' && (
+                    <div className="flex gap-1">
+                      <button
+                        onClick={() => setSelectedVideoType('shorts')}
+                        className={`px-3 py-2 rounded text-sm ${
+                          selectedVideoType === 'shorts'
+                            ? 'bg-blue-500 text-white'
+                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                        }`}
+                      >
+                        쇼츠
+                      </button>
+                      <button
+                        onClick={() => setSelectedVideoType('long')}
+                        className={`px-3 py-2 rounded text-sm ${
+                          selectedVideoType === 'long'
+                            ? 'bg-blue-500 text-white'
+                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                        }`}
+                      >
+                        롱폼
+                      </button>
+                      <button
+                        onClick={() => setSelectedVideoType('all')}
+                        className={`px-3 py-2 rounded text-sm ${
+                          selectedVideoType === 'all'
+                            ? 'bg-blue-500 text-white'
+                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                        }`}
+                      >
+                        전체
+                      </button>
+                    </div>
+                  )}
 
                   {/* 정렬 (랭킹 탭에서만) */}
                   {activeTab === 'ranking' && (
@@ -252,6 +293,7 @@ export default function ShortsCategoryRankingTab() {
                 <strong>{selectedPeriod === 'daily' ? '일간' : selectedPeriod === 'weekly' ? '주간' : '월간'}</strong>
                 {activeTab === 'ranking' && (
                   <>
+                    {' '}· <strong>{selectedVideoType === 'shorts' ? '쇼츠' : selectedVideoType === 'long' ? '롱폼' : '전체'}</strong>
                     {' '}· <strong>{selectedSortType === 'views' ? '조회수' : selectedSortType === 'likes' ? '좋아요' : '댓글'} 순위</strong>
                   </>
                 )}

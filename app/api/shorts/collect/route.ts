@@ -8,7 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { SHORTS_CATEGORIES } from '@/app/lib/constants/shorts-categories';
 import {
-  fetchCategoryShortsRaw,
+  fetchCategoryVideosRaw,
   saveToSnapshot,
   calculateRankings,
   getYesterdayKST,
@@ -87,11 +87,11 @@ export async function POST(request: NextRequest) {
     console.log(`\n📂 카테고리: ${category.label} (ID: ${category.id})`);
 
     try {
-      // 4-1. YouTube API로 쇼츠 수집
-      const shorts = await fetchCategoryShortsRaw(category.id, regionCode, 30);
+      // 4-1. YouTube API로 인기 영상 수집 (쇼츠 + 롱폼)
+      const videos = await fetchCategoryVideosRaw(category.id, regionCode);
 
-      if (shorts.length === 0) {
-        console.log(`⚠️ 수집된 쇼츠 없음`);
+      if (videos.length === 0) {
+        console.log(`⚠️ 수집된 영상 없음`);
         results.push({
           category_id: category.id,
           category_label: category.label,
@@ -102,22 +102,25 @@ export async function POST(request: NextRequest) {
       }
 
       // 4-2. DB에 저장
-      await saveToSnapshot(shorts, snapshotDate, category.id, regionCode);
+      await saveToSnapshot(videos, snapshotDate, category.id, regionCode);
 
-      // 4-3. 랭킹 계산
+      // 4-3. 랭킹 계산 (쇼츠/롱폼 각각)
       await calculateRankings(snapshotDate, category.id, regionCode);
 
-      totalVideos += shorts.length;
+      const shortsCount = videos.filter(v => v.is_shorts).length;
+      const longCount = videos.filter(v => !v.is_shorts).length;
+
+      totalVideos += videos.length;
       successCount++;
 
       results.push({
         category_id: category.id,
         category_label: category.label,
-        video_count: shorts.length,
+        video_count: videos.length,
         success: true,
       });
 
-      console.log(`✅ ${category.label} 완료: ${shorts.length}개 영상`);
+      console.log(`✅ ${category.label} 완료: ${videos.length}개 (쇼츠 ${shortsCount}, 롱폼 ${longCount})`);
 
       // API 호출 간격 (쿼터 보호)
       await new Promise((resolve) => setTimeout(resolve, 1000));
