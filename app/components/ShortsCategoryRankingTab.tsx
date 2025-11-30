@@ -15,13 +15,35 @@ interface RankingItem {
   video_id: string;
   title: string;
   channel_title: string;
-  view_count: number;
-  like_count: number;
-  comment_count: number;
+  // v2: 일간 증가량
+  daily_view_increase: number;
+  daily_like_increase: number;
+  daily_comment_increase: number;
+  // v2: 누적 수치 (참고용)
+  total_view_count: number;
+  total_like_count: number;
+  total_comment_count: number;
   published_at: string;
   thumbnail_url: string;
   youtube_url: string;
   is_shorts: boolean;
+  duration_sec: number;
+}
+
+/**
+ * 초를 "M:SS" 또는 "H:MM:SS" 형식으로 변환
+ */
+function formatDuration(seconds: number): string {
+  if (seconds < 0) return '0:00';
+
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const secs = seconds % 60;
+
+  if (hours > 0) {
+    return `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  }
+  return `${minutes}:${secs.toString().padStart(2, '0')}`;
 }
 
 interface KeywordItem {
@@ -35,8 +57,8 @@ interface KeywordItem {
 
 export default function ShortsCategoryRankingTab() {
   // ==================== 상태 관리 ====================
-  const [selectedCategory, setSelectedCategory] = useState('23'); // 코미디 카테고리 (데이터 있음)
-  const [selectedPeriod, setSelectedPeriod] = useState<PeriodType>('monthly'); // monthly 데이터가 가장 많음
+  const [selectedCategory, setSelectedCategory] = useState('15'); // 애완동물/동물 카테고리 (테스트 데이터 있음)
+  const [selectedPeriod, setSelectedPeriod] = useState<PeriodType>('daily'); // v2: daily만 지원
   const [selectedSortType, setSelectedSortType] = useState<SortType>('views');
   const [selectedVideoType, setSelectedVideoType] = useState<VideoType>('shorts'); // 쇼츠/롱폼/전체
   const [selectedRegion, setSelectedRegion] = useState('KR');
@@ -80,7 +102,7 @@ export default function ShortsCategoryRankingTab() {
 
       const data = await response.json();
       setRankings(data.items || []);
-      setSnapshotDate(data.metadata.snapshot_date);
+      setSnapshotDate(data.metadata.metric_date);
     } catch (err: any) {
       setError(err.message);
       setRankings([]);
@@ -203,15 +225,16 @@ export default function ShortsCategoryRankingTab() {
                     </button>
                   </div>
 
-                  {/* 기간 */}
+                  {/* 기간 - v1에서는 daily만 지원 */}
                   <select
                     value={selectedPeriod}
                     onChange={(e) => setSelectedPeriod(e.target.value as PeriodType)}
                     className="px-3 py-2 border rounded text-sm"
+                    disabled={activeTab === 'ranking'}
                   >
-                    <option value="daily">일간</option>
-                    <option value="weekly">주간</option>
-                    <option value="monthly">월간</option>
+                    <option value="daily">일간 (v1)</option>
+                    <option value="weekly" disabled>주간 (준비중)</option>
+                    <option value="monthly" disabled>월간 (준비중)</option>
                   </select>
 
                   {/* 영상 타입 (랭킹 탭에서만) */}
@@ -336,12 +359,17 @@ export default function ShortsCategoryRankingTab() {
                           {item.rank}
                         </div>
 
-                        {/* 썸네일 */}
-                        <img
-                          src={item.thumbnail_url}
-                          alt={item.title}
-                          className="w-32 h-20 object-cover rounded"
-                        />
+                        {/* 썸네일 + 영상 길이 */}
+                        <div className="relative w-32 h-20 flex-shrink-0">
+                          <img
+                            src={item.thumbnail_url}
+                            alt={item.title}
+                            className="w-full h-full object-cover rounded"
+                          />
+                          <span className="absolute bottom-1 right-1 bg-black/80 text-white text-xs px-1 py-0.5 rounded">
+                            {formatDuration(item.duration_sec)}
+                          </span>
+                        </div>
 
                         {/* 정보 */}
                         <div className="flex-1">
@@ -350,9 +378,12 @@ export default function ShortsCategoryRankingTab() {
                           </h4>
                           <p className="text-sm text-gray-600 mt-1">{item.channel_title}</p>
                           <div className="flex gap-4 mt-2 text-sm text-gray-500">
-                            <span>👁️ {item.view_count.toLocaleString()}</span>
-                            <span>👍 {item.like_count.toLocaleString()}</span>
-                            <span>💬 {item.comment_count.toLocaleString()}</span>
+                            <span>👁️ +{item.daily_view_increase.toLocaleString()}</span>
+                            <span>👍 +{item.daily_like_increase.toLocaleString()}</span>
+                            <span>💬 +{item.daily_comment_increase.toLocaleString()}</span>
+                          </div>
+                          <div className="flex gap-4 mt-1 text-xs text-gray-400">
+                            <span>누적: {item.total_view_count.toLocaleString()}</span>
                           </div>
                         </div>
                       </a>

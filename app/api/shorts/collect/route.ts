@@ -1,6 +1,8 @@
 /**
- * YouTube Shorts 카테고리별 수집 배치 API
- * 매일 KST 00:05에 실행 (Vercel Cron)
+ * YouTube 인기 영상 수집 배치 API (v2)
+ *
+ * 매일 KST 00:10에 실행 (Vercel Cron)
+ * - 스냅샷 저장 + 일간 증가량 계산
  *
  * POST /api/shorts/collect
  */
@@ -10,8 +12,9 @@ import { SHORTS_CATEGORIES } from '@/app/lib/constants/shorts-categories';
 import {
   fetchCategoryVideosRaw,
   saveToSnapshot,
-  calculateRankings,
+  calculateDailyMetrics,
   getYesterdayKST,
+  getTodayKST,
 } from '@/app/lib/youtube/shorts-collector';
 import { createServerClient } from '@/app/lib/supabase-server';
 
@@ -48,13 +51,16 @@ export async function POST(request: NextRequest) {
     // body 없으면 기본값 사용
   }
 
-  const snapshotDate = body.snapshot_date || getYesterdayKST();
+  // v2: 오늘 스냅샷 저장, 어제 기준 증가량 계산
+  const todayDate = body.snapshot_date || getTodayKST();  // 스냅샷 저장 날짜
+  const metricDate = body.metric_date || getYesterdayKST();  // 증가량 기준 날짜 (보통 어제)
   const regionCode = body.region_code || 'KR';
   const testMode = body.test_mode || false; // 테스트 모드 (1개 카테고리만)
   const categoryFilter = body.category_id; // 특정 카테고리만 수집
 
-  console.log('🚀 배치 수집 시작');
-  console.log(`📅 기준일: ${snapshotDate}`);
+  console.log('🚀 배치 수집 시작 (v2)');
+  console.log(`📅 스냅샷 저장일: ${todayDate}`);
+  console.log(`📊 증가량 기준일: ${metricDate}`);
   console.log(`🌏 국가: ${regionCode}`);
   console.log(`🧪 테스트 모드: ${testMode}`);
 
@@ -64,9 +70,9 @@ export async function POST(request: NextRequest) {
     .from('shorts_batch_logs')
     .insert({
       batch_type: 'collect',
-      snapshot_date: snapshotDate,
+      snapshot_date: todayDate,
       status: 'running',
-      metadata: { region_code: regionCode, test_mode: testMode },
+      metadata: { region_code: regionCode, test_mode: testMode, metric_date: metricDate },
     })
     .select()
     .single();
@@ -101,11 +107,11 @@ export async function POST(request: NextRequest) {
         continue;
       }
 
-      // 4-2. DB에 저장
-      await saveToSnapshot(videos, snapshotDate, category.id, regionCode);
+      // 4-2. DB에 스냅샷 저장
+      await saveToSnapshot(videos, todayDate, category.id, regionCode);
 
-      // 4-3. 랭킹 계산 (쇼츠/롱폼 각각)
-      await calculateRankings(snapshotDate, category.id, regionCode);
+      // 4-3. 일간 증가량 계산 (어제 vs 오늘 비교)
+      await calculateDailyMetrics(todayDate, metricDate, category.id, regionCode);
 
       const shortsCount = videos.filter(v => v.is_shorts).length;
       const longCount = videos.filter(v => !v.is_shorts).length;
@@ -174,7 +180,8 @@ export async function POST(request: NextRequest) {
 
   return NextResponse.json({
     success: failedCount === 0,
-    snapshot_date: snapshotDate,
+    snapshot_date: todayDate,
+    metric_date: metricDate,
     region_code: regionCode,
     summary: {
       total_categories: categoriesToProcess.length,

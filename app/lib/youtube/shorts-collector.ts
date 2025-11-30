@@ -1,10 +1,17 @@
 /**
- * YouTube 인기 영상 수집 엔진
+ * YouTube 인기 영상 수집 엔진 (v2.4)
+ *
  * videos.list(chart=mostPopular)로 카테고리별 인기 영상 수집
- * 쇼츠(≤180초)와 롱폼(>180초) 모두 수집
+ * - 쇼츠(≤120초)와 롱폼(>120초) 모두 한 번에 수집
+ * - 최대 4페이지(200개) 페이지네이션
+ * - 일간 증가량(daily_metrics) 계산 지원
  */
 
 import { createServerClient } from '@/app/lib/supabase-server';
+
+// ==================== 수집 설정 (v2.3) ====================
+const SHORTS_DURATION_THRESHOLD = 120;  // 120초(2분) 이하 = 쇼츠
+const MAX_PAGES = 4;                    // 최대 4페이지 (200개)
 
 // ==================== 타입 정의 ====================
 
@@ -21,7 +28,7 @@ export interface VideoData {
   channel_id: string;
   channel_title: string;
   thumbnail_url: string;
-  is_shorts: boolean; // 180초(3분) 이하면 true
+  is_shorts: boolean; // 120초(2분) 이하면 true
 }
 
 interface YouTubeVideoDetails {
@@ -66,6 +73,20 @@ export function parseDuration(isoDuration: string): number {
 }
 
 /**
+ * 한국어 포함 여부 체크
+ * @param text 검사할 텍스트
+ * @returns 한국어가 포함되어 있으면 true
+ */
+function hasKorean(text: string): boolean {
+  // 한글 유니코드 범위:
+  // - AC00-D7A3: 한글 음절 (가-힣)
+  // - 1100-11FF: 한글 자모
+  // - 3130-318F: 한글 호환 자모
+  const koreanRegex = /[\uAC00-\uD7A3\u1100-\u11FF\u3130-\u318F]/;
+  return koreanRegex.test(text);
+}
+
+/**
  * KST 기준 어제 날짜 (YYYY-MM-DD)
  */
 export function getYesterdayKST(): string {
@@ -86,24 +107,29 @@ export function getTodayKST(): string {
   return kstTime.toISOString().split('T')[0];
 }
 
-// ==================== YouTube API 호출 ====================
+// ==================== YouTube API 호출 (v2.2) ====================
 
 /**
- * YouTube 인기 동영상 차트 조회 (chart=mostPopular)
- * 해당 지역에서 실제로 인기있는 영상을 가져옴
+ * mostPopular 차트에서 쇼츠+롱폼 통합 수집 (v2.4)
+ * - 최대 4페이지 (200개) 수집
+ * - is_shorts는 duration <= 120초로 자동 판정
  */
-async function fetchMostPopularVideos(
+async function fetchMostPopularCategoryVideos(
   apiKey: string,
   categoryId: string,
   regionCode: string,
-  totalNeeded: number = 200
-): Promise<YouTubeVideoDetails[]> {
-  const allVideos: YouTubeVideoDetails[] = [];
+  maxPages: number = MAX_PAGES
+): Promise<VideoData[]> {
+  const allVideos: VideoData[] = [];
+  const seenIds = new Set<string>();
   let pageToken: string | undefined;
   let pagesChecked = 0;
-  const maxPages = Math.ceil(totalNeeded / 50);
+  let shortsCount = 0;
+  let longCount = 0;
 
-  while (allVideos.length < totalNeeded && pagesChecked < maxPages) {
+  console.log(`📊 수집 시작: 카테고리=${categoryId}, 최대 ${maxPages}페이지`);
+
+  while (pagesChecked < maxPages) {
     const url = new URL('https://www.googleapis.com/youtube/v3/videos');
     url.searchParams.set('part', 'snippet,contentDetails,statistics');
     url.searchParams.set('chart', 'mostPopular');
@@ -124,24 +150,67 @@ async function fetchMostPopularVideos(
     }
 
     const data = await response.json();
-    const items = data.items || [];
+    const items: YouTubeVideoDetails[] = data.items || [];
 
-    allVideos.push(...items);
+    for (const video of items) {
+      if (seenIds.has(video.id)) continue;
+
+      const durationSec = parseDuration(video.contentDetails.duration);
+      const title = video.snippet.title;
+
+      seenIds.add(video.id);
+
+      const isShorts = durationSec <= SHORTS_DURATION_THRESHOLD;
+      if (isShorts) {
+        shortsCount++;
+      } else {
+        longCount++;
+      }
+
+      const thumbnail =
+        video.snippet.thumbnails.high?.url ||
+        video.snippet.thumbnails.medium?.url ||
+        video.snippet.thumbnails.default?.url ||
+        '';
+
+      allVideos.push({
+        video_id: video.id,
+        title: title,
+        description: video.snippet.description || '',
+        tags: video.snippet.tags || [],
+        view_count: parseInt(video.statistics.viewCount || '0'),
+        like_count: parseInt(video.statistics.likeCount || '0'),
+        comment_count: parseInt(video.statistics.commentCount || '0'),
+        published_at: video.snippet.publishedAt,
+        duration_sec: durationSec,
+        channel_id: video.snippet.channelId,
+        channel_title: video.snippet.channelTitle,
+        thumbnail_url: thumbnail,
+        is_shorts: isShorts,
+      });
+    }
 
     pageToken = data.nextPageToken;
     pagesChecked++;
 
-    if (!pageToken) break;
+    console.log(`  📄 페이지 ${pagesChecked}: 누적 ${allVideos.length}개 (쇼츠 ${shortsCount}, 롱폼 ${longCount})`);
+
+    if (!pageToken) {
+      console.log(`  ⚠️ 더 이상 페이지 없음 (총 ${pagesChecked} 페이지)`);
+      break;
+    }
   }
 
-  console.log(`📊 mostPopular 조회: ${allVideos.length}개 영상 (카테고리 ${categoryId})`);
+  console.log(`✅ 수집 완료: 총 ${allVideos.length}개 (쇼츠 ${shortsCount}, 롱폼 ${longCount})`);
   return allVideos;
 }
 
 // ==================== 핵심 로직 ====================
 
 /**
- * 카테고리별 인기 영상 수집 (쇼츠 + 롱폼 전체)
+ * 카테고리별 인기 영상 수집 (v2.4)
+ * - mostPopular 차트에서 최대 200개 수집
+ * - is_shorts는 duration <= 120초로 자동 판정
  * @returns is_shorts 플래그가 포함된 영상 배열
  */
 export async function fetchCategoryVideosRaw(
@@ -153,46 +222,10 @@ export async function fetchCategoryVideosRaw(
     throw new Error('YOUTUBE_API_KEY_SERVER 환경변수가 설정되지 않았습니다');
   }
 
-  console.log(`📌 수집 시작: 카테고리=${categoryId}, 국가=${regionCode}`);
+  console.log(`📌 수집 시작 (v2.2): 카테고리=${categoryId}, 국가=${regionCode}`);
 
-  // 1. videos.list(chart=mostPopular)로 인기 영상 조회
-  const videoDetails = await fetchMostPopularVideos(apiKey, categoryId, regionCode, 200);
-
-  if (videoDetails.length === 0) {
-    console.log(`⚠️ 카테고리 ${categoryId}: 영상 없음`);
-    return [];
-  }
-
-  // 2. 데이터 변환 + is_shorts 플래그 추가
-  const videos: VideoData[] = videoDetails.map((video) => {
-    const durationSec = parseDuration(video.contentDetails.duration);
-    const thumbnail =
-      video.snippet.thumbnails.high?.url ||
-      video.snippet.thumbnails.medium?.url ||
-      video.snippet.thumbnails.default?.url ||
-      '';
-
-    return {
-      video_id: video.id,
-      title: video.snippet.title,
-      description: video.snippet.description || '',
-      tags: video.snippet.tags || [],
-      view_count: parseInt(video.statistics.viewCount || '0'),
-      like_count: parseInt(video.statistics.likeCount || '0'),
-      comment_count: parseInt(video.statistics.commentCount || '0'),
-      published_at: video.snippet.publishedAt,
-      duration_sec: durationSec,
-      channel_id: video.snippet.channelId,
-      channel_title: video.snippet.channelTitle,
-      thumbnail_url: thumbnail,
-      is_shorts: durationSec <= 180, // 180초(3분) 이하면 쇼츠
-    };
-  });
-
-  const shortsCount = videos.filter((v) => v.is_shorts).length;
-  const longCount = videos.filter((v) => !v.is_shorts).length;
-
-  console.log(`✅ 수집 완료: 총 ${videos.length}개 (쇼츠 ${shortsCount}개, 롱폼 ${longCount}개)`);
+  // mostPopular 차트에서 쇼츠+롱폼 통합 수집
+  const videos = await fetchMostPopularCategoryVideos(apiKey, categoryId, regionCode);
 
   return videos;
 }
@@ -347,4 +380,132 @@ export async function calculateRankings(
   const longRankings = rankingRows.filter((r) => !r.is_shorts).length;
 
   console.log(`✅ 랭킹 계산 완료: 총 ${rankingRows.length}개 (쇼츠 ${shortsRankings}, 롱폼 ${longRankings})`);
+}
+
+// ==================== 일간 증가량 계산 (v2 핵심) ====================
+
+/**
+ * 어제 스냅샷과 오늘 스냅샷을 비교해서 일간 증가량 계산
+ *
+ * @param todayDate 오늘 날짜 (스냅샷 수집일)
+ * @param metricDate 증가량 기준 날짜 (보통 어제)
+ * @param categoryId 카테고리 ID
+ * @param regionCode 지역 코드
+ */
+export async function calculateDailyMetrics(
+  todayDate: string,
+  metricDate: string,
+  categoryId: string,
+  regionCode: string
+): Promise<{ shortsCount: number; longCount: number; totalCount: number }> {
+  const supabase = createServerClient();
+
+  console.log(`📊 일간 증가량 계산 시작: ${metricDate} 기준 (${categoryId})`);
+
+  // 1. 오늘 스냅샷 조회
+  const { data: todaySnap, error: todayError } = await supabase
+    .from('category_shorts_snapshot')
+    .select('*')
+    .eq('snapshot_date', todayDate)
+    .eq('category_id', categoryId)
+    .eq('region_code', regionCode);
+
+  if (todayError) {
+    throw new Error(`오늘 스냅샷 조회 실패: ${todayError.message}`);
+  }
+
+  if (!todaySnap || todaySnap.length === 0) {
+    console.log(`⚠️ 오늘(${todayDate}) 스냅샷 없음`);
+    return { shortsCount: 0, longCount: 0, totalCount: 0 };
+  }
+
+  // 2. 어제 스냅샷 조회 (비교용)
+  const { data: yesterdaySnap } = await supabase
+    .from('category_shorts_snapshot')
+    .select('video_id, view_count, like_count, comment_count')
+    .eq('snapshot_date', metricDate)
+    .eq('category_id', categoryId)
+    .eq('region_code', regionCode);
+
+  // 어제 데이터를 Map으로 변환 (빠른 조회용)
+  const yesterdayMap = new Map(
+    (yesterdaySnap || []).map((v) => [v.video_id, v])
+  );
+
+  console.log(`📈 비교: 오늘 ${todaySnap.length}개 vs 어제 ${yesterdayMap.size}개`);
+
+  // 3. 증가량 계산
+  const metrics = todaySnap.map((video) => {
+    const yesterday = yesterdayMap.get(video.video_id);
+
+    // 어제 데이터 없으면 오늘 수치 그대로 (신규 영상)
+    const dailyViewIncrease = yesterday
+      ? Math.max(0, video.view_count - yesterday.view_count)
+      : video.view_count;
+    const dailyLikeIncrease = yesterday
+      ? Math.max(0, video.like_count - yesterday.like_count)
+      : video.like_count;
+    const dailyCommentIncrease = yesterday
+      ? Math.max(0, video.comment_count - yesterday.comment_count)
+      : video.comment_count;
+
+    return {
+      metric_date: metricDate,
+      region_code: regionCode,
+      category_id: categoryId,
+      video_id: video.video_id,
+
+      // 일간 증가량
+      daily_view_increase: dailyViewIncrease,
+      daily_like_increase: dailyLikeIncrease,
+      daily_comment_increase: dailyCommentIncrease,
+
+      // 메타데이터 (조인 없이 바로 표시용)
+      title: video.title,
+      channel_id: video.channel_id,
+      channel_title: video.channel_title,
+      thumbnail_url: video.thumbnail_url,
+      duration_sec: video.duration_sec,
+      is_shorts: video.is_shorts,
+      published_at: video.published_at,
+
+      // 누적 수치 (참고용)
+      total_view_count: video.view_count,
+      total_like_count: video.like_count,
+      total_comment_count: video.comment_count,
+    };
+  });
+
+  // 4. DB 저장
+  if (metrics.length > 0) {
+    const { error: insertError } = await supabase
+      .from('category_shorts_daily_metrics')
+      .upsert(metrics, {
+        onConflict: 'metric_date,region_code,category_id,video_id',
+      });
+
+    if (insertError) {
+      throw new Error(`일간 증가량 저장 실패: ${insertError.message}`);
+    }
+  }
+
+  // 5. 통계 반환
+  const shortsCount = metrics.filter((m) => m.is_shorts).length;
+  const longCount = metrics.filter((m) => !m.is_shorts).length;
+
+  console.log(`✅ 일간 증가량 저장 완료: ${metrics.length}개 (쇼츠 ${shortsCount}, 롱폼 ${longCount})`);
+
+  return {
+    shortsCount,
+    longCount,
+    totalCount: metrics.length,
+  };
+}
+
+/**
+ * 첫 수집일인 경우: 스냅샷만 저장하고 증가량은 계산하지 않음
+ * (어제 데이터가 없으므로)
+ */
+export function isFirstCollection(yesterdaySnapCount: number): boolean {
+  return yesterdaySnapCount === 0;
 }
