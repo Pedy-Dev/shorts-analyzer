@@ -1,12 +1,11 @@
 /**
- * 카테고리별 영상 랭킹 조회 API (v2)
+ * 카테고리별 영상 랭킹 조회 API (v3)
  *
  * GET /api/shorts/ranking?category_id=10&sort_type=views&video_type=shorts&region_code=KR&date=latest
  *
- * v2 변경사항:
- * - category_shorts_daily_metrics 테이블에서 조회 (증가량 기준)
- * - period 파라미터: v1에서는 daily만 지원
- * - 정렬: daily_view_increase / daily_like_increase / daily_comment_increase
+ * v3 변경사항:
+ * - category_shorts_snapshot 테이블에서 직접 조회 (누적 수치 기준)
+ * - 정렬: view_count / like_count / comment_count
  *
  * video_type:
  *   - shorts: 쇼츠만 (is_shorts = true)
@@ -19,7 +18,6 @@ import { createServerClient } from '@/app/lib/supabase-server';
 import {
   getCategoryLabel,
   getRegionLabel,
-  getPeriodLabel,
   getSortLabel,
 } from '@/app/lib/constants/shorts-categories';
 
@@ -30,7 +28,6 @@ export async function GET(request: NextRequest) {
 
   // ==================== 파라미터 파싱 ====================
   const categoryId = searchParams.get('category_id');
-  const period = (searchParams.get('period') || 'daily') as 'daily' | 'weekly' | 'monthly';
   const sortType = (searchParams.get('sort_type') || 'views') as 'views' | 'likes' | 'comments';
   const regionCode = searchParams.get('region_code') || 'KR';
   const dateParam = searchParams.get('date') || 'latest';
@@ -45,30 +42,19 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  // v1에서는 daily만 지원
-  if (period !== 'daily') {
-    return NextResponse.json(
-      {
-        error: 'v1 only supports daily period. Weekly/monthly coming soon.',
-        supported_periods: ['daily']
-      },
-      { status: 400 }
-    );
-  }
-
   const supabase = createServerClient();
 
   // is_shorts 값 결정
   const isShorts = videoType === 'shorts' ? true : videoType === 'long' ? false : null;
 
   // ==================== 날짜 결정 ====================
-  let metricDate: string;
+  let snapshotDate: string;
 
   if (dateParam === 'latest') {
-    // 최신 metric_date 조회
+    // 최신 snapshot_date 조회
     let latestQuery = supabase
-      .from('category_shorts_daily_metrics')
-      .select('metric_date')
+      .from('category_shorts_snapshot')
+      .select('snapshot_date')
       .eq('category_id', categoryId)
       .eq('region_code', regionCode);
 
@@ -78,7 +64,7 @@ export async function GET(request: NextRequest) {
     }
 
     const { data: latestData, error: latestError } = await latestQuery
-      .order('metric_date', { ascending: false })
+      .order('snapshot_date', { ascending: false })
       .limit(1)
       .single();
 
@@ -89,22 +75,22 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    metricDate = latestData.metric_date;
+    snapshotDate = latestData.snapshot_date;
   } else {
-    metricDate = dateParam;
+    snapshotDate = dateParam;
   }
 
   // ==================== 정렬 컬럼 결정 ====================
   const sortColumn =
-    sortType === 'views' ? 'daily_view_increase' :
-    sortType === 'likes' ? 'daily_like_increase' :
-    'daily_comment_increase';
+    sortType === 'views' ? 'view_count' :
+    sortType === 'likes' ? 'like_count' :
+    'comment_count';
 
   // ==================== 랭킹 데이터 조회 ====================
   let rankingQuery = supabase
-    .from('category_shorts_daily_metrics')
+    .from('category_shorts_snapshot')
     .select('*')
-    .eq('metric_date', metricDate)
+    .eq('snapshot_date', snapshotDate)
     .eq('category_id', categoryId)
     .eq('region_code', regionCode)
     .order(sortColumn, { ascending: false })
@@ -131,14 +117,10 @@ export async function GET(request: NextRequest) {
     title: row.title,
     channel_id: row.channel_id,
     channel_title: row.channel_title,
-    // 증가량 (v2 핵심)
-    daily_view_increase: row.daily_view_increase,
-    daily_like_increase: row.daily_like_increase,
-    daily_comment_increase: row.daily_comment_increase,
-    // 누적 수치 (참고용)
-    total_view_count: row.total_view_count,
-    total_like_count: row.total_like_count,
-    total_comment_count: row.total_comment_count,
+    // 누적 수치
+    view_count: row.view_count,
+    like_count: row.like_count,
+    comment_count: row.comment_count,
     // 메타데이터
     published_at: row.published_at,
     duration_sec: row.duration_sec,
@@ -152,11 +134,9 @@ export async function GET(request: NextRequest) {
 
   return NextResponse.json({
     metadata: {
-      metric_date: metricDate,
+      snapshot_date: snapshotDate,
       category_id: categoryId,
       category_label: getCategoryLabel(categoryId),
-      period,
-      period_label: getPeriodLabel(period),
       sort_type: sortType,
       sort_label: getSortLabel(sortType),
       video_type: videoType,

@@ -1,8 +1,8 @@
 /**
- * YouTube 인기 영상 수집 배치 API (v2)
+ * YouTube 인기 영상 수집 배치 API (v3)
  *
  * 매일 KST 00:10에 실행 (Vercel Cron)
- * - 스냅샷 저장 + 일간 증가량 계산
+ * - 스냅샷 저장만 수행 (증가량 계산 제거)
  *
  * POST /api/shorts/collect
  */
@@ -12,8 +12,6 @@ import { SHORTS_CATEGORIES } from '@/app/lib/constants/shorts-categories';
 import {
   fetchCategoryVideosRaw,
   saveToSnapshot,
-  calculateDailyMetrics,
-  getYesterdayKST,
   getTodayKST,
 } from '@/app/lib/youtube/shorts-collector';
 import { createServerClient } from '@/app/lib/supabase-server';
@@ -51,16 +49,14 @@ export async function POST(request: NextRequest) {
     // body 없으면 기본값 사용
   }
 
-  // v2: 오늘 스냅샷 저장, 어제 기준 증가량 계산
-  const todayDate = body.snapshot_date || getTodayKST();  // 스냅샷 저장 날짜
-  const metricDate = body.metric_date || getYesterdayKST();  // 증가량 기준 날짜 (보통 어제)
+  // v3: 스냅샷만 저장
+  const snapshotDate = body.snapshot_date || getTodayKST();
   const regionCode = body.region_code || 'KR';
   const testMode = body.test_mode || false; // 테스트 모드 (1개 카테고리만)
   const categoryFilter = body.category_id; // 특정 카테고리만 수집
 
-  console.log('🚀 배치 수집 시작 (v2)');
-  console.log(`📅 스냅샷 저장일: ${todayDate}`);
-  console.log(`📊 증가량 기준일: ${metricDate}`);
+  console.log('🚀 배치 수집 시작 (v3)');
+  console.log(`📅 스냅샷 저장일: ${snapshotDate}`);
   console.log(`🌏 국가: ${regionCode}`);
   console.log(`🧪 테스트 모드: ${testMode}`);
 
@@ -70,9 +66,9 @@ export async function POST(request: NextRequest) {
     .from('shorts_batch_logs')
     .insert({
       batch_type: 'collect',
-      snapshot_date: todayDate,
+      snapshot_date: snapshotDate,
       status: 'running',
-      metadata: { region_code: regionCode, test_mode: testMode, metric_date: metricDate },
+      metadata: { region_code: regionCode, test_mode: testMode },
     })
     .select()
     .single();
@@ -108,10 +104,7 @@ export async function POST(request: NextRequest) {
       }
 
       // 4-2. DB에 스냅샷 저장
-      await saveToSnapshot(videos, todayDate, category.id, regionCode);
-
-      // 4-3. 일간 증가량 계산 (어제 vs 오늘 비교)
-      await calculateDailyMetrics(todayDate, metricDate, category.id, regionCode);
+      await saveToSnapshot(videos, snapshotDate, category.id, regionCode);
 
       const shortsCount = videos.filter(v => v.is_shorts).length;
       const longCount = videos.filter(v => !v.is_shorts).length;
@@ -180,8 +173,7 @@ export async function POST(request: NextRequest) {
 
   return NextResponse.json({
     success: failedCount === 0,
-    snapshot_date: todayDate,
-    metric_date: metricDate,
+    snapshot_date: snapshotDate,
     region_code: regionCode,
     summary: {
       total_categories: categoriesToProcess.length,
