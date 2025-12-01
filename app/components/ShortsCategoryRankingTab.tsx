@@ -226,19 +226,7 @@ export default function ShortsCategoryRankingTab() {
 
   // ---------------- UI ----------------
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* 헤더 */}
-      <div className="bg-white border-b">
-        <div className="max-w-7xl mx-auto px-4 py-4">
-          <h1 className="text-xl md:text-2xl font-bold text-gray-900">
-            카테고리별 인기 영상 차트 &amp; 핫 키워드
-          </h1>
-          <p className="text-xs md:text-sm text-gray-600 mt-1">
-            한국에서 인기있는 쇼츠/롱폼 영상 TOP 100
-          </p>
-        </div>
-      </div>
-
+    <div className="bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 py-6">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* ---------------- 좌측: 카테고리 (데스크톱용) ---------------- */}

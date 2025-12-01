@@ -2,13 +2,12 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Youtube, CircleHelp } from 'lucide-react';
 import ApiKeyModal from './components/ApiKeyModal';
 import ServiceGuideModal from './components/ServiceGuideModal';
 import ChannelAnalysisTab from './components/ChannelAnalysisTab';
 import MyChannelTab from './components/MyChannelTab';
 import AnalysisHistoryTab from './components/AnalysisHistoryTab';
-import UserMenu from './components/UserMenu';
+import Header from './components/Header';
 import Footer from './components/Footer'; 
 
 export default function ChannelAnalyzer() {
@@ -78,93 +77,54 @@ export default function ChannelAnalyzer() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-red-50 via-white to-pink-50">
-      {/* Header - 모바일 2줄, PC 1줄 레이아웃 */}
-      <header className="bg-white shadow-sm sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-4 py-3 md:py-4">
-          {/* 모바일: 2줄 레이아웃, PC: 1줄 레이아웃 */}
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between">
-            {/* 첫째 줄: 로고와 타이틀 */}
-            <div className="flex items-center gap-2 mb-2 md:mb-0">
-              <Youtube className="w-6 md:w-8 h-6 md:h-8 text-red-600" />
-              <h1 className="text-xl md:text-2xl font-bold text-gray-900">유튜브 쇼츠 해커 (Beta)</h1>
-            </div>
+      {/* 공통 헤더 */}
+      <Header
+        activePage="analyzer"
+        user={user}
+        isCheckingAuth={isCheckingAuth}
+        onServiceGuideClick={() => setIsServiceGuideOpen(true)}
+        onApiKeyClick={() => setIsModalOpen(true)}
+      />
 
-            {/* 둘째 줄: 버튼들 - 모바일에서는 오른쪽 정렬 */}
-            <div className="flex items-center gap-2 justify-end">
-              {/* 로그인 상태에 따라 UserMenu 또는 로그인 버튼 표시 */}
-              {!isCheckingAuth && (
-                user ? (
-                  <UserMenu />
-                ) : (
-                  <button
-                    onClick={() => window.location.href = '/login'}
-                    className="px-3 md:px-4 py-1.5 md:py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg flex items-center gap-1.5 md:gap-2 transition-colors text-sm md:text-base font-medium"
-                  >
-                    <span className="whitespace-nowrap">로그인</span>
-                  </button>
-                )
-              )}
-
+      {/* 채널 분석 내부 탭 3개 */}
+      {isTabInitialized && currentTab !== null && (
+        <div className="bg-white border-b sticky top-[57px] md:top-[65px] z-10">
+          <div className="max-w-7xl mx-auto px-4">
+            <div className="flex gap-1 md:gap-2 py-3">
               <button
-                onClick={() => setIsServiceGuideOpen(true)}
-                className="px-3 md:px-4 py-1.5 md:py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg flex items-center gap-1.5 md:gap-2 transition-colors text-sm md:text-base"
+                onClick={() => handleTabChange('analyze')}
+                className={`px-3 md:px-4 py-1.5 md:py-2 text-sm md:text-base font-medium rounded-lg transition-colors ${
+                  currentTab === 'analyze'
+                    ? 'bg-gray-900 text-white'
+                    : 'text-gray-600 hover:bg-gray-100'
+                }`}
               >
-                <CircleHelp size={16} className="text-red-600 md:w-[18px] md:h-[18px]" />
-                <span className="whitespace-nowrap">서비스 안내</span>
+                타 채널 분석
               </button>
               <button
-                onClick={() => setIsModalOpen(true)}
-                className="px-3 md:px-4 py-1.5 md:py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg flex items-center gap-1.5 md:gap-2 transition-colors text-sm md:text-base"
+                onClick={() => handleTabChange('myChannel')}
+                className={`px-3 md:px-4 py-1.5 md:py-2 text-sm md:text-base font-medium rounded-lg transition-colors ${
+                  currentTab === 'myChannel'
+                    ? 'bg-gray-900 text-white'
+                    : 'text-gray-600 hover:bg-gray-100'
+                }`}
               >
-                <span className="text-sm md:text-base">⚙️</span>
-                <span className="whitespace-nowrap">API 키 설정</span>
+                내 채널 분석
+              </button>
+              <button
+                onClick={() => handleTabChange('history')}
+                className={`px-3 md:px-4 py-1.5 md:py-2 text-sm md:text-base font-medium rounded-lg transition-colors ${
+                  currentTab === 'history'
+                    ? 'bg-gray-900 text-white'
+                    : 'text-gray-600 hover:bg-gray-100'
+                }`}
+              >
+                분석 기록
               </button>
             </div>
           </div>
-
-          {/* 탭 메뉴 */}
-          {isTabInitialized && currentTab !== null && (
-            <div className="flex justify-between items-center mt-3 md:mt-4 border-b">
-              <div className="flex gap-3 md:gap-4">
-                <button
-                  onClick={() => handleTabChange('analyze')}
-                  className={`px-3 md:px-4 py-2 text-sm md:text-base font-medium transition-colors ${currentTab === 'analyze'
-                      ? 'text-red-600 border-b-2 border-red-600'
-                      : 'text-gray-600 hover:text-gray-900'
-                    }`}
-                >
-                  타 채널 분석
-                </button>
-                <button
-                  onClick={() => handleTabChange('myChannel')}
-                  className={`px-3 md:px-4 py-2 text-sm md:text-base font-medium transition-colors ${currentTab === 'myChannel'
-                      ? 'text-red-600 border-b-2 border-red-600'
-                      : 'text-gray-600 hover:text-gray-900'
-                    }`}
-                >
-                  내 채널 분석
-                </button>
-                <button
-                  onClick={() => handleTabChange('history')}
-                  className={`px-3 md:px-4 py-2 text-sm md:text-base font-medium transition-colors ${currentTab === 'history'
-                      ? 'text-red-600 border-b-2 border-red-600'
-                      : 'text-gray-600 hover:text-gray-900'
-                    }`}
-                >
-                  📚 분석 기록
-                </button>
-              </div>
-              <button
-                onClick={() => window.open('/shorts-ranking', '_blank')}
-                className="px-3 md:px-4 py-1.5 md:py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center gap-1.5 md:gap-2 transition-colors text-sm md:text-base font-medium mb-[-1px]"
-              >
-                <span className="text-sm md:text-base">🏆</span>
-                <span className="whitespace-nowrap">유튜브 랭킹</span>
-              </button>
-            </div>
-          )}
         </div>
-      </header>
+      )}
 
       {/* Main Content */}
       {isTabInitialized && currentTab !== null ? (
