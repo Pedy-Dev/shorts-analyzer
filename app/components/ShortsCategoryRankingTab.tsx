@@ -12,6 +12,7 @@ import {
   PeriodType,
   SortType,
 } from '@/app/lib/constants/shorts-categories';
+import { hasKoreanCharacter } from '@/app/lib/utils/text';
 
 type VideoType = 'shorts' | 'long' | 'all';
 
@@ -46,10 +47,6 @@ function formatDuration(seconds: number): string {
   return `${minutes}:${secs.toString().padStart(2, '0')}`;
 }
 
-function hasKoreanCharacter(text: string): boolean {
-  if (!text) return false;
-  return /[\u3131-\u314E\u314F-\u3163\uAC00-\uD7A3]/.test(text);
-}
 
 interface KeywordItem {
   rank: number;
@@ -57,6 +54,8 @@ interface KeywordItem {
   raw_score: number;
   trend_score: number;
   video_count: number;
+  total_views: number;
+  avg_views: number;
   sample_titles: string[];
 }
 
@@ -76,9 +75,6 @@ export default function ShortsCategoryRankingTab() {
 
   const [rankings, setRankings] = useState<RankingItem[]>([]);
   const [keywords, setKeywords] = useState<KeywordItem[]>([]);
-  const [trendingKeywords, setTrendingKeywords] = useState<
-    KeywordItem[]
-  >([]);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -119,9 +115,12 @@ export default function ShortsCategoryRankingTab() {
 
   // ---------------- 데이터 로딩 ----------------
   useEffect(() => {
+    // 카테고리/날짜/지역 변경 시 이전 결과 즉시 제거
     if (activeTab === 'ranking') {
+      setRankings([]);
       loadRankings();
     } else {
+      setKeywords([]);
       loadKeywords();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -178,43 +177,34 @@ export default function ShortsCategoryRankingTab() {
     setError(null);
 
     try {
-      // 항상 강한 키워드
-      const rawUrl = new URL(
-        '/api/keywords/hot',
-        window.location.origin,
-      );
-      rawUrl.searchParams.set('category_id', selectedCategory);
-      rawUrl.searchParams.set('period', selectedPeriod);
-      rawUrl.searchParams.set('region_code', selectedRegion);
-      rawUrl.searchParams.set('sort_by', 'raw');
-      rawUrl.searchParams.set('limit', '30');
+      const url = new URL('/api/keywords/hot', window.location.origin);
+      url.searchParams.set('category_id', selectedCategory);
+      url.searchParams.set('period', selectedPeriod);
+      url.searchParams.set('region_code', selectedRegion);
+      url.searchParams.set('date', selectedDate || 'latest');
+      url.searchParams.set('sort_by', 'raw');
+      url.searchParams.set('limit', '30');
 
-      const rawResponse = await fetch(rawUrl.toString());
-      if (rawResponse.ok) {
-        const rawData = await rawResponse.json();
-        setKeywords(rawData.keywords || []);
-      }
+      const response = await fetch(url.toString());
 
-      // 급상승 키워드
-      const trendUrl = new URL(
-        '/api/keywords/hot',
-        window.location.origin,
-      );
-      trendUrl.searchParams.set('category_id', selectedCategory);
-      trendUrl.searchParams.set('period', selectedPeriod);
-      trendUrl.searchParams.set('region_code', selectedRegion);
-      trendUrl.searchParams.set('sort_by', 'trend');
-      trendUrl.searchParams.set('limit', '30');
+      if (response.ok) {
+        const data = await response.json();
+        setKeywords(data.keywords || []);
+        setError(null);
+      } else {
+        // API 실패 시 이전 키워드 제거
+        let msg = '키워드를 불러오지 못했습니다.';
+        try {
+          const errJson = await response.json();
+          if (errJson?.error) msg = errJson.error;
+        } catch (_) {}
 
-      const trendResponse = await fetch(trendUrl.toString());
-      if (trendResponse.ok) {
-        const trendData = await trendResponse.json();
-        setTrendingKeywords(trendData.keywords || []);
+        setError(msg);
+        setKeywords([]);
       }
     } catch (err: any) {
-      setError(err.message);
+      setError(err.message ?? '알 수 없는 오류');
       setKeywords([]);
-      setTrendingKeywords([]);
     } finally {
       setLoading(false);
     }
@@ -493,96 +483,48 @@ export default function ShortsCategoryRankingTab() {
                 </div>
               )}
 
-              {/* 키워드 리스트 */}
+              {/* 핫 키워드 리스트 */}
               {!loading && !error && activeTab === 'keywords' && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* 항상 강한 키워드 */}
-                  <div className="bg-white rounded-lg shadow p-4">
-                    <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2 text-sm md:text-base">
-                      🔥 항상 강한 키워드
-                      <span className="text-[10px] md:text-xs text-gray-500 font-normal">
-                        (raw_score 기준)
-                      </span>
-                    </h3>
-                    <div className="space-y-2">
-                      {keywords.length === 0 ? (
-                        <p className="text-gray-500 text-sm">
-                          데이터가 없습니다.
-                        </p>
-                      ) : (
-                        keywords.map((kw) => (
-                          <div
-                            key={kw.keyword}
-                            className="border-b last:border-b-0 pb-2"
-                          >
-                            <div className="flex items-center justify-between gap-2">
-                              <div className="flex items-center gap-2">
-                                <span className="text-gray-400 text-xs">
-                                  {kw.rank}
-                                </span>
-                                <span className="font-medium text-gray-900 text-sm">
-                                  {kw.keyword}
-                                </span>
-                              </div>
-                              <div className="text-[11px] text-gray-500 whitespace-nowrap">
-                                {kw.video_count}개 영상
-                              </div>
+                <div className="bg-white rounded-lg shadow p-4">
+                  <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2 text-sm md:text-base">
+                    🔥 핫 키워드
+                  </h3>
+                  <div className="space-y-2">
+                    {keywords.length === 0 ? (
+                      <p className="text-gray-500 text-sm">
+                        해당 카테고리는 유튜브에서 제공하는 데이터가 적어 키워드 분석이 어렵습니다.
+                      </p>
+                    ) : (
+                      keywords.map((kw) => (
+                        <div
+                          key={kw.keyword}
+                          className="border-b last:border-b-0 pb-2"
+                        >
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-2">
+                              <span className="text-gray-400 text-xs">
+                                {kw.rank}
+                              </span>
+                              <span className="font-medium text-gray-900 text-sm">
+                                {kw.keyword}
+                              </span>
                             </div>
-                            {kw.sample_titles.length > 0 && (
-                              <p className="text-[11px] text-gray-600 mt-1 line-clamp-1">
-                                💡 {kw.sample_titles[0]}
-                              </p>
-                            )}
-                          </div>
-                        ))
-                      )}
-                    </div>
-                  </div>
-
-                  {/* 급상승 키워드 */}
-                  <div className="bg-white rounded-lg shadow p-4">
-                    <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2 text-sm md:text-base">
-                      📈 급상승 키워드
-                      <span className="text-[10px] md:text-xs text-gray-500 font-normal">
-                        (trend_score 기준)
-                      </span>
-                    </h3>
-                    <div className="space-y-2">
-                      {trendingKeywords.length === 0 ? (
-                        <p className="text-gray-500 text-sm">
-                          데이터가 없습니다.
-                        </p>
-                      ) : (
-                        trendingKeywords.map((kw) => (
-                          <div
-                            key={kw.keyword}
-                            className="border-b last:border-b-0 pb-2"
-                          >
-                            <div className="flex items-center justify-between gap-2">
-                              <div className="flex items-center gap-2">
-                                <span className="text-gray-400 text-xs">
-                                  {kw.rank}
-                                </span>
-                                <span className="font-medium text-gray-900 text-sm">
-                                  {kw.keyword}
-                                </span>
-                                <span className="text-[10px] bg-red-100 text-red-600 px-2 py-0.5 rounded">
-                                  ×{kw.trend_score.toFixed(1)}
-                                </span>
-                              </div>
-                              <div className="text-[11px] text-gray-500 whitespace-nowrap">
-                                {kw.video_count}개 영상
-                              </div>
+                            <div className="text-[11px] text-gray-500 whitespace-nowrap flex gap-2">
+                              <span>{kw.video_count}개</span>
+                              <span>총 {kw.total_views.toLocaleString()}회</span>
                             </div>
-                            {kw.sample_titles.length > 0 && (
-                              <p className="text-[11px] text-gray-600 mt-1 line-clamp-1">
-                                💡 {kw.sample_titles[0]}
-                              </p>
-                            )}
                           </div>
-                        ))
-                      )}
-                    </div>
+                          <div className="text-[10px] text-gray-400 mt-0.5">
+                            평균 {kw.avg_views.toLocaleString()}회/영상
+                          </div>
+                          {kw.sample_titles.length > 0 && (
+                            <p className="text-[11px] text-gray-600 mt-1 line-clamp-1">
+                              💡 {kw.sample_titles[0]}
+                            </p>
+                          )}
+                        </div>
+                      ))
+                    )}
                   </div>
                 </div>
               )}

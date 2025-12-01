@@ -15,12 +15,9 @@ export async function GET(request: NextRequest) {
 
   const supabase = createServerClient();
 
-  // 해당 국가의 모든 스냅샷 날짜 조회 (중복 제거, 최신순)
+  // RPC 함수로 distinct 날짜 조회
   const { data, error } = await supabase
-    .from('category_shorts_snapshot')
-    .select('snapshot_date')
-    .eq('region_code', regionCode)
-    .order('snapshot_date', { ascending: false });
+    .rpc('get_shorts_snapshot_dates', { p_region_code: regionCode });
 
   if (error) {
     return NextResponse.json(
@@ -29,12 +26,11 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  // 중복 제거
-  const uniqueDates = [...new Set(data?.map(d => d.snapshot_date) || [])];
+  const dates = (data ?? []).map((d: { snapshot_date: string }) => d.snapshot_date);
 
   return NextResponse.json({
     region_code: regionCode,
-    dates: uniqueDates,
-    total_count: uniqueDates.length,
+    dates,
+    total_count: dates.length,
   });
 }

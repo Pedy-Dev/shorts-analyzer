@@ -39,7 +39,7 @@ export async function GET(request: NextRequest) {
   let snapshotDate: string;
 
   if (dateParam === 'latest') {
-    const { data: latestData, error: latestError } = await supabase
+    const { data: latestData } = await supabase
       .from('category_keywords_trend')
       .select('snapshot_date')
       .eq('category_id', categoryId)
@@ -47,13 +47,24 @@ export async function GET(request: NextRequest) {
       .eq('region_code', regionCode)
       .order('snapshot_date', { ascending: false })
       .limit(1)
-      .single();
+      .maybeSingle();
 
-    if (latestError || !latestData) {
-      return NextResponse.json(
-        { error: 'No keyword data available for this category' },
-        { status: 404 }
-      );
+    if (!latestData) {
+      // 키워드가 없으면 빈 배열 반환 (404 대신)
+      return NextResponse.json({
+        metadata: {
+          snapshot_date: null,
+          category_id: categoryId,
+          category_label: getCategoryLabel(categoryId),
+          period,
+          period_label: getPeriodLabel(period),
+          region_code: regionCode,
+          region_label: getRegionLabel(regionCode),
+          sort_by: sortBy,
+          total_count: 0,
+        },
+        keywords: [],
+      });
     }
 
     snapshotDate = latestData.snapshot_date;
@@ -88,6 +99,8 @@ export async function GET(request: NextRequest) {
     raw_score: Math.round(row.raw_score * 100) / 100, // 소수점 2자리
     trend_score: Math.round(row.trend_score * 100) / 100,
     video_count: row.video_count,
+    total_views: row.total_views ?? 0,
+    avg_views: row.avg_views ?? 0,
     sample_titles: row.sample_titles || [],
     sample_video_ids: row.sample_video_ids || [],
   }));

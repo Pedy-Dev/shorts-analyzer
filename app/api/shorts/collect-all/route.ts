@@ -16,6 +16,7 @@ import {
   getTodayKST,
 } from '@/app/lib/youtube/shorts-collector';
 import { createServerClient } from '@/app/lib/supabase-server';
+import { runDailyKeywordAnalysisKR } from '@/app/lib/keywords/analyzer';
 
 export const maxDuration = 300; // 5분 타임아웃 (Vercel Pro)
 export const dynamic = 'force-dynamic';
@@ -112,7 +113,16 @@ export async function GET(request: NextRequest) {
     await new Promise((resolve) => setTimeout(resolve, 1000));
   }
 
-  // ==================== 4. 배치 로그 완료 ====================
+  // ==================== 4. 한국 키워드 분석 실행 ====================
+  console.log('\n🔑 한국 키워드 분석 시작...');
+  try {
+    await runDailyKeywordAnalysisKR(snapshotDate);
+    console.log('✅ 한국 키워드 분석 완료');
+  } catch (keywordError: any) {
+    console.error('❌ 한국 키워드 분석 실패:', keywordError.message);
+  }
+
+  // ==================== 5. 배치 로그 완료 ====================
   const endTime = Date.now();
   const duration = Math.round((endTime - startTime) / 1000);
 

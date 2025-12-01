@@ -7,7 +7,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { SHORTS_CATEGORIES } from '@/app/lib/constants/shorts-categories';
-import { extractKeywordsForCategory } from '@/app/lib/keywords/analyzer';
+import { extractKeywordsForCategory, runDailyKeywordAnalysisKR } from '@/app/lib/keywords/analyzer';
 import { getYesterdayKST } from '@/app/lib/youtube/shorts-collector';
 import { createServerClient } from '@/app/lib/supabase-server';
 
@@ -47,11 +47,36 @@ export async function POST(request: NextRequest) {
   const regionCode = body.region_code || 'KR';
   const testMode = body.test_mode || false;
   const categoryFilter = body.category_id;
+  const useGemini = body.use_gemini || false;
 
   console.log('🧠 키워드 분석 배치 시작');
   console.log(`📅 기준일: ${snapshotDate}`);
   console.log(`🌏 국가: ${regionCode}`);
   console.log(`🧪 테스트 모드: ${testMode}`);
+  console.log(`🤖 Gemini 모드: ${useGemini}`);
+
+  // ==================== Gemini 모드: 한국 전용 분석 ====================
+  if (useGemini) {
+    const startTime = Date.now();
+    try {
+      await runDailyKeywordAnalysisKR(snapshotDate);
+      const duration = Math.round((Date.now() - startTime) / 1000);
+      return NextResponse.json({
+        success: true,
+        mode: 'gemini',
+        snapshot_date: snapshotDate,
+        region_code: 'KR',
+        duration_sec: duration,
+        message: '한국 키워드 분석 완료 (Gemini)',
+      });
+    } catch (error: any) {
+      return NextResponse.json({
+        success: false,
+        mode: 'gemini',
+        error: error.message,
+      }, { status: 500 });
+    }
+  }
 
   // ==================== 3. 배치 로그 시작 ====================
   const supabase = createServerClient();
@@ -174,10 +199,14 @@ export async function GET(request: NextRequest) {
   return NextResponse.json({
     message: '키워드 분석 배치 API',
     usage: 'POST 요청으로 실행하세요',
-    test_command: `
+    gemini_command: `
 curl -X POST http://localhost:3000/api/keywords/analyze \\
   -H "Content-Type: application/json" \\
-  -H "Authorization: Bearer \${CRON_SECRET}" \\
+  -d '{"snapshot_date": "2025-11-30", "use_gemini": true}'
+    `.trim(),
+    legacy_command: `
+curl -X POST http://localhost:3000/api/keywords/analyze \\
+  -H "Content-Type: application/json" \\
   -d '{"test_mode": true}'
     `.trim(),
   });
