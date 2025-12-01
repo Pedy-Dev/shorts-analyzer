@@ -47,7 +47,8 @@ function formatDuration(seconds: number): string {
 }
 
 function hasKoreanCharacter(text: string): boolean {
-  return /[ㄱ-ㅎ|ㅏ-ㅣ|가-힣]/.test(text);
+  if (!text) return false;
+  return /[\u3131-\u314E\u314F-\u3163\uAC00-\uD7A3]/.test(text);
 }
 
 interface KeywordItem {
@@ -81,7 +82,40 @@ export default function ShortsCategoryRankingTab() {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [snapshotDate, setSnapshotDate] = useState<string>('');
+
+  // 날짜 선택 관련 상태
+  const [availableDates, setAvailableDates] = useState<string[]>([]);
+  const [selectedDate, setSelectedDate] = useState<string>('latest');
+  const [loadingDates, setLoadingDates] = useState(false);
+
+  // ---------------- 날짜 목록 로딩 ----------------
+  useEffect(() => {
+    loadAvailableDates();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedRegion]);
+
+  const loadAvailableDates = async () => {
+    setLoadingDates(true);
+    try {
+      const url = new URL('/api/shorts/dates', window.location.origin);
+      url.searchParams.set('region_code', selectedRegion);
+
+      const response = await fetch(url.toString());
+      if (response.ok) {
+        const data = await response.json();
+        const dates = data.dates || [];
+        setAvailableDates(dates);
+        // 날짜 목록이 바뀌면 첫 번째(최신) 날짜로 초기화
+        if (dates.length > 0) {
+          setSelectedDate(dates[0]);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to load dates:', err);
+    } finally {
+      setLoadingDates(false);
+    }
+  };
 
   // ---------------- 데이터 로딩 ----------------
   useEffect(() => {
@@ -97,6 +131,7 @@ export default function ShortsCategoryRankingTab() {
     selectedSortType,
     selectedVideoType,
     selectedRegion,
+    selectedDate,
     activeTab,
   ]);
 
@@ -120,7 +155,7 @@ export default function ShortsCategoryRankingTab() {
       url.searchParams.set('sort_type', selectedSortType);
       url.searchParams.set('video_type', selectedVideoType);
       url.searchParams.set('region_code', selectedRegion);
-      url.searchParams.set('date', 'latest');
+      url.searchParams.set('date', selectedDate);
 
       const response = await fetch(url.toString());
       if (!response.ok) {
@@ -130,7 +165,6 @@ export default function ShortsCategoryRankingTab() {
 
       const data = await response.json();
       setRankings(data.items || []);
-      setSnapshotDate(data.metadata.snapshot_date);
     } catch (err: any) {
       setError(err.message);
       setRankings([]);
@@ -159,7 +193,6 @@ export default function ShortsCategoryRankingTab() {
       if (rawResponse.ok) {
         const rawData = await rawResponse.json();
         setKeywords(rawData.keywords || []);
-        setSnapshotDate(rawData.metadata.snapshot_date);
       }
 
       // 급상승 키워드
@@ -233,11 +266,11 @@ export default function ShortsCategoryRankingTab() {
           <main className="lg:col-span-9 space-y-4">
             {/* 모바일용 카테고리 셀렉트 */}
             <div className="lg:hidden bg-white rounded-lg shadow p-3 flex flex-col gap-2">
-              <span className="text-xs text-gray-500">카테고리</span>
+              <span className="text-xs text-gray-700 font-medium">카테고리</span>
               <select
                 value={selectedCategory}
                 onChange={(e) => setSelectedCategory(e.target.value)}
-                className="px-3 py-2 border rounded text-sm"
+                className="px-3 py-2 border rounded text-sm text-gray-900 font-medium"
               >
                 {SHORTS_CATEGORIES.map((category) => (
                   <option key={category.id} value={category.id}>
@@ -280,18 +313,28 @@ export default function ShortsCategoryRankingTab() {
                     onChange={(e) =>
                       setSelectedPeriod(e.target.value as PeriodType)
                     }
-                    className="px-3 py-2 border rounded text-xs md:text-sm"
+                    className="px-3 py-2 border rounded text-xs md:text-sm text-gray-900 font-medium"
                     disabled
                   >
                     <option value="daily">일간 (v1)</option>
                   </select>
 
-                  {/* 기준일 */}
-                  {snapshotDate && (
-                    <span className="ml-auto text-xs md:text-sm text-gray-600">
-                      기준일: {snapshotDate}
-                    </span>
-                  )}
+                  {/* 기준일 선택 */}
+                  <div className="ml-auto flex items-center gap-2">
+                    <span className="text-xs md:text-sm text-gray-700 font-medium">기준일:</span>
+                    <select
+                      value={selectedDate}
+                      onChange={(e) => setSelectedDate(e.target.value)}
+                      className="px-2 py-1 border rounded text-xs md:text-sm text-gray-900 font-medium"
+                      disabled={loadingDates || availableDates.length === 0}
+                    >
+                      {availableDates.map((date) => (
+                        <option key={date} value={date}>
+                          {date}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
 
                 {/* 2줄: 필터들 */}
@@ -336,7 +379,7 @@ export default function ShortsCategoryRankingTab() {
                       onChange={(e) =>
                         setSelectedSortType(e.target.value as SortType)
                       }
-                      className="px-3 py-2 border rounded text-xs md:text-sm"
+                      className="px-3 py-2 border rounded text-xs md:text-sm text-gray-900 font-medium"
                     >
                       <option value="views">조회수</option>
                       <option value="likes">좋아요</option>
@@ -348,7 +391,7 @@ export default function ShortsCategoryRankingTab() {
                   <select
                     value={selectedRegion}
                     onChange={(e) => setSelectedRegion(e.target.value)}
-                    className="px-3 py-2 border rounded text-sm"
+                    className="px-3 py-2 border rounded text-sm text-gray-900 font-medium"
                   >
                     {REGION_CODES.map((region) => (
                       <option key={region.code} value={region.code}>

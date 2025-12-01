@@ -6,7 +6,6 @@
 // YouTube videoCategoryId와 한글 카테고리명 매핑
 export const SHORTS_CATEGORIES = [
   { id: '15', label: '애완동물/동물', ytName: 'Pets & Animals' },
-  { id: '10', label: '음악', ytName: 'Music' },
   { id: '20', label: '게임', ytName: 'Gaming' },
   { id: '25', label: '뉴스/정치', ytName: 'News & Politics' },
   { id: '22', label: '인물/블로그', ytName: 'People & Blogs' },
