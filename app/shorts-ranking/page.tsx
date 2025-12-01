@@ -41,7 +41,7 @@ export default function ShortsRankingPage() {
       />
 
       {/* 인기 차트 콘텐츠 */}
-      <ShortsCategoryRankingTab />
+      <ShortsCategoryRankingTab isLoggedIn={!!user} isCheckingAuth={isCheckingAuth} />
 
       {/* 서비스 안내 모달 */}
       <ServiceGuideModal

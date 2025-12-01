@@ -59,7 +59,12 @@ interface KeywordItem {
   sample_titles: string[];
 }
 
-export default function ShortsCategoryRankingTab() {
+interface ShortsCategoryRankingTabProps {
+  isLoggedIn: boolean;
+  isCheckingAuth: boolean;
+}
+
+export default function ShortsCategoryRankingTab({ isLoggedIn, isCheckingAuth }: ShortsCategoryRankingTabProps) {
   const [selectedCategory, setSelectedCategory] = useState('15'); // 기본: 애완동물/동물
   const [selectedPeriod, setSelectedPeriod] =
     useState<PeriodType>('daily'); // v1: daily 고정
@@ -426,7 +431,7 @@ export default function ShortsCategoryRankingTab() {
 
               {/* 랭킹 리스트 */}
               {!loading && !error && activeTab === 'ranking' && (
-                <div className="bg-white rounded-lg shadow">
+                <div className="bg-white rounded-lg shadow relative">
                   {filteredRankings.length === 0 ? (
                     <div className="text-center py-10 text-sm text-gray-600">
                       {rankings.length === 0
@@ -434,98 +439,140 @@ export default function ShortsCategoryRankingTab() {
                         : '한국어 제목을 가진 영상이 없습니다.'}
                     </div>
                   ) : (
-                    <div className="divide-y">
-                      {filteredRankings.map((item) => (
-                        <a
-                          key={item.video_id}
-                          href={item.youtube_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex gap-3 md:gap-4 p-3 md:p-4 hover:bg-gray-50 transition"
-                        >
-                          {/* 순위 */}
-                          <div className="w-8 md:w-10 flex items-center justify-center">
-                            <span className="text-lg md:text-2xl font-bold text-gray-400">
-                              {item.rank}
-                            </span>
-                          </div>
-
-                          {/* 썸네일 */}
-                          <div className="relative w-28 h-16 md:w-32 md:h-20 flex-shrink-0">
-                            <img
-                              src={item.thumbnail_url}
-                              alt={item.title}
-                              className="w-full h-full object-cover rounded"
-                            />
-                            <span className="absolute bottom-1 right-1 bg-black/80 text-white text-[10px] md:text-xs px-1 py-0.5 rounded">
-                              {formatDuration(item.duration_sec)}
-                            </span>
-                          </div>
-
-                          {/* 정보 */}
-                          <div className="flex-1 min-w-0">
-                            <h4 className="font-medium text-gray-900 hover:text-red-600 text-sm md:text-base line-clamp-2">
-                              {item.title}
-                            </h4>
-                            <p className="text-xs md:text-sm text-gray-600 mt-1">
-                              {item.channel_title}
-                            </p>
-                            <div className="flex flex-wrap gap-3 mt-2 text-[11px] md:text-xs text-gray-500">
-                              <span>👁️ {item.view_count.toLocaleString()}</span>
-                              <span>👍 {item.like_count.toLocaleString()}</span>
-                              <span>💬 {item.comment_count.toLocaleString()}</span>
+                    <>
+                      <div className={`divide-y ${!isLoggedIn && !isCheckingAuth ? 'blur-sm pointer-events-none select-none' : ''}`}>
+                        {filteredRankings.map((item) => (
+                          <a
+                            key={item.video_id}
+                            href={item.youtube_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex gap-3 md:gap-4 p-3 md:p-4 hover:bg-gray-50 transition"
+                          >
+                            {/* 순위 */}
+                            <div className="w-8 md:w-10 flex items-center justify-center">
+                              <span className="text-lg md:text-2xl font-bold text-gray-400">
+                                {item.rank}
+                              </span>
                             </div>
+
+                            {/* 썸네일 */}
+                            <div className="relative w-28 h-16 md:w-32 md:h-20 flex-shrink-0">
+                              <img
+                                src={item.thumbnail_url}
+                                alt={item.title}
+                                className="w-full h-full object-cover rounded"
+                              />
+                              <span className="absolute bottom-1 right-1 bg-black/80 text-white text-[10px] md:text-xs px-1 py-0.5 rounded">
+                                {formatDuration(item.duration_sec)}
+                              </span>
+                            </div>
+
+                            {/* 정보 */}
+                            <div className="flex-1 min-w-0">
+                              <h4 className="font-medium text-gray-900 hover:text-red-600 text-sm md:text-base line-clamp-2">
+                                {item.title}
+                              </h4>
+                              <p className="text-xs md:text-sm text-gray-600 mt-1">
+                                {item.channel_title}
+                              </p>
+                              <div className="flex flex-wrap gap-3 mt-2 text-[11px] md:text-xs text-gray-500">
+                                <span>👁️ {item.view_count.toLocaleString()}</span>
+                                <span>👍 {item.like_count.toLocaleString()}</span>
+                                <span>💬 {item.comment_count.toLocaleString()}</span>
+                              </div>
+                            </div>
+                          </a>
+                        ))}
+                      </div>
+                      {/* 로그인 안내 오버레이 */}
+                      {!isLoggedIn && !isCheckingAuth && (
+                        <div className="absolute inset-0 flex flex-col items-center justify-start pt-16 bg-white/60">
+                          <div className="text-center px-4">
+                            <p className="text-lg font-bold text-gray-800 mb-2">
+                              로그인이 필요한 서비스입니다
+                            </p>
+                            <p className="text-sm text-gray-600 mb-4">
+                              인기 차트를 확인하려면 로그인해주세요
+                            </p>
+                            <a
+                              href="/login"
+                              className="inline-block px-6 py-2.5 bg-red-500 text-white font-medium rounded-lg hover:bg-red-600 transition"
+                            >
+                              Google 로그인
+                            </a>
                           </div>
-                        </a>
-                      ))}
-                    </div>
+                        </div>
+                      )}
+                    </>
                   )}
                 </div>
               )}
 
               {/* 핫 키워드 리스트 */}
               {!loading && !error && activeTab === 'keywords' && (
-                <div className="bg-white rounded-lg shadow p-4">
+                <div className="bg-white rounded-lg shadow p-4 relative">
                   <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2 text-sm md:text-base">
                     🔥 핫 키워드
                   </h3>
-                  <div className="space-y-2">
-                    {keywords.length === 0 ? (
-                      <p className="text-gray-500 text-sm">
-                        해당 카테고리는 유튜브에서 제공하는 데이터가 적어 키워드 분석이 어렵습니다.
-                      </p>
-                    ) : (
-                      keywords.map((kw) => (
-                        <div
-                          key={kw.keyword}
-                          className="border-b last:border-b-0 pb-2"
-                        >
-                          <div className="flex items-center justify-between gap-2">
-                            <div className="flex items-center gap-2">
-                              <span className="text-gray-400 text-xs">
-                                {kw.rank}
-                              </span>
-                              <span className="font-medium text-gray-900 text-sm">
-                                {kw.keyword}
-                              </span>
+                  {keywords.length === 0 ? (
+                    <p className="text-gray-500 text-sm">
+                      해당 카테고리는 유튜브에서 제공하는 데이터가 적어 키워드 분석이 어렵습니다.
+                    </p>
+                  ) : (
+                    <>
+                      <div className={`space-y-2 ${!isLoggedIn && !isCheckingAuth ? 'blur-sm pointer-events-none select-none' : ''}`}>
+                        {keywords.map((kw) => (
+                          <div
+                            key={kw.keyword}
+                            className="border-b last:border-b-0 pb-2"
+                          >
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="flex items-center gap-2">
+                                <span className="text-gray-400 text-xs">
+                                  {kw.rank}
+                                </span>
+                                <span className="font-medium text-gray-900 text-sm">
+                                  {kw.keyword}
+                                </span>
+                              </div>
+                              <div className="text-[11px] text-gray-500 whitespace-nowrap flex gap-2">
+                                <span>{kw.video_count}개</span>
+                                <span>총 {kw.total_views.toLocaleString()}회</span>
+                              </div>
                             </div>
-                            <div className="text-[11px] text-gray-500 whitespace-nowrap flex gap-2">
-                              <span>{kw.video_count}개</span>
-                              <span>총 {kw.total_views.toLocaleString()}회</span>
+                            <div className="text-[10px] text-gray-400 mt-0.5">
+                              평균 {kw.avg_views.toLocaleString()}회/영상
                             </div>
+                            {kw.sample_titles.length > 0 && (
+                              <p className="text-[11px] text-gray-600 mt-1 line-clamp-1">
+                                💡 {kw.sample_titles[0]}
+                              </p>
+                            )}
                           </div>
-                          <div className="text-[10px] text-gray-400 mt-0.5">
-                            평균 {kw.avg_views.toLocaleString()}회/영상
-                          </div>
-                          {kw.sample_titles.length > 0 && (
-                            <p className="text-[11px] text-gray-600 mt-1 line-clamp-1">
-                              💡 {kw.sample_titles[0]}
+                        ))}
+                      </div>
+                      {/* 로그인 안내 오버레이 */}
+                      {!isLoggedIn && !isCheckingAuth && (
+                        <div className="absolute inset-0 flex flex-col items-center justify-start pt-16 bg-white/60 rounded-lg">
+                          <div className="text-center px-4">
+                            <p className="text-lg font-bold text-gray-800 mb-2">
+                              로그인이 필요한 서비스입니다
                             </p>
-                          )}
+                            <p className="text-sm text-gray-600 mb-4">
+                              핫 키워드를 확인하려면 로그인해주세요
+                            </p>
+                            <a
+                              href="/login"
+                              className="inline-block px-6 py-2.5 bg-red-500 text-white font-medium rounded-lg hover:bg-red-600 transition"
+                            >
+                              Google 로그인
+                            </a>
+                          </div>
                         </div>
-                      ))
-                    )}
-                  </div>
+                      )}
+                    </>
+                  )}
                 </div>
               )}
           </main>
