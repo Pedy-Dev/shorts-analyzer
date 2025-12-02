@@ -76,7 +76,7 @@ export default function ChannelAnalyzer() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-red-50 via-white to-pink-50">
+    <div className="min-h-screen flex flex-col bg-gradient-to-br from-red-50 via-white to-pink-50">
       {/* 공통 헤더 */}
       <Header
         activePage="analyzer"
@@ -126,22 +126,24 @@ export default function ChannelAnalyzer() {
         </div>
       )}
 
-      {/* Main Content */}
-      {isTabInitialized && currentTab !== null ? (
-        <div className="max-w-7xl mx-auto px-4 py-4 md:py-8">
-          {currentTab === 'analyze' ? (
-            <ChannelAnalysisTab isLoggedIn={!!user} />
-          ) : currentTab === 'myChannel' ? (
-            <MyChannelTab isLoggedIn={!!user} />
-          ) : (
-            <AnalysisHistoryTab isLoggedIn={!!user} />
-          )}
-        </div>
-      ) : (
-        <div className="max-w-7xl mx-auto px-4 py-6 text-center text-sm text-gray-500">
-          로딩 중...
-        </div>
-      )}
+      {/* Main Content - flex-1로 남은 공간 차지 */}
+      <main className="flex-1">
+        {isTabInitialized && currentTab !== null ? (
+          <div className="max-w-7xl mx-auto px-4 py-4 md:py-8">
+            {currentTab === 'analyze' ? (
+              <ChannelAnalysisTab isLoggedIn={!!user} />
+            ) : currentTab === 'myChannel' ? (
+              <MyChannelTab isLoggedIn={!!user} />
+            ) : (
+              <AnalysisHistoryTab isLoggedIn={!!user} />
+            )}
+          </div>
+        ) : (
+          <div className="max-w-7xl mx-auto px-4 py-6 text-center text-sm text-gray-500">
+            로딩 중...
+          </div>
+        )}
+      </main>
 
       {/* 서비스 안내 모달 */}
       <ServiceGuideModal

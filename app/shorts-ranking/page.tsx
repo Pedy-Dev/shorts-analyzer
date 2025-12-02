@@ -30,7 +30,7 @@ export default function ShortsRankingPage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen flex flex-col bg-gray-50">
       {/* 공통 헤더 */}
       <Header
         activePage="ranking"
@@ -40,8 +40,10 @@ export default function ShortsRankingPage() {
         onApiKeyClick={() => setIsModalOpen(true)}
       />
 
-      {/* 인기 차트 콘텐츠 */}
-      <ShortsCategoryRankingTab isLoggedIn={!!user} isCheckingAuth={isCheckingAuth} />
+      {/* 인기 차트 콘텐츠 - flex-1로 남은 공간 차지 */}
+      <main className="flex-1">
+        <ShortsCategoryRankingTab isLoggedIn={!!user} isCheckingAuth={isCheckingAuth} />
+      </main>
 
       {/* 서비스 안내 모달 */}
       <ServiceGuideModal
