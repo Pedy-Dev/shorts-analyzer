@@ -496,7 +496,7 @@ export default function ShortsCategoryRankingTab({ isLoggedIn, isCheckingAuth }:
                               인기 차트를 확인하려면 로그인해주세요
                             </p>
                             <a
-                              href="/login"
+                              href="/login?returnUrl=/shorts-ranking"
                               className="inline-block px-6 py-2.5 bg-red-500 text-white font-medium rounded-lg hover:bg-red-600 transition"
                             >
                               Google 로그인
@@ -563,7 +563,7 @@ export default function ShortsCategoryRankingTab({ isLoggedIn, isCheckingAuth }:
                               핫 키워드를 확인하려면 로그인해주세요
                             </p>
                             <a
-                              href="/login"
+                              href="/login?returnUrl=/shorts-ranking"
                               className="inline-block px-6 py-2.5 bg-red-500 text-white font-medium rounded-lg hover:bg-red-600 transition"
                             >
                               Google 로그인

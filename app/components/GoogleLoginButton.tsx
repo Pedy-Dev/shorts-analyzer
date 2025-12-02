@@ -2,7 +2,11 @@
 
 import { useState } from 'react';
 
-export default function GoogleLoginButton() {
+interface GoogleLoginButtonProps {
+  returnUrl?: string;
+}
+
+export default function GoogleLoginButton({ returnUrl }: GoogleLoginButtonProps) {
   const [loading, setLoading] = useState(false);
 
   const handleGoogleLogin = async () => {
@@ -10,7 +14,11 @@ export default function GoogleLoginButton() {
       setLoading(true);
 
       // Google OAuth URL 생성 API 호출 (사이트 로그인용)
-      const response = await fetch('/api/auth/google?type=login');
+      const params = new URLSearchParams({ type: 'login' });
+      if (returnUrl) {
+        params.set('returnUrl', returnUrl);
+      }
+      const response = await fetch(`/api/auth/google?${params.toString()}`);
       const data = await response.json();
 
       if (data.success && data.authUrl) {

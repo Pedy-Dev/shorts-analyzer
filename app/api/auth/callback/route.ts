@@ -22,7 +22,20 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const code = searchParams.get('code');
     const error = searchParams.get('error');
-    const state = searchParams.get('state') || 'login';  // type을 state로 받음
+    const rawState = searchParams.get('state') || '';
+
+    // state 디코딩 (base64 JSON)
+    let state = 'login';
+    let returnUrl = '';
+    try {
+      const decoded = Buffer.from(rawState, 'base64').toString('utf-8');
+      const parsed = JSON.parse(decoded);
+      state = parsed.type || 'login';
+      returnUrl = parsed.returnUrl || '';
+    } catch {
+      // 이전 버전 호환: state가 단순 문자열인 경우
+      state = rawState || 'login';
+    }
 
     // 사용자가 권한 거부한 경우
     if (error) {
@@ -243,6 +256,9 @@ export async function GET(request: NextRequest) {
     if (state === 'youtube') {
       // YouTube 권한 연결 완료 → 메인 페이지로 (내 채널 분석 탭)
       redirectUrl = `${process.env.NEXT_PUBLIC_BASE_URL}?youtube_connected=true`;
+    } else if (returnUrl) {
+      // returnUrl이 있으면 해당 경로로 리다이렉트
+      redirectUrl = `${process.env.NEXT_PUBLIC_BASE_URL}${returnUrl}?auth=success`;
     } else {
       // 사이트 로그인 완료 → 메인 페이지로
       redirectUrl = `${process.env.NEXT_PUBLIC_BASE_URL}?auth=success`;

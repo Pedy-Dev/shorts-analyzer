@@ -12,9 +12,10 @@ const oauth2Client = new google.auth.OAuth2(
 
 export async function GET(request: NextRequest) {
   try {
-    // URL 파라미터에서 type 가져오기 (login 또는 youtube)
+    // URL 파라미터에서 type과 returnUrl 가져오기
     const searchParams = request.nextUrl.searchParams;
     const type = searchParams.get('type') || 'login';
+    const returnUrl = searchParams.get('returnUrl') || '';
 
     let scopes: string[];
     let prompt: string;
@@ -37,13 +38,17 @@ export async function GET(request: NextRequest) {
       prompt = 'select_account';  // 계정 선택만
     }
 
+    // state에 type과 returnUrl을 JSON으로 인코딩
+    const stateData = JSON.stringify({ type, returnUrl });
+    const encodedState = Buffer.from(stateData).toString('base64');
+
     // Google 로그인 URL 생성
     const authUrl = oauth2Client.generateAuthUrl({
       access_type: 'offline',  // 리프레시 토큰 발급
       scope: scopes,
       prompt: prompt,
       include_granted_scopes: true,      // 이전 권한 포함
-      state: type,  // type을 state로 전달 (callback에서 사용)
+      state: encodedState,  // type과 returnUrl을 state로 전달 (callback에서 사용)
     });
 
     // 생성된 URL 반환

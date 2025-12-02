@@ -1,6 +1,11 @@
 import GoogleLoginButton from '@/app/components/GoogleLoginButton';
 
-export default function LoginPage() {
+interface LoginPageProps {
+  searchParams: Promise<{ returnUrl?: string }>;
+}
+
+export default async function LoginPage({ searchParams }: LoginPageProps) {
+  const { returnUrl } = await searchParams;
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
       <div className="bg-white p-8 rounded-2xl shadow-xl max-w-md w-full">
@@ -15,7 +20,7 @@ export default function LoginPage() {
         </div>
 
         <div className="flex flex-col items-center gap-4">
-          <GoogleLoginButton />
+          <GoogleLoginButton returnUrl={returnUrl} />
           
           <p className="text-xs text-gray-500 text-center mt-4">
             로그인하면 서비스 이용약관 및<br />
