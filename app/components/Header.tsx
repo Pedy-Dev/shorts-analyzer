@@ -32,9 +32,9 @@ export default function Header({
       <div className="max-w-7xl mx-auto px-4 py-3 md:py-4">
         {/* 모바일: 2줄, md 이상: 1줄 */}
         <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-          {/* 1줄차: 로고 + 오른쪽 메뉴 */}
-          <div className="flex items-center justify-between">
-            {/* 왼쪽: 로고 */}
+          {/* 왼쪽 영역: 로고 + 메인 네비 (md 이상에서 한 줄) */}
+          <div className="flex items-center justify-between md:justify-start md:gap-6">
+            {/* 로고 */}
             <Link href="/" className="flex items-center gap-2">
               <Youtube className="w-6 md:w-7 h-6 md:h-7 text-red-600" />
               <span className="text-lg md:text-xl font-bold text-gray-900 hidden md:inline">
@@ -42,38 +42,54 @@ export default function Header({
               </span>
             </Link>
 
-            {/* 오른쪽: 보조 메뉴 + 유저 메뉴 */}
-            <div className="flex items-center gap-1 md:gap-2">
+            {/* 메인 네비 - md 이상에서만 로고 옆에 표시 */}
+            <nav className="hidden md:flex items-center gap-2">
+              <Link
+                href="/"
+                className={`px-4 py-2 text-base font-medium rounded-lg transition-colors ${
+                  activePage === 'analyzer'
+                    ? 'font-semibold text-red-600 bg-red-50'
+                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                }`}
+              >
+                채널 분석
+              </Link>
+              <Link
+                href="/shorts-ranking"
+                className={`px-4 py-2 text-base font-medium rounded-lg transition-colors flex items-center gap-1.5 ${
+                  activePage === 'ranking'
+                    ? 'font-semibold text-red-600 bg-red-50'
+                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                }`}
+              >
+                <BarChart3 size={16} />
+                <span>인기 차트</span>
+              </Link>
+            </nav>
+
+            {/* 오른쪽: 보조 메뉴 + 유저 메뉴 (모바일에서만 이 위치) */}
+            <div className="flex md:hidden items-center gap-1">
               <button
                 onClick={onServiceGuideClick}
-                className="p-2 md:px-3 md:py-1.5 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+                className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
                 title="서비스 안내"
               >
-                <CircleHelp size={18} className="md:hidden" />
-                <span className="hidden md:flex items-center gap-1.5 text-sm">
-                  <CircleHelp size={16} />
-                  안내
-                </span>
+                <CircleHelp size={18} />
               </button>
               <button
                 onClick={onApiKeyClick}
-                className="p-2 md:px-3 md:py-1.5 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+                className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
                 title="API 키 설정"
               >
-                <span className="md:hidden">⚙️</span>
-                <span className="hidden md:flex items-center gap-1.5 text-sm">
-                  ⚙️ API 키
-                </span>
+                <span>⚙️</span>
               </button>
-
-              {/* 로그인/프로필 */}
               {!isCheckingAuth && (
                 user ? (
                   <UserMenu />
                 ) : (
                   <button
                     onClick={() => window.location.href = getLoginUrl()}
-                    className="px-3 md:px-4 py-1.5 md:py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm md:text-base font-medium transition-colors"
+                    className="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-medium transition-colors"
                   >
                     로그인
                   </button>
@@ -82,11 +98,46 @@ export default function Header({
             </div>
           </div>
 
-          {/* 2줄차: 메인 네비 (채널 분석 / 인기 차트) */}
-          <nav className="flex w-full md:w-auto gap-1 md:gap-2">
+          {/* 오른쪽 영역: 보조 메뉴 (md 이상에서만) */}
+          <div className="hidden md:flex items-center gap-2">
+            <button
+              onClick={onServiceGuideClick}
+              className="px-3 py-1.5 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+              title="서비스 안내"
+            >
+              <span className="flex items-center gap-1.5 text-sm">
+                <CircleHelp size={16} />
+                안내
+              </span>
+            </button>
+            <button
+              onClick={onApiKeyClick}
+              className="px-3 py-1.5 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+              title="API 키 설정"
+            >
+              <span className="flex items-center gap-1.5 text-sm">
+                ⚙️ API 키
+              </span>
+            </button>
+            {!isCheckingAuth && (
+              user ? (
+                <UserMenu />
+              ) : (
+                <button
+                  onClick={() => window.location.href = getLoginUrl()}
+                  className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-base font-medium transition-colors"
+                >
+                  로그인
+                </button>
+              )
+            )}
+          </div>
+
+          {/* 모바일 2줄차: 메인 네비 */}
+          <nav className="flex md:hidden w-full gap-1">
             <Link
               href="/"
-              className={`flex-1 md:flex-none text-center px-3 md:px-4 py-1.5 md:py-2 text-sm md:text-base font-medium rounded-lg transition-colors ${
+              className={`flex-1 text-center px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
                 activePage === 'analyzer'
                   ? 'font-semibold text-red-600 bg-red-50'
                   : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
@@ -94,10 +145,9 @@ export default function Header({
             >
               채널 분석
             </Link>
-
             <Link
               href="/shorts-ranking"
-              className={`flex-1 md:flex-none text-center px-3 md:px-4 py-1.5 md:py-2 text-sm md:text-base font-medium rounded-lg transition-colors flex items-center justify-center gap-1.5 ${
+              className={`flex-1 text-center px-3 py-1.5 text-sm font-medium rounded-lg transition-colors flex items-center justify-center gap-1.5 ${
                 activePage === 'ranking'
                   ? 'font-semibold text-red-600 bg-red-50'
                   : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
