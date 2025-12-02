@@ -1,3 +1,5 @@
+import Link from 'next/link';
+import { Youtube } from 'lucide-react';
 import GoogleLoginButton from '@/app/components/GoogleLoginButton';
 
 interface LoginPageProps {
@@ -7,11 +9,17 @@ interface LoginPageProps {
 export default async function LoginPage({ searchParams }: LoginPageProps) {
   const { returnUrl } = await searchParams;
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
-      <div className="bg-white p-8 rounded-2xl shadow-xl max-w-md w-full">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
+      {/* 상단 로고 - 클릭시 메인으로 */}
+      <Link href="/" className="flex items-center gap-2 mb-8 hover:opacity-80 transition">
+        <Youtube className="w-8 h-8 text-red-600" />
+        <span className="text-2xl font-bold text-gray-900">유튜브 쇼츠 해커</span>
+      </Link>
+
+      <div className="bg-white p-8 rounded-2xl shadow-xl max-w-md w-full mx-4">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            유튜브 쇼츠 해커
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">
+            로그인
           </h1>
           <p className="text-gray-600">
             구글 계정으로 로그인하고<br />

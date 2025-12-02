@@ -34,9 +34,9 @@ export default function UserMenu() {
   }, []);
 
   const handleLogout = async () => {
-    // 쿠키 삭제 API 호출 (나중에 만들 예정)
+    // 쿠키 삭제 API 호출
     await fetch('/api/auth/logout', { method: 'POST' });
-    window.location.href = '/login';
+    window.location.href = '/';
   };
 
   if (loading) {
