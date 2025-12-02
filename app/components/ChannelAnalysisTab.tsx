@@ -57,7 +57,7 @@ export default function ChannelAnalysisTab({ isLoggedIn }: ChannelAnalysisTabPro
       return;
     }
 
-    const youtubeApiKey = localStorage.getItem('youtube_api_key');
+    const youtubeApiKey = localStorage.getItem('youtube_api_key') || '';
 
     // 채널명으로 검색
     setSearching(true);

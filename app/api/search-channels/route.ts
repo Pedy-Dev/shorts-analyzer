@@ -40,10 +40,18 @@ export async function POST(request: NextRequest) {
     }
 
     // 2. 서버 키 실패 시 유저 API 키로 폴백
-    if (!searchResults) {
+    if (!searchResults && apiKey) {
       console.log('🔑 유저 API 키로 채널 검색 시도...');
       searchResults = await searchChannels(query, apiKey);
       console.log('✅ 유저 API 키로 검색 성공');
+    }
+
+    // 둘 다 실패하면 에러
+    if (!searchResults) {
+      return NextResponse.json(
+        { error: '채널 검색에 실패했습니다. 잠시 후 다시 시도해주세요.' },
+        { status: 500 }
+      );
     }
 
     return NextResponse.json({ channels: searchResults });
