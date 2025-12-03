@@ -558,7 +558,8 @@ export async function runDailyKeywordAnalysisKR(targetDate: string): Promise<voi
         videoIds.includes(v.video_id)
       );
 
-      if (relatedVideos.length === 0) continue;
+      // 최소 3개 이상의 영상에 등장해야 핫 키워드로 인정
+      if (relatedVideos.length < 3) continue;
 
       const videoCount = relatedVideos.length;
       const totalViews = relatedVideos.reduce(
