@@ -468,6 +468,7 @@ export async function runDailyKeywordAnalysisKR(targetDate: string): Promise<voi
       .select('video_id, category_id, title, view_count')
       .eq('region_code', 'KR')
       .eq('snapshot_date', targetDate)
+      .order('video_id', { ascending: true })
       .range(offset, offset + batchSize - 1);
 
     if (fetchError) {
