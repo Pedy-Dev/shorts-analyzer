@@ -3,7 +3,8 @@
 'use client';
 
 import { useState, useEffect, Fragment } from 'react';
-import { Youtube, Loader2, RefreshCw, Search, X, Eye, ThumbsUp, Clock, BarChart3, Award, Info, BookOpen, TrendingUp } from 'lucide-react';
+import Image from 'next/image';
+import { Loader2, RefreshCw, Search, X, Eye, ThumbsUp, Clock, BarChart3, Award, Info, BookOpen, TrendingUp } from 'lucide-react';
 import { getSubtitle } from '../api/youtube';
 import GoogleLoginWarningModal from './GoogleLoginWarningModal';
 import MyChannelAnalysisView from './MyChannelAnalysisView';
@@ -438,7 +439,13 @@ export default function MyChannelTab({ isLoggedIn }: MyChannelTabProps) {
     <div className="space-y-6">
       {!currentChannel ? (
         <div className="bg-white rounded-lg shadow-lg p-6 md:p-8 text-center">
-          <Youtube className="w-14 h-14 md:w-16 md:h-16 text-red-600 mx-auto mb-3 md:mb-4" />
+          <Image
+            src="/logo.png"
+            alt="유튜브 쇼츠 해커"
+            width={64}
+            height={64}
+            className="w-14 h-14 md:w-16 md:h-16 mx-auto mb-3 md:mb-4"
+          />
           <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-3 md:mb-4">
             내 채널 분석
           </h2>
@@ -470,10 +477,7 @@ export default function MyChannelTab({ isLoggedIn }: MyChannelTabProps) {
                   채널 연결 중...
                 </>
               ) : (
-                <>
-                  <Youtube className="w-4 h-4 md:w-5 md:h-5" />
-                  내 채널 불러오기
-                </>
+                '내 채널 불러오기'
               )}
             </button>
           )}
