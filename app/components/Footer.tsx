@@ -2,7 +2,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Youtube } from 'lucide-react';
+import Image from 'next/image';
 
 export default function Footer() {
   return (
@@ -12,8 +12,14 @@ export default function Footer() {
         <div className="flex flex-col items-center gap-4 md:flex-row md:justify-between">
           {/* YouTube 브랜딩 - 모바일에서 중앙 정렬, 줄바꿈 허용 */}
           <div className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 text-gray-600 text-center sm:text-left">
-            <div className="flex items-center gap-1">
-              <Youtube className="w-4 h-4 text-red-600" />
+            <div className="flex items-center gap-1.5">
+              <Image
+                src="/logo.png"
+                alt="유튜브 쇼츠 해커"
+                width={16}
+                height={16}
+                className="w-4 h-4"
+              />
               <span className="text-xs sm:text-sm">Powered by</span>
             </div>
             <div className="flex flex-wrap justify-center sm:justify-start gap-x-1 text-xs sm:text-sm">

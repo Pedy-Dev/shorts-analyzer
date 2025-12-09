@@ -1,7 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { Youtube, CircleHelp, BarChart3 } from 'lucide-react';
+import Image from 'next/image';
+import { CircleHelp, BarChart3 } from 'lucide-react';
 import UserMenu from './UserMenu';
 
 interface HeaderProps {
@@ -36,7 +37,13 @@ export default function Header({
           <div className="flex items-center justify-between md:justify-start md:gap-6">
             {/* 로고 */}
             <Link href="/" className="flex items-center gap-2">
-              <Youtube className="w-6 md:w-7 h-6 md:h-7 text-red-600" />
+              <Image
+                src="/logo.png"
+                alt="유튜브 쇼츠 해커"
+                width={28}
+                height={28}
+                className="w-6 h-6 md:w-7 md:h-7"
+              />
               <span className="text-lg md:text-xl font-bold text-gray-900 hidden md:inline">
                 유튜브 쇼츠 해커
               </span>
