@@ -2,14 +2,11 @@
 // DB 구조 확인용 임시 API (확인 후 삭제 예정)
 
 import { NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+import { createServerClient } from '@/app/lib/supabase-server';
 
 export async function GET() {
+  const supabase = createServerClient();
+
   try {
     console.log('📊 DB 구조 확인 시작...');
 

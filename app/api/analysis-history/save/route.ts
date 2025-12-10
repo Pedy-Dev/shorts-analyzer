@@ -1,13 +1,10 @@
 // app/api/analysis-history/save/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+import { createServerClient } from '@/app/lib/supabase-server';
 
 export async function POST(request: NextRequest) {
+  const supabase = createServerClient();
+
   try {
     // 1. 로그인 체크
     const userId = request.cookies.get('user_id')?.value;

@@ -1,15 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { createServerClient } from '@/app/lib/supabase-server';
 import { cookies } from 'next/headers';
-
-// 서버용 Supabase 클라이언트 생성
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
 
 // GET: 사용자의 분석 기록 조회
 export async function GET(request: NextRequest) {
+  const supabase = createServerClient();
+
   try {
     // 쿠키에서 사용자 ID 가져오기
     const cookieStore = await cookies();
@@ -56,6 +52,8 @@ export async function GET(request: NextRequest) {
 
 // DELETE: 특정 분석 기록 삭제
 export async function DELETE(request: NextRequest) {
+  const supabase = createServerClient();
+
   try {
     const cookieStore = await cookies();
     const userId = cookieStore.get('user_id')?.value;

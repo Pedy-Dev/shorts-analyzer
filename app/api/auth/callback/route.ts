@@ -1,7 +1,7 @@
 // app/api/auth/callback/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { google } from 'googleapis';
-import { createClient } from '@supabase/supabase-js';
+import { createServerClient } from '@/app/lib/supabase-server';
 
 // Google OAuth 설정
 const oauth2Client = new google.auth.OAuth2(
@@ -10,13 +10,10 @@ const oauth2Client = new google.auth.OAuth2(
   `${process.env.NEXT_PUBLIC_BASE_URL}/api/auth/callback`
 );
 
-// Supabase 클라이언트 (서버용)
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
-
 export async function GET(request: NextRequest) {
+  // Supabase 서버 클라이언트 (service_role 키 사용)
+  const supabase = createServerClient();
+
   try {
     // URL에서 code 파라미터 가져오기
     const searchParams = request.nextUrl.searchParams;

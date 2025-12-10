@@ -1,14 +1,11 @@
 // app/api/my-channels/list/route.ts
 // Phase 2: user_channels 테이블에서 연결된 채널 목록 조회
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+import { createServerClient } from '@/app/lib/supabase-server';
 
 export async function GET(request: NextRequest) {
+  const supabase = createServerClient();
+
   try {
     // 쿠키에서 user_id 가져오기
     const userId = request.cookies.get('user_id')?.value;

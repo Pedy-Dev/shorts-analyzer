@@ -1,11 +1,6 @@
 // app/api/analysis-history/[id]/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+import { createServerClient } from '@/app/lib/supabase-server';
 
 // 하이브리드 저장 방식: analysis_raw에서 analysis_summary 재생성
 function parseRawToSummary(raw: any, isOwnChannel: boolean): any {
@@ -51,6 +46,8 @@ export async function GET(
   request: NextRequest,
   context: { params: Promise<{ id: string }> }
 ) {
+  const supabase = createServerClient();
+
   try {
     // params를 await로 풀어내기 (Next.js 15+)
     const { id } = await context.params;
@@ -165,6 +162,8 @@ export async function PATCH(
   request: NextRequest,
   context: { params: Promise<{ id: string }> }
 ) {
+  const supabase = createServerClient();
+
   try {
     // Next.js 15 스타일: params를 await로 풀어냄
     const { id } = await context.params;
@@ -295,6 +294,8 @@ export async function DELETE(
   request: NextRequest,
   context: { params: Promise<{ id: string }> }
 ) {
+  const supabase = createServerClient();
+
   try {
     // params를 await로 풀어내기 (Next.js 15+)
     const { id } = await context.params;

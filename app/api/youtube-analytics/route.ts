@@ -78,11 +78,8 @@ export async function POST(request: NextRequest) {
     }
 
     // ⭐ Supabase에서 선택된 채널의 토큰 가져오기
-    const { createClient } = require('@supabase/supabase-js');
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    );
+    const { createServerClient } = require('@/app/lib/supabase-server');
+    const supabase = createServerClient();
 
     const { data: channelData, error: channelError } = await supabase
       .from('user_channels')

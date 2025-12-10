@@ -1,14 +1,10 @@
 // app/api/user/me/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
-
-// Supabase 클라이언트
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+import { createServerClient } from '@/app/lib/supabase-server';
 
 export async function GET(request: NextRequest) {
+  const supabase = createServerClient();
+
   try {
     // 쿠키에서 user_id 가져오기
     const userId = request.cookies.get('user_id')?.value;

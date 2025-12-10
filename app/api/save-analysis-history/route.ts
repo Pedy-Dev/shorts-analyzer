@@ -1,14 +1,8 @@
 // app/api/save-analysis-history/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { createServerClient } from '@/app/lib/supabase-server';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { cookies } from 'next/headers';
-
-// 서버용 Supabase 클라이언트 생성
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
 
 // AI 카테고리 분류 실제 실행 함수
 async function tryClassifyCategory(
@@ -234,6 +228,8 @@ Few-shot 예시:
 }
 
 export async function POST(request: NextRequest) {
+  const supabase = createServerClient();
+
   try {
     // 쿠키에서 실제 사용자 ID 가져오기
     const cookieStore = await cookies();
