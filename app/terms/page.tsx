@@ -1,8 +1,9 @@
 // app/terms/page.tsx
 'use client';
 
-import { Youtube, ArrowLeft } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
+import Image from 'next/image';
 
 export default function TermsOfServicePage() {
   return (
@@ -19,7 +20,7 @@ export default function TermsOfServicePage() {
               <span>홈으로</span>
             </Link>
             <div className="flex items-center gap-2">
-              <Youtube className="w-6 h-6 text-red-600" />
+              <Image src="/logo.png" alt="유튜브 쇼츠 해커" width={24} height={24} className="w-6 h-6" />
               <h1 className="text-xl font-bold text-gray-900">서비스 이용약관</h1>
             </div>
           </div>

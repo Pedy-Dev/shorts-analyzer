@@ -644,7 +644,24 @@ export default function MyChannelTab({ isLoggedIn }: MyChannelTabProps) {
 
           {/* ⭐ 분석 결과 UI (공용 컴포넌트 사용) ⭐ */}
           {myChannelAnalysis && (
-            <MyChannelAnalysisView analysisData={myChannelAnalysis} />
+            <>
+              {/* 면책조항 */}
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-4">
+                <p className="text-sm text-amber-800">
+                  ⚠️ 아래 분석 지표는 본 서비스에서 자체적으로 계산한 것으로, YouTube 공식 지표가 아닙니다.
+                </p>
+              </div>
+              <MyChannelAnalysisView analysisData={myChannelAnalysis} />
+            </>
+          )}
+
+          {/* 면책조항 - 영상 데이터 상단 */}
+          {myChannelData && myChannelData.videos && !myChannelAnalysis && (
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-4">
+              <p className="text-sm text-amber-800">
+                ⚠️ 아래 분석 지표는 본 서비스에서 자체적으로 계산한 것으로, YouTube 공식 지표가 아닙니다.
+              </p>
+            </div>
           )}
 
           {/* 영상 테이블 */}

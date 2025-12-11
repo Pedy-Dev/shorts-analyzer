@@ -429,6 +429,15 @@ export default function ShortsCategoryRankingTab({ isLoggedIn, isCheckingAuth }:
                 </div>
               )}
 
+              {/* 면책조항 - 랭킹 상단 */}
+              {!loading && !error && activeTab === 'ranking' && rankings.length > 0 && (
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-4">
+                  <p className="text-sm text-amber-800">
+                    ⚠️ 영상 순위는 YouTube 인기 영상 순서에 본 서비스에서 번호를 부여한 것입니다. YouTube 공식 순위는 아닙니다.
+                  </p>
+                </div>
+              )}
+
               {/* 랭킹 리스트 */}
               {!loading && !error && activeTab === 'ranking' && (
                 <div className="bg-white rounded-lg shadow relative">
@@ -477,9 +486,9 @@ export default function ShortsCategoryRankingTab({ isLoggedIn, isCheckingAuth }:
                                 {item.channel_title}
                               </p>
                               <div className="flex flex-wrap gap-3 mt-2 text-[11px] md:text-xs text-gray-500">
-                                <span>👁️ {item.view_count.toLocaleString()}</span>
-                                <span>👍 {item.like_count.toLocaleString()}</span>
-                                <span>💬 {item.comment_count.toLocaleString()}</span>
+                                <span>조회수 {item.view_count.toLocaleString()}</span>
+                                <span>좋아요 {item.like_count.toLocaleString()}</span>
+                                <span>댓글 {item.comment_count.toLocaleString()}</span>
                               </div>
                             </div>
                           </a>

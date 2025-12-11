@@ -740,6 +740,15 @@ export default function ChannelAnalysisTab({ isLoggedIn }: ChannelAnalysisTabPro
         )}
       </div>
 
+      {/* 면책조항 - 분석 결과 상단 */}
+      {stats && (
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-4">
+          <p className="text-sm text-amber-800">
+            ⚠️ 아래 분석 지표는 본 서비스에서 자체적으로 계산한 것으로, YouTube 공식 지표가 아닙니다.
+          </p>
+        </div>
+      )}
+
       {/* 기본 통계 */}
       {stats && (
         <div className="bg-white rounded-lg shadow-lg p-4 md:p-6 mb-6 md:mb-8">
@@ -754,12 +763,12 @@ export default function ChannelAnalysisTab({ isLoggedIn }: ChannelAnalysisTabPro
             </div>
 
             <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-lg p-3 md:p-4 text-center">
-              <p className="text-xs md:text-sm text-gray-600 mb-1">성공</p>
+              <p className="text-xs md:text-sm text-gray-600 mb-1">자막 수집 성공</p>
               <p className="text-2xl md:text-3xl font-bold text-green-600">{stats.success}개</p>
             </div>
 
             <div className="bg-gradient-to-br from-red-50 to-red-100 rounded-lg p-3 md:p-4 text-center">
-              <p className="text-xs md:text-sm text-gray-600 mb-1">실패</p>
+              <p className="text-xs md:text-sm text-gray-600 mb-1">자막 수집 실패</p>
               <p className="text-2xl md:text-3xl font-bold text-red-600">{stats.fail}개</p>
             </div>
 
