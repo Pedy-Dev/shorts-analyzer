@@ -2,14 +2,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
-const STEP1_TEMPERATURE = 0.3;  // 주제 특성
-const STEP2_TEMPERATURE = 0.4;  // 제목 전략  
-const STEP3_TEMPERATURE = 0.3;  // 대본 전략
+const STEP1_TEMPERATURE = 0.3;  // 주제+대본 통합 분석
+const STEP2_TEMPERATURE = 0.4;  // 제목 전략
 
-// 모델 전략
-const MODEL_STEP1_PRIMARY = 'gemini-2.5-flash';
-const MODEL_STEP2_PRIMARY = 'gemini-2.0-flash-exp';
-const MODEL_STEP3_PRIMARY = 'gemini-2.5-flash';
+// 모델 전략 (3호출 최적화)
+const MODEL_STEP1_PRIMARY = 'gemini-2.5-flash';    // Call 1: 주제+대본 (가장 무거움)
+const MODEL_STEP2_PRIMARY = 'gemini-2.0-flash-exp'; // Call 2: 제목 (가벼움)
 
 const MODEL_FALLBACK = 'gemini-2.0-flash-exp';
 
@@ -144,20 +142,22 @@ async function parseGeminiResponse(text: string, stepName: string = ''): Promise
 
 // ---------- 프롬프트들 ----------
 
-// Step 1: 채널 주제 특성
-const getDNAPrompt = (topVideos: any[], bottomVideos: any[]) => `당신은 YouTube 쇼츠 채널 DNA 전문 분석가입니다.
+// Step 1+3 통합: 주제 특성 + 대본 분석 (토큰 절감을 위해 통합)
+const getTopicAndScriptPrompt = (topVideos: any[], bottomVideos: any[]) => `당신은 YouTube 쇼츠 전문 분석가입니다.
+아래 영상들의 **주제 특성**과 **대본 전략** 두 가지를 동시에 분석합니다.
 
 ⚠️ 중요 전제:
 - 입력된 자막은 YouTube 자동 추출 기반으로 오타/띄어쓰기 오류가 있을 수 있습니다.
 - 의미와 맥락 중심으로 분석하고, 사소한 오류는 무시하세요.
 - 모든 분석 결과는 반드시 순수 한국어로 작성하세요.
-- 성과가 좋은/나쁜 주제를 정의할 때, 반드시 "영상 제목"뿐 아니라 "대본 내용 전체"를 함께 고려하세요.
 - 주제는 제목 키워드가 아니라, 실제로 영상이 다루는 이야기·정보·사건 기준으로 구분하세요.
+- "초반 3초 후킹 전략"은 각 영상의 "대본에서 첫 1~2문장"만 보고 분석하세요.
 
 ⚠️ 출력 제한:
-- successful_topics와 unsuccessful_topics는 반드시 각각 2개씩 작성하세요.
-- "examples" 배열도 최대 2개까지만 작성하세요.
-- 각 설명 문장은 최대 2문장 이내로 작성하세요.
+- successful_topics, unsuccessful_topics: 각각 2개씩
+- examples 배열: 최대 2개
+- top_patterns: 2~3개
+- 각 설명: 최대 2문장
 
 # 📈 상위 ${topVideos.length}개 영상
 ${topVideos
@@ -183,7 +183,7 @@ ${v.script}
     )
     .join('\n')}
 
-# 분석 과제: "주제 특성"만 분석
+# 분석 과제: "주제 특성" + "대본 전략" 동시 분석
 
 다음 JSON만 출력하세요:
 {
@@ -236,6 +236,49 @@ ${v.script}
         }
       ]
     }
+  },
+  "script_analysis": {
+    "script_structure": {
+      "intro_pct": 20,
+      "body_pct": 50,
+      "climax_pct": 20,
+      "outro_pct": 10,
+      "description": "이 채널 쇼츠의 전개 구조 설명",
+      "sentence_rhythm": {
+        "short_ratio": 0.3,
+        "medium_ratio": 0.5,
+        "long_ratio": 0.2,
+        "pattern_type": "문장 길이 리듬감 유형"
+      },
+      "speech_pattern": {
+        "banmal_ratio": 0.8,
+        "jondae_ratio": 0.2,
+        "viewpoint": "1인칭/3인칭/해설자",
+        "tone_description": "말투와 톤의 특징"
+      }
+    },
+    "hook_analysis": {
+      "first_3_seconds": {
+        "summary": "대본 첫 1~2문장의 시작 패턴 요약",
+        "top_patterns": [
+          {
+            "type": "후킹 유형",
+            "examples": ["도입부 문장 예시1", "예시2"],
+            "effectiveness": "왜 이 도입이 효과적인지"
+          }
+        ],
+        "power_words": ["도입부 강한 단어1", "강한 단어2"]
+      }
+    },
+    "retention_elements": {
+      "conclusion_placement": {
+        "top_videos_avg_position": 0.7,
+        "bottom_videos_avg_position": 0.3,
+        "description": "결론/반전 배치 위치 차이 설명"
+      },
+      "comprehensive_retention_strategy": "시청자를 끝까지 붙잡는 종합 전략 설명"
+    },
+    "key_differences": ["상위 vs 하위 대본 차이 1", "차이 2", "차이 3"]
   }
 }`;
 
@@ -355,144 +398,16 @@ ${bottomVideos
   }
 }`;
 
-// Step 3: 대본 심화 분석
-const getScriptAnalysisPrompt = (topVideos: any[], bottomVideos: any[]) => `당신은 YouTube 쇼츠 대본 분석 전문가입니다.
-
-⚠️ 분석 기준:
-- "초반 3초 후킹 전략"은 각 영상의 "대본에서 첫 1~2문장"만 보고 분석하세요.
-- 제목(타이틀)은 참고만 하고, 실제 패턴 분류는 반드시 "스크립트 도입부 표현"을 기준으로 하세요.
-- top_patterns는 반드시 2~3개 작성하세요.
-- 결론/반전 배치는 2~3개 예시를 포함하세요.
-- 오픈 루프와 중간부 이탈 방지는 종합적인 텍스트 설명으로 작성하세요.
-
-⚠️ 출력 제한:
-- "examples" 배열은 최대 3개까지만 작성하세요.
-- 각 설명 문장은 최대 2문장 이내로 작성하세요.
-
-# 📈 상위 영상 (대본 전체 제공)
-${topVideos
-    .slice(0, 3)
-    .map(
-      (v: any, idx: number) => `
-[상위 ${idx + 1}] ${v.title}
-대본 전체:
-${v.script}
----`,
-    )
-    .join('\n')}
-
-# 📉 하위 영상 (대본 전체 제공)
-${bottomVideos
-    .slice(0, 3)
-    .map(
-      (v: any, idx: number) => `
-[하위 ${idx + 1}] ${v.title}
-대본 전체:
-${v.script}
----`,
-    )
-    .join('\n')}
-
-반드시 다음 JSON 형식으로만 응답하세요:
-{
-  "script_structure": {
-    "intro_pct": 20,
-    "body_pct": 50,
-    "climax_pct": 20,
-    "outro_pct": 10,
-    "description": "이 채널의 쇼츠가 보통 어떤 구조(도입-전개-클라이맥스-마무리)로 진행되는지 설명",
-    "sentence_rhythm": {
-      "short_ratio": 0.3,
-      "medium_ratio": 0.5,
-      "long_ratio": 0.2,
-      "pattern_type": "문장 길이의 리듬감 유형(예: 롤러코스터형, 단문 위주형 등)"
-    },
-    "speech_pattern": {
-      "banmal_ratio": 0.8,
-      "jondae_ratio": 0.2,
-      "viewpoint": "1인칭/3인칭/해설자 등",
-      "tone_description": "전체적인 말투와 톤의 특징"
-    }
-  },
-  "hook_analysis": {
-    "first_3_seconds": {
-      "summary": "대본의 첫 1~2문장이 주로 어떻게 시작되는지 요약",
-      "top_patterns": [
-        {
-          "type": "후킹 유형(예: 질문형, 상황 던지기, 국뽕 자극 등)",
-          "examples": ["대표 도입부 문장 예시1", "대표 도입부 문장 예시2", "대표 도입부 문장 예시3"],
-          "effectiveness": "왜 이런 도입이 시청자의 손가락을 멈추게 만드는지 설명"
-        }
-      ],
-      "power_words": ["도입부에서 자주 등장하는 강한 단어1", "강한 단어2"]
-    }
-  },
-  "retention_elements": {
-    "conclusion_placement": {
-      "top_videos_avg_position": 0.7,
-      "bottom_videos_avg_position": 0.3,
-      "description": "상위 영상과 하위 영상이 결론·반전·핵심 메시지를 어느 지점에 배치하는지 차이 설명",
-      "example_phrases": [
-        {
-          "video_title": "영상 제목",
-          "placement": "70% 지점",
-          "phrase": "실제 사용된 결론/반전 문장 예시"
-        }
-      ]
-    },
-    "comprehensive_retention_strategy": "상위 영상들이 시청자를 끝까지 붙잡기 위해 사용하는 종합적 전략 설명. 오픈 루프를 어떻게 던지고 회수하는지, 중간부(40~60% 구간)에서 어떻게 이탈을 방지하는지, 어떤 전환 표현이나 긴장 유지 기법을 사용하는지 등을 포괄적으로 서술"
-  },
-  "key_differences": [
-    "대본 측면에서 상위 vs 하위 영상의 가장 큰 차이 1",
-    "차이 2",
-    "차이 3"
-  ]
-}`;
-
-// 최종 요약(상위 vs 하위 핵심 차이)
-const getSummaryDifferencesPrompt = (
-  dnaResult: any,
-  titleResult: any,
-  scriptResult: any,
-) => `당신은 YouTube 쇼츠 분석 결과를 한눈에 정리하는 전문가입니다.
-
-아래는 한 채널에 대한 분석 결과입니다.
-
-[1] 채널 주제 특성 분석 결과:
-${JSON.stringify(dnaResult)}
-
-[2] 제목 전략 분석 결과:
-${JSON.stringify(titleResult)}
-
-[3] 대본 심화 분석 결과:
-${JSON.stringify(scriptResult)}
-
-이 정보를 바탕으로, 상위 영상과 하위 영상의 "핵심 차이"를 3가지 섹션으로 요약하세요.
-
-⚠️ 작성 규칙:
-- 각 항목은 정확히 100자 내외로 작성하세요 (80~120자 사이).
-- 구체적인 수치나 예시를 포함해 실용적으로 작성하세요.
-- 초보자도 이해할 수 있는 쉬운 한국어로 작성하세요.
-
-다음 JSON만 출력하세요:
-{
-  "summary_differences": {
-    "topic_difference": "주제 특성: [분석 결과의 핵심을 100자 내외로 요약]",
-    "title_difference": "제목 전략: [분석 결과의 핵심을 100자 내외로 요약]",
-    "script_difference": "대본 전략: [분석 결과의 핵심을 100자 내외로 요약]"
-  }
-}`;
-
-// 채널 특성 요약 (5축 고정)
-const getChannelIdentityPrompt = (
+// 최종 요약 + 채널 특성 5축 (통합 - 토큰 절감)
+const getSummaryAndIdentityPrompt = (
   topVideos: any[],
   bottomVideos: any[],
   fullAnalysis: any
-) => `너는 유튜브 쇼츠 채널 분석을 요약하는 전문가다.
+) => `당신은 YouTube 쇼츠 채널 분석을 요약하는 전문가입니다.
 
-아래는 한 채널에 대한 상세 분석 결과다.
-이 내용을 보고 채널 운영자가 바로 참고할 수 있는
-5개의 핵심 요약을 한 줄씩 작성하라.
+아래는 한 채널에 대한 분석 결과입니다. 이를 바탕으로 **두 가지**를 동시에 작성하세요:
+1. 상위 vs 하위 영상의 핵심 차이 요약 (summary_differences)
+2. 채널 특성 5축 요약 (channel_identity)
 
 [채널 기본 정보]
 - 상위 ${topVideos.length}개 영상 (평균 조회수: ${Math.round(
@@ -503,45 +418,30 @@ const getChannelIdentityPrompt = (
 ).toLocaleString()})
 
 [채널 상세 분석 결과]
-${JSON.stringify(fullAnalysis, null, 2)}
+${JSON.stringify(fullAnalysis)}
 
-[작성해야 할 5개 항목]
+⚠️ 작성 규칙:
+- summary_differences: 각 항목 80~120자로 구체적 수치/예시 포함
+- channel_identity: 각 항목 30~60자, 실전 표현 사용
+- 초보자도 이해할 수 있는 쉬운 한국어로 작성
 
-1) 주제 특성(topic_feature)
-- 이 채널이 성과 기준으로 주로 다루는 소재와 상황을 한 줄로 정리한다.
-
-2) 제목 전략(title_strategy)
-- 상위 영상의 공통 제목 패턴을 한 줄로 정리한다
-  (자주 쓰는 키워드, 대략적 글자 수, 형식 등).
-
-3) 영상 구조 & 문장 리듬(structure_rhythm)
-- 영상 전개 구조(예: 위기 → 대응 → 결말)와
-  나레이션 문장 길이·호흡을 한 줄로 정리한다.
-
-4) 초반 3초 후킹 전략(hook_3sec)
-- 시작 3초 안에 주로 어떤 장면·문장으로 후킹하는지 한 줄로 정리한다.
-
-5) 영상을 끝까지 보게 만드는 요소(retention_elements)
-- 시청자가 끝까지 보게 되는 궁금증·반전·감정 포인트를 한 줄로 정리한다.
-
-[공통 작성 규칙]
-- 각 항목은 한글 한 문장, 30~60자 정도로 작성한다.
-- 채널 운영자가 그대로 따라 쓸 수 있는 실전 표현으로 쓴다.
-- 너 자신의 설명이나 메타 코멘트는 쓰지 않는다.
-- "이 채널은 ~합니다" 또는 "~하는 방식" 같은 톤으로 일관성 있게 쓴다.
-
-[출력 형식]
-아래 JSON 형식으로만 출력한다.
-
+다음 JSON만 출력하세요:
 {
-  "topic_feature": "...",
-  "title_strategy": "...",
-  "structure_rhythm": "...",
-  "hook_3sec": "...",
-  "retention_elements": "..."
+  "summary_differences": {
+    "topic_difference": "주제 특성: [분석 결과의 핵심을 100자 내외로 요약]",
+    "title_difference": "제목 전략: [분석 결과의 핵심을 100자 내외로 요약]",
+    "script_difference": "대본 전략: [분석 결과의 핵심을 100자 내외로 요약]"
+  },
+  "channel_identity": {
+    "topic_feature": "이 채널이 주로 다루는 소재와 상황 한 줄 요약",
+    "title_strategy": "상위 영상의 공통 제목 패턴 한 줄 요약",
+    "structure_rhythm": "영상 전개 구조와 나레이션 리듬 한 줄 요약",
+    "hook_3sec": "시작 3초 후킹 전략 한 줄 요약",
+    "retention_elements": "시청자를 끝까지 붙잡는 요소 한 줄 요약"
+  }
 }`;
 
-// ---------- 전체 분석 실행 함수 (모델 세트별) ----------
+// ---------- 전체 분석 실행 함수 (3호출 최적화 버전) ----------
 
 async function runFullAnalysis(
   topVideos: any[],
@@ -549,76 +449,62 @@ async function runFullAnalysis(
   {
     step1Model,
     step2Model,
-    step3Model,
     summaryModel,
-  }: { step1Model: string; step2Model: string; step3Model: string; summaryModel: string },
+  }: { step1Model: string; step2Model: string; summaryModel: string },
 ) {
   let finalAnalysis: any = {};
-  let dnaResult: any = null;
-  let titleResult: any = null;
-  let scriptResult: any = null;
 
-  // Step1: 주제 특성
-  console.log('📊 Step 1/3: 주제 특성 분석 중...');
-  const dnaResponse = await callGemini(getDNAPrompt(topVideos, bottomVideos), {
+  // ========== Call 1: 주제 특성 + 대본 분석 통합 (스크립트 1회만 전송) ==========
+  console.log('📊 Call 1/3: 주제 특성 + 대본 분석 중...');
+  const topicScriptResponse = await callGemini(getTopicAndScriptPrompt(topVideos, bottomVideos), {
     model: step1Model,
     temperature: STEP1_TEMPERATURE,
-    stepName: 'Step1-topic',
+    stepName: 'Call1-topic-script',
   });
-  dnaResult = await parseGeminiResponse(dnaResponse, 'Step1');
-  console.log('✅ Step 1 완료');
-  finalAnalysis = { ...finalAnalysis, ...dnaResult };
+  const topicScriptResult = await parseGeminiResponse(topicScriptResponse, 'Call1');
+  console.log('✅ Call 1 완료 (주제+대본)');
 
-  // Step3: 대본 심화 분석 (모델 전략상 Step1 다음에 실행)
-  console.log('📊 Step 2/3: 대본 심화 분석 중...');
-  const scriptResponse = await callGemini(getScriptAnalysisPrompt(topVideos, bottomVideos), {
-    model: step3Model,
-    temperature: STEP3_TEMPERATURE,
-    stepName: 'Step3-script',
-  });
-  scriptResult = await parseGeminiResponse(scriptResponse, 'Step3');
-  console.log('✅ Step 2(대본) 완료');
-  finalAnalysis.script_analysis = scriptResult;
+  // topic_characteristics와 script_analysis 분리 저장
+  if (topicScriptResult?.topic_characteristics) {
+    finalAnalysis.topic_characteristics = topicScriptResult.topic_characteristics;
+  }
+  if (topicScriptResult?.script_analysis) {
+    finalAnalysis.script_analysis = topicScriptResult.script_analysis;
+  }
 
-  // Step2: 제목 전략 분석 (마지막에 실행하지만, 프론트에서는 2번 섹션으로 노출)
-  console.log('📊 Step 3/3: 제목 패턴 분석 중...');
+  // ========== Call 2: 제목 전략 분석 (제목만 전송 - 이미 최적화됨) ==========
+  console.log('📊 Call 2/3: 제목 패턴 분석 중...');
   const titleResponse = await callGemini(getTitlePrompt(topVideos, bottomVideos), {
     model: step2Model,
     temperature: STEP2_TEMPERATURE,
-    stepName: 'Step2-title',
+    stepName: 'Call2-title',
   });
-  titleResult = await parseGeminiResponse(titleResponse, 'Step2');
-  console.log('✅ Step 3(제목) 완료');
+  const titleResult = await parseGeminiResponse(titleResponse, 'Call2');
+  console.log('✅ Call 2 완료 (제목)');
   finalAnalysis = { ...finalAnalysis, ...titleResult };
 
-  // 최종 요약 (상위 vs 하위 핵심 차이)
-  console.log('📊 Summary: 상위 vs 하위 핵심 차이 요약 중...');
-  const summaryPrompt = getSummaryDifferencesPrompt(dnaResult, titleResult, scriptResult);
-  const summaryResponse = await callGemini(summaryPrompt, {
-    model: summaryModel,
-    temperature: STEP2_TEMPERATURE,
-    stepName: 'Summary-differences',
-  });
-  const summaryJson = await parseGeminiResponse(summaryResponse, 'Summary');
-  if (summaryJson?.summary_differences) {
-    finalAnalysis.summary_differences = summaryJson.summary_differences;
+  // ========== Call 3: 요약 + 채널 특성 5축 통합 (이전 결과만 사용) ==========
+  console.log('📊 Call 3/3: 요약 + 채널 특성 분석 중...');
+  const summaryIdentityResponse = await callGemini(
+    getSummaryAndIdentityPrompt(topVideos, bottomVideos, finalAnalysis),
+    {
+      model: summaryModel,
+      temperature: 0.3,
+      stepName: 'Call3-summary-identity',
+    }
+  );
+  const summaryIdentityResult = await parseGeminiResponse(summaryIdentityResponse, 'Call3');
+  console.log('✅ Call 3 완료 (요약+특성)');
+
+  // summary_differences와 channel_identity 분리 저장
+  if (summaryIdentityResult?.summary_differences) {
+    finalAnalysis.summary_differences = summaryIdentityResult.summary_differences;
+  }
+  if (summaryIdentityResult?.channel_identity) {
+    finalAnalysis.channel_identity = summaryIdentityResult.channel_identity;
   }
 
-  // 채널 특성 요약 (5축)
-  console.log('📊 Channel Identity: 채널 특성 5축 요약 중...');
-  const identityPrompt = getChannelIdentityPrompt(topVideos, bottomVideos, finalAnalysis);
-  const identityResponse = await callGemini(identityPrompt, {
-    model: summaryModel,
-    temperature: 0.3,
-    stepName: 'Channel-Identity',
-  });
-  const identityJson = await parseGeminiResponse(identityResponse, 'ChannelIdentity');
-  if (identityJson) {
-    finalAnalysis.channel_identity = identityJson;
-  }
-  console.log('✅ 채널 특성 요약 완료');
-
-  console.log('✅ 전체 분석 세트 완료');
+  console.log('✅ 전체 분석 완료 (3호출 최적화)');
 
   return finalAnalysis;
 }
@@ -715,7 +601,6 @@ export async function POST(request: NextRequest) {
         finalAnalysis = await runFullAnalysis(topVideos, bottomVideos, {
           step1Model: MODEL_STEP1_PRIMARY,
           step2Model: MODEL_STEP2_PRIMARY,
-          step3Model: MODEL_STEP3_PRIMARY,
           summaryModel: MODEL_STEP2_PRIMARY,
         });
       } catch (err) {
@@ -728,7 +613,6 @@ export async function POST(request: NextRequest) {
         finalAnalysis = await runFullAnalysis(topVideos, bottomVideos, {
           step1Model: MODEL_FALLBACK,
           step2Model: MODEL_FALLBACK,
-          step3Model: MODEL_FALLBACK,
           summaryModel: MODEL_FALLBACK,
         });
       }
