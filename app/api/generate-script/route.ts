@@ -35,15 +35,25 @@ async function callGemini(
       model,
       generationConfig: {
         temperature,
-        maxOutputTokens: 16384,
+        maxOutputTokens: 65536,
         topP: 0.9,
         topK: 40,
+        responseMimeType: 'application/json',
       },
     });
 
     const result = await geminiModel.generateContent(prompt);
-    const text = result.response.text();
-    console.log(`[Gemini][${stepName || model}] ✅ API 성공!`);
+    const response = result.response;
+    const text = response.text();
+
+    // 응답 완료 이유 확인 (MAX_TOKENS면 잘림)
+    const finishReason = response.candidates?.[0]?.finishReason;
+    console.log(`[Gemini][${stepName || model}] ✅ API 성공! (finishReason: ${finishReason})`);
+
+    if (finishReason === 'MAX_TOKENS') {
+      console.warn(`[Gemini][${stepName || model}] ⚠️ 응답이 토큰 한도로 잘림!`);
+    }
+
     return text;
   } catch (error: any) {
     const errorCode = error?.status || error?.code;
@@ -153,6 +163,11 @@ const getTopicAndScriptPrompt = (topVideos: any[], bottomVideos: any[]) => `당�
 - 주제는 제목 키워드가 아니라, 실제로 영상이 다루는 이야기·정보·사건 기준으로 구분하세요.
 - "초반 3초 후킹 전략"은 각 영상의 "대본에서 첫 1~2문장"만 보고 분석하세요.
 
+⚠️ 대본 분석 방법 (반드시 실제 측정):
+1. 영상 구조: 각 대본을 읽고 도입/전개/반전/결말 구간을 직접 판단 → 실측 비율 계산
+2. 문장 리듬: 모든 문장 길이 측정 (짧음 ≤10자, 중간 11~25자, 긺 ≥26자) → 실측 비율
+3. 말투 패턴: 종결어미 실제 카운트 + 자주 나오는 표현 3-5개 추출
+
 ⚠️ 출력 제한:
 - successful_topics, unsuccessful_topics: 각각 2개씩
 - examples 배열: 최대 2개
@@ -239,22 +254,27 @@ ${v.script}
   },
   "script_analysis": {
     "script_structure": {
-      "intro_pct": 20,
-      "body_pct": 50,
-      "climax_pct": 20,
-      "outro_pct": 10,
+      "intro_pct": 0,
+      "body_pct": 0,
+      "climax_pct": 0,
+      "outro_pct": 0,
       "description": "이 채널 쇼츠의 전개 구조 설명",
       "sentence_rhythm": {
-        "short_ratio": 0.3,
-        "medium_ratio": 0.5,
-        "long_ratio": 0.2,
+        "short_ratio": 0.0,
+        "medium_ratio": 0.0,
+        "long_ratio": 0.0,
         "pattern_type": "문장 길이 리듬감 유형"
       },
       "speech_pattern": {
-        "banmal_ratio": 0.8,
-        "jondae_ratio": 0.2,
+        "banmal_ratio": 0.0,
+        "jondae_ratio": 0.0,
         "viewpoint": "1인칭/3인칭/해설자",
-        "tone_description": "말투와 톤의 특징"
+        "tone_description": "말투와 톤의 특징",
+        "example_expressions": {
+          "banmal": ["실제 반말 종결어미 예시1", "예시2"],
+          "jondae": ["실제 존댓말 종결어미 예시1", "예시2"],
+          "typical_phrases": ["자주 등장하는 말버릇/관용구 예시1", "예시2", "예시3"]
+        }
       }
     },
     "hook_analysis": {
@@ -422,7 +442,7 @@ ${JSON.stringify(fullAnalysis)}
 
 ⚠️ 작성 규칙:
 - summary_differences: 각 항목 80~120자로 구체적 수치/예시 포함
-- channel_identity: 각 항목 30~60자, 실전 표현 사용
+- channel_identity: 각 항목 30~60자, 설명체로 작성
 - 초보자도 이해할 수 있는 쉬운 한국어로 작성
 
 다음 JSON만 출력하세요:

@@ -70,7 +70,28 @@ export interface ExternalChannelAnalysis {
     };
     key_differences?: string[];
     script_structure?: {
+      intro_pct?: number;
+      body_pct?: number;
+      climax_pct?: number;
+      outro_pct?: number;
       description: string;
+      sentence_rhythm?: {
+        short_ratio?: number;
+        medium_ratio?: number;
+        long_ratio?: number;
+        pattern_type?: string;
+      };
+      speech_pattern?: {
+        banmal_ratio?: number;
+        jondae_ratio?: number;
+        viewpoint?: string;
+        tone_description?: string;
+        example_expressions?: {
+          banmal?: string[];
+          jondae?: string[];
+          typical_phrases?: string[];
+        };
+      };
     };
   };
 
