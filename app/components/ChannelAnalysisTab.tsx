@@ -932,7 +932,7 @@ export default function ChannelAnalysisTab({ isLoggedIn }: ChannelAnalysisTabPro
             {generatedGuideline}
           </div>
           <p className="text-xs text-gray-500 mt-3">
-            💡 이 가이드와 AI 프롬프트 템플릿을 활용하여 해당 채널 스타일의 대본을 생성할 수 있습니다.
+            💡 이 가이드를 사용하시는 AI 모델에 입력하시면 분석하신 채널 스타일의 대본을 생성할 수 있습니다.
           </p>
         </div>
       )}
