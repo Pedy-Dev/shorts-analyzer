@@ -921,16 +921,40 @@ export default function ChannelAnalysisView({
                 </div>
                 <div className="bg-gradient-to-br from-yellow-50 to-orange-100 rounded-lg p-3 md:p-4">
                   <h5 className="font-bold text-gray-800 mb-2">특징</h5>
-                  <p className="text-xs md:text-sm text-gray-700 mb-2">
+                  <p className="text-xs md:text-sm text-gray-700 mb-3">
                     <span className="font-semibold">시점:</span>{' '}
                     {analysisResult.script_analysis.script_structure
                       .speech_pattern.viewpoint || 'N/A'}
                   </p>
-                  <p className="text-xs md:text-sm text-gray-700">
-                    <span className="font-semibold">톤:</span>{' '}
-                    {analysisResult.script_analysis.script_structure
-                      .speech_pattern.tone_description || 'N/A'}
-                  </p>
+                  {/* 종결어미 예시 */}
+                  {analysisResult.script_analysis.script_structure.speech_pattern.example_expressions && (
+                    <div className="space-y-2">
+                      {(analysisResult.script_analysis.script_structure.speech_pattern.example_expressions.banmal?.length ?? 0) > 0 && (
+                        <div>
+                          <span className="text-xs font-semibold text-green-700">반말 예시:</span>
+                          <p className="text-xs text-gray-600">
+                            {analysisResult.script_analysis.script_structure.speech_pattern.example_expressions.banmal?.join(', ')}
+                          </p>
+                        </div>
+                      )}
+                      {(analysisResult.script_analysis.script_structure.speech_pattern.example_expressions.jondae?.length ?? 0) > 0 && (
+                        <div>
+                          <span className="text-xs font-semibold text-blue-700">존댓말 예시:</span>
+                          <p className="text-xs text-gray-600">
+                            {analysisResult.script_analysis.script_structure.speech_pattern.example_expressions.jondae?.join(', ')}
+                          </p>
+                        </div>
+                      )}
+                      {(analysisResult.script_analysis.script_structure.speech_pattern.example_expressions.typical_phrases?.length ?? 0) > 0 && (
+                        <div>
+                          <span className="text-xs font-semibold text-purple-700">자주 쓰는 표현:</span>
+                          <p className="text-xs text-gray-600">
+                            {analysisResult.script_analysis.script_structure.speech_pattern.example_expressions.typical_phrases?.join(', ')}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             )}
