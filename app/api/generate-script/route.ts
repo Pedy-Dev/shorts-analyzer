@@ -9,7 +9,6 @@ const STEP2_TEMPERATURE = 0.4;  // 제목 전략
 const MODEL_STEP1_PRIMARY = 'gemini-2.5-flash';    // Call 1: 주제+대본 (가장 무거움)
 const MODEL_STEP2_PRIMARY = 'gemini-2.0-flash-exp'; // Call 2: 제목 (가벼움)
 
-const MODEL_FALLBACK = 'gemini-2.0-flash-exp';
 
 // ---------- Gemini 호출 공통 함수 ----------
 
@@ -36,7 +35,7 @@ async function callGemini(
       model,
       generationConfig: {
         temperature,
-        maxOutputTokens: 100000,
+        maxOutputTokens: 999999,
         topP: 0.9,
         topK: 40,
         responseMimeType: mimeType,
@@ -981,28 +980,34 @@ export async function POST(request: NextRequest) {
         `📊 상위 ${topVideos.length}개 vs 하위 ${bottomVideos.length}개 영상 비교`,
       );
 
-      // 1차: 모델 전략(2.5 + 2.0 혼합)으로 분석
+      // 2.5 모델로 최대 3번 재시도
       let finalAnalysis: any;
-      let usedFallback = false;
+      let attemptCount = 0;
+      const MAX_ATTEMPTS = 3;
 
-      try {
-        finalAnalysis = await runFullAnalysis(topVideos, bottomVideos, {
-          step1Model: MODEL_STEP1_PRIMARY,
-          step2Model: MODEL_STEP2_PRIMARY,
-          summaryModel: MODEL_STEP2_PRIMARY,
-        });
-      } catch (err) {
-        console.error(
-          '⚠️ 1차 분석 실패, 전체를 gemini-2.0-flash-exp로 재시도:',
-          err,
-        );
-        usedFallback = true;
-        // 전체를 2.0 flash-exp로 다시 시도
-        finalAnalysis = await runFullAnalysis(topVideos, bottomVideos, {
-          step1Model: MODEL_FALLBACK,
-          step2Model: MODEL_FALLBACK,
-          summaryModel: MODEL_FALLBACK,
-        });
+      while (attemptCount < MAX_ATTEMPTS) {
+        attemptCount++;
+        try {
+          console.log(`🔄 분석 시도 ${attemptCount}/${MAX_ATTEMPTS} (gemini-2.5-flash)`);
+          finalAnalysis = await runFullAnalysis(topVideos, bottomVideos, {
+            step1Model: MODEL_STEP1_PRIMARY,
+            step2Model: MODEL_STEP2_PRIMARY,
+            summaryModel: MODEL_STEP2_PRIMARY,
+          });
+          console.log(`✅ ${attemptCount}차 시도 성공!`);
+          break; // 성공하면 루프 종료
+        } catch (err: any) {
+          console.error(`⚠️ ${attemptCount}차 시도 실패:`, err?.message || err);
+
+          if (attemptCount >= MAX_ATTEMPTS) {
+            // 3번 모두 실패하면 에러 throw
+            throw new Error(`분석 ${MAX_ATTEMPTS}회 시도 모두 실패: ${err?.message || '알 수 없는 오류'}`);
+          }
+
+          // 재시도 전 잠시 대기 (1초)
+          console.log(`⏳ ${attemptCount + 1}차 재시도 준비 중...`);
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
       }
 
       console.log('✅ 채널 컨텐츠 분석 완료!');
@@ -1015,7 +1020,7 @@ export async function POST(request: NextRequest) {
         excludedCount: validVideos.length - matureVideos.length,
         topCount: topVideos.length,
         bottomCount: bottomVideos.length,
-        usedFallback,
+        attemptCount,
         metadata: {
           avgViews: Math.round(avgViews),
           avgLikes: Math.round(avgLikes),
