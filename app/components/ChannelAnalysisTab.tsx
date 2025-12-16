@@ -8,9 +8,10 @@ import type { VideoSummary } from '../types/analysis';
 
 interface ChannelAnalysisTabProps {
   isLoggedIn: boolean;
+  isCheckingAuth?: boolean;
 }
 
-export default function ChannelAnalysisTab({ isLoggedIn }: ChannelAnalysisTabProps) {
+export default function ChannelAnalysisTab({ isLoggedIn, isCheckingAuth }: ChannelAnalysisTabProps) {
   const [channelUrl, setChannelUrl] = useState('');
   const [loading, setLoading] = useState(false);
   const [videos, setVideos] = useState<any[]>([]);

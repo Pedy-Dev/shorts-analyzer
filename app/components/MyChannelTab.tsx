@@ -11,9 +11,10 @@ import MyChannelAnalysisView from './MyChannelAnalysisView';
 
 interface MyChannelTabProps {
   isLoggedIn: boolean;
+  isCheckingAuth?: boolean;
 }
 
-export default function MyChannelTab({ isLoggedIn }: MyChannelTabProps) {
+export default function MyChannelTab({ isLoggedIn, isCheckingAuth }: MyChannelTabProps) {
   const [isLoginLoading, setIsLoginLoading] = useState(false);
   const [authStatus, setAuthStatus] = useState('');
   const [myChannelLoading, setMyChannelLoading] = useState(false);
@@ -38,6 +39,7 @@ export default function MyChannelTab({ isLoggedIn }: MyChannelTabProps) {
   // 👇 Phase 3: 여러 채널 관리
   const [connectedChannels, setConnectedChannels] = useState<any[]>([]);
   const [selectedChannelId, setSelectedChannelId] = useState<string | null>(null);
+  const [isChannelLoading, setIsChannelLoading] = useState(false);
 
   useEffect(() => {
     // 로그인되어 있으면 자동으로 채널 정보 로드
@@ -47,6 +49,7 @@ export default function MyChannelTab({ isLoggedIn }: MyChannelTabProps) {
   }, [isLoggedIn]);
 
   const loadConnectedChannels = async () => {
+    setIsChannelLoading(true);
     try {
       console.log('📌 연결된 채널 목록 로딩 시작...');
       const response = await fetch('/api/my-channels/list');
@@ -94,6 +97,8 @@ export default function MyChannelTab({ isLoggedIn }: MyChannelTabProps) {
       console.error('❌ 채널 목록 로딩 실패:', error);
       setConnectedChannels([]);
       setCurrentChannel(null);
+    } finally {
+      setIsChannelLoading(false);
     }
   };
 
@@ -434,6 +439,16 @@ export default function MyChannelTab({ isLoggedIn }: MyChannelTabProps) {
       setDetailedAnalysisLoading(false);
     }
   };
+
+  // 인증 확인 중이거나 채널 로딩 중일 때 로딩 표시
+  if (isCheckingAuth || isChannelLoading) {
+    return (
+      <div className="text-center py-12">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600 mx-auto mb-4"></div>
+        <p className="text-red-600">로딩 중...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

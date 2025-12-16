@@ -8,9 +8,10 @@ import OwnChannelHistoryTab from './OwnChannelHistoryTab';
 
 interface AnalysisHistoryTabProps {
   isLoggedIn: boolean;
+  isCheckingAuth?: boolean;
 }
 
-export default function AnalysisHistoryTab({ isLoggedIn }: AnalysisHistoryTabProps) {
+export default function AnalysisHistoryTab({ isLoggedIn, isCheckingAuth }: AnalysisHistoryTabProps) {
   const [currentSubTab, setCurrentSubTab] = useState<'external' | 'own' | null>(null);
   const [isSubTabInitialized, setIsSubTabInitialized] = useState(false);
 
@@ -33,6 +34,16 @@ export default function AnalysisHistoryTab({ isLoggedIn }: AnalysisHistoryTabPro
     // 서브탭 초기화 완료 표시
     setIsSubTabInitialized(true);
   }, []);
+
+  // 인증 확인 중이거나 서브탭 초기화 전일 때 로딩 표시
+  if (isCheckingAuth || !isSubTabInitialized) {
+    return (
+      <div className="text-center py-12">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600 mx-auto mb-4"></div>
+        <p className="text-red-600">로딩 중...</p>
+      </div>
+    );
+  }
 
   // 로그인하지 않은 경우
   if (!isLoggedIn) {
@@ -57,15 +68,8 @@ export default function AnalysisHistoryTab({ isLoggedIn }: AnalysisHistoryTabPro
         <p className="text-gray-600">과거에 분석한 채널들의 기록을 확인할 수 있습니다</p>
       </div>
 
-      {/* 서브탭 초기화 전 로딩 */}
-      {(!isSubTabInitialized || currentSubTab === null) && (
-        <div className="text-sm text-gray-400 py-4">
-          기록 불러오는 중...
-        </div>
-      )}
-
       {/* 서브탭 메뉴 */}
-      {isSubTabInitialized && currentSubTab !== null && (
+      {currentSubTab !== null && (
         <>
           <div className="flex gap-3 mb-6 border-b">
             <button

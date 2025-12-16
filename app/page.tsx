@@ -131,11 +131,11 @@ export default function ChannelAnalyzer() {
         {isTabInitialized && currentTab !== null ? (
           <div className="max-w-7xl mx-auto px-4 py-4 md:py-8">
             {currentTab === 'analyze' ? (
-              <ChannelAnalysisTab isLoggedIn={!!user} />
+              <ChannelAnalysisTab isLoggedIn={!!user} isCheckingAuth={isCheckingAuth} />
             ) : currentTab === 'myChannel' ? (
-              <MyChannelTab isLoggedIn={!!user} />
+              <MyChannelTab isLoggedIn={!!user} isCheckingAuth={isCheckingAuth} />
             ) : (
-              <AnalysisHistoryTab isLoggedIn={!!user} />
+              <AnalysisHistoryTab isLoggedIn={!!user} isCheckingAuth={isCheckingAuth} />
             )}
           </div>
         ) : (
