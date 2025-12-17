@@ -65,50 +65,69 @@ async function getVideoMetadata(videoId: string) {
   }
 }
 
-// 🔥 자막 추출 (재시도 로직 포함)
-async function extractTranscript(videoInfo: any, metadata: any, maxRetries = 3) {
-  let lastError = null;
-  
-  for (let attempt = 1; attempt <= maxRetries; attempt++) {
-    try {
-      console.log(`[자막 API] 📝 자막 추출 시도 ${attempt}/${maxRetries}`);
-      
-      const transcriptData = await videoInfo.getTranscript();
-      
-      if (!transcriptData || !transcriptData.transcript) {
-        throw new Error('Transcript not found');
-      }
-      
-      const segments = transcriptData.transcript.content?.body?.initial_segments;
-      
-      if (!segments || segments.length === 0) {
-        throw new Error('No segments found');
-      }
-      
-      const subtitleText = segments
-        .map((segment: any) => segment.snippet?.text || '')
-        .filter((text: string) => text.length > 0)
-        .join(' ')
-        .trim();
-      
-      if (subtitleText.length === 0) {
-        throw new Error('Empty subtitle text');
-      }
-      
-      return cleanSubtitle(subtitleText);
-      
-    } catch (error: any) {
-      lastError = error;
-      console.log(`[자막 API] ⚠️ 시도 ${attempt} 실패: ${error.message}`);
-      
-      if (attempt < maxRetries) {
-        // 재시도 전 대기 (점진적 증가)
-        await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
-      }
-    }
+// 🔥 자막 추출 (XML 직접 파싱 방식 - getTranscript 차단 우회)
+async function extractTranscript(videoInfo: any, _metadata: any) {
+  console.log(`[자막 API] 📝 자막 추출 시도 (XML 방식)`);
+
+  // 1. captions에서 자막 트랙 URL 추출
+  const captions = videoInfo.captions;
+
+  if (!captions || !captions.caption_tracks || captions.caption_tracks.length === 0) {
+    throw new Error('No caption tracks available');
   }
-  
-  throw lastError;
+
+  // 한국어 자막 우선, 없으면 첫 번째 자막 사용
+  const captionTrack =
+    captions.caption_tracks.find((track: any) => track.language_code === 'ko') ||
+    captions.caption_tracks.find((track: any) => track.language_code?.startsWith('ko')) ||
+    captions.caption_tracks[0];
+
+  const captionUrl = captionTrack.base_url;
+
+  if (!captionUrl) {
+    throw new Error('No caption URL found');
+  }
+
+  console.log(`[자막 API] 🔗 자막 URL 발견: ${captionTrack.name?.text || captionTrack.language_code}`);
+
+  // 2. XML 자막 데이터 fetch
+  const response = await fetch(captionUrl);
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch caption XML: ${response.status}`);
+  }
+
+  const xmlText = await response.text();
+
+  // 3. XML 파싱 (정규식으로 <text> 태그 내용 추출)
+  const textMatches = xmlText.match(/<text[^>]*>([^<]*)<\/text>/g);
+
+  if (!textMatches || textMatches.length === 0) {
+    throw new Error('No text segments found in XML');
+  }
+
+  const subtitleText = textMatches
+    .map((match) => {
+      // <text ...>내용</text> 에서 내용만 추출
+      const content = match.replace(/<text[^>]*>/, '').replace(/<\/text>/, '');
+      // HTML 엔티티 디코딩
+      return content
+        .replace(/&amp;/g, '&')
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/&quot;/g, '"')
+        .replace(/&#39;/g, "'")
+        .replace(/\n/g, ' ');
+    })
+    .filter((text) => text.trim().length > 0)
+    .join(' ')
+    .trim();
+
+  if (subtitleText.length === 0) {
+    throw new Error('Empty subtitle text after parsing');
+  }
+
+  return cleanSubtitle(subtitleText);
 }
 
 // 🔥 메인 API 핸들러
@@ -157,16 +176,15 @@ export async function GET(request: NextRequest) {
       });
       
     } catch (subtitleError: any) {
-      // 🔥 자막은 실패했지만 채널 정보는 있음!
+      // 자막 추출 실패
       console.error(`[자막 API] ❌ 자막 추출 실패 | ${videoId} | ${metadata.channelName}`);
       console.error(`[자막 API] 💥 에러: ${subtitleError.message}`);
       console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`);
-      
-      // 자막 실패 원인 분석용 정보 반환
-      return NextResponse.json({ 
+
+      return NextResponse.json({
         error: '자막 추출 실패',
         videoId,
-        channelName: metadata.channelName,  // 실패해도 채널명은 반환!
+        channelName: metadata.channelName,
         videoTitle: metadata.videoTitle,
         details: subtitleError.message
       }, { status: 404 });
