@@ -90,14 +90,31 @@ async function extractTranscript(videoInfo: any, _metadata: any) {
 
   console.log(`[자막 API] 🔗 자막 URL 발견: ${captionTrack.name?.text || captionTrack.language_code}`);
 
-  // 2. XML 자막 데이터 fetch
-  const response = await fetch(captionUrl);
+  // 2. XML 자막 데이터 fetch (429 에러 시 재시도)
+  let xmlText = '';
+  const maxRetries = 3;
 
-  if (!response.ok) {
-    throw new Error(`Failed to fetch caption XML: ${response.status}`);
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    const response = await fetch(captionUrl);
+
+    if (response.ok) {
+      xmlText = await response.text();
+      break;
+    }
+
+    if (response.status === 429) {
+      // 속도 제한 - 지수 백오프로 대기 후 재시도
+      const waitTime = Math.pow(2, attempt) * 1000; // 2초, 4초, 8초
+      console.log(`[자막 API] ⏳ 429 속도제한 - ${waitTime / 1000}초 대기 후 재시도 (${attempt}/${maxRetries})`);
+      await new Promise((resolve) => setTimeout(resolve, waitTime));
+
+      if (attempt === maxRetries) {
+        throw new Error(`Rate limited (429) after ${maxRetries} retries`);
+      }
+    } else {
+      throw new Error(`Failed to fetch caption XML: ${response.status}`);
+    }
   }
-
-  const xmlText = await response.text();
 
   // 3. XML 파싱 (정규식으로 <text> 태그 내용 추출)
   const textMatches = xmlText.match(/<text[^>]*>([^<]*)<\/text>/g);
